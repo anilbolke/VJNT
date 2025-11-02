@@ -1,0 +1,22 @@
+# Build directories
+/build/
+/target/
+
+# Eclipse
+.settings/
+.classpath
+.project
+
+# IDE
+*.iml
+.idea/
+
+# Compiled files
+*.class
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak

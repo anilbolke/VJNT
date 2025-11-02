@@ -1,0 +1,346 @@
+package com.vjnt.dao;
+
+import com.vjnt.model.User;
+import com.vjnt.model.User.UserType;
+import com.vjnt.util.DatabaseConnection;
+import com.vjnt.util.PasswordUtil;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * User Data Access Object
+ * Handles all database operations for User entity
+ */
+public class UserDAO {
+    
+    /**
+     * Create a new user
+     */
+    public boolean createUser(User user) {
+        String sql = "INSERT INTO users (username, password, user_type, division_name, district_name, " +
+                    "udise_no, is_first_login, must_change_password, is_active, created_by, full_name) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            
+            pstmt.setString(1, user.getUsername());
+            pstmt.setString(2, user.getPassword());
+            pstmt.setString(3, user.getUserType().name());
+            pstmt.setString(4, user.getDivisionName());
+            pstmt.setString(5, user.getDistrictName());
+            pstmt.setString(6, user.getUdiseNo());
+            pstmt.setBoolean(7, user.isFirstLogin());
+            pstmt.setBoolean(8, user.isMustChangePassword());
+            pstmt.setBoolean(9, user.isActive());
+            pstmt.setString(10, user.getCreatedBy());
+            pstmt.setString(11, user.getFullName());
+            
+            int rowsAffected = pstmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    user.setUserId(rs.getInt(1));
+                }
+                return true;
+            }
+            return false;
+            
+        } catch (SQLException e) {
+            System.err.println("Error creating user: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Find user by username
+     */
+    public User findByUsername(String username) {
+        String sql = "SELECT * FROM users WHERE username = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return extractUserFromResultSet(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error finding user: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    /**
+     * Authenticate user
+     */
+    public User authenticateUser(String username, String password) {
+        User user = findByUsername(username);
+        
+        if (user != null && PasswordUtil.verifyPassword(password, user.getPassword())) {
+            if (user.isAccountLocked()) {
+                return null;
+            }
+            if (!user.isActive()) {
+                return null;
+            }
+            
+            updateLastLogin(user.getUserId());
+            resetFailedAttempts(user.getUserId());
+            return user;
+        } else {
+            if (user != null) {
+                incrementFailedAttempts(user.getUserId());
+            }
+            return null;
+        }
+    }
+    
+    /**
+     * Update password
+     */
+    public boolean updatePassword(int userId, String newPassword) {
+        String sql = "UPDATE users SET password = ?, password_changed_date = ?, " +
+                    "is_first_login = FALSE, must_change_password = FALSE " +
+                    "WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, newPassword);
+            pstmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            pstmt.setInt(3, userId);
+            
+            return pstmt.executeUpdate() > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating password: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Update last login time
+     */
+    private void updateLastLogin(int userId) {
+        String sql = "UPDATE users SET last_login_date = ? WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+            pstmt.setInt(2, userId);
+            pstmt.executeUpdate();
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating last login: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Increment failed login attempts
+     */
+    private void incrementFailedAttempts(int userId) {
+        String sql = "UPDATE users SET failed_login_attempts = failed_login_attempts + 1, " +
+                    "account_locked = CASE WHEN failed_login_attempts >= 4 THEN TRUE ELSE FALSE END, " +
+                    "locked_date = CASE WHEN failed_login_attempts >= 4 THEN ? ELSE locked_date END " +
+                    "WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+            pstmt.setInt(2, userId);
+            pstmt.executeUpdate();
+            
+        } catch (SQLException e) {
+            System.err.println("Error incrementing failed attempts: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Reset failed login attempts
+     */
+    private void resetFailedAttempts(int userId) {
+        String sql = "UPDATE users SET failed_login_attempts = 0, account_locked = FALSE, " +
+                    "locked_date = NULL WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, userId);
+            pstmt.executeUpdate();
+            
+        } catch (SQLException e) {
+            System.err.println("Error resetting failed attempts: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Check if username exists
+     */
+    public boolean usernameExists(String username) {
+        return findByUsername(username) != null;
+    }
+    
+    /**
+     * Get all users by type
+     */
+    public List<User> getUsersByType(UserType userType) {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE user_type = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, userType.name());
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by type: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * Get all users
+     */
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users ORDER BY user_type, username";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting all users: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * Get users by division
+     */
+    public List<User> getUsersByDivision(String divisionName) {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE division_name = ? ORDER BY user_type, username";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, divisionName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by division: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * Get users by district
+     */
+    public List<User> getUsersByDistrict(String districtName) {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE district_name = ? ORDER BY user_type, username";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, districtName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by district: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * Get users by UDISE number
+     */
+    public List<User> getUsersByUdise(String udiseNo) {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE udise_no = ? ORDER BY user_type, username";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by UDISE: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * Extract User object from ResultSet
+     */
+    private User extractUserFromResultSet(ResultSet rs) throws SQLException {
+        User user = new User();
+        user.setUserId(rs.getInt("user_id"));
+        user.setUsername(rs.getString("username"));
+        user.setPassword(rs.getString("password"));
+        
+        // Parse user type with error handling
+        String userTypeStr = rs.getString("user_type");
+        try {
+            user.setUserType(UserType.valueOf(userTypeStr));
+        } catch (IllegalArgumentException e) {
+            System.err.println("Unknown user type: " + userTypeStr + " for user: " + rs.getString("username"));
+            // Default to DIVISION if unknown type
+            user.setUserType(UserType.DIVISION);
+        }
+        
+        user.setDivisionName(rs.getString("division_name"));
+        user.setDistrictName(rs.getString("district_name"));
+        user.setUdiseNo(rs.getString("udise_no"));
+        user.setFirstLogin(rs.getBoolean("is_first_login"));
+        user.setPasswordChangedDate(rs.getTimestamp("password_changed_date"));
+        user.setMustChangePassword(rs.getBoolean("must_change_password"));
+        user.setActive(rs.getBoolean("is_active"));
+        user.setCreatedDate(rs.getTimestamp("created_date"));
+        user.setCreatedBy(rs.getString("created_by"));
+        user.setLastLoginDate(rs.getTimestamp("last_login_date"));
+        user.setFailedLoginAttempts(rs.getInt("failed_login_attempts"));
+        user.setAccountLocked(rs.getBoolean("account_locked"));
+        user.setLockedDate(rs.getTimestamp("locked_date"));
+        user.setEmail(rs.getString("email"));
+        user.setMobile(rs.getString("mobile"));
+        user.setFullName(rs.getString("full_name"));
+        user.setUpdatedDate(rs.getTimestamp("updated_date"));
+        user.setUpdatedBy(rs.getString("updated_by"));
+        return user;
+    }
+}

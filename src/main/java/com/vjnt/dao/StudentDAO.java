@@ -1,0 +1,448 @@
+package com.vjnt.dao;
+
+import com.vjnt.model.Student;
+import com.vjnt.util.DatabaseConnection;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Student Data Access Object
+ * Handles all database operations for Student entity
+ */
+public class StudentDAO {
+    
+    /**
+     * Create a new student
+     */
+    public boolean createStudent(Student student) {
+        String sql = "INSERT INTO students (division, district, udise_no, class, section, " +
+                     "class_category, student_name, gender, student_pen, marathi_level, " +
+                     "math_level, english_level, created_by) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            
+            pstmt.setString(1, student.getDivision());
+            pstmt.setString(2, student.getDistrict());
+            pstmt.setString(3, student.getUdiseNo());
+            pstmt.setString(4, student.getStudentClass());
+            pstmt.setString(5, student.getSection());
+            pstmt.setString(6, student.getClassCategory());
+            pstmt.setString(7, student.getStudentName());
+            pstmt.setString(8, student.getGender());
+            pstmt.setString(9, student.getStudentPen());
+            pstmt.setString(10, student.getMarathiLevel());
+            pstmt.setString(11, student.getMathLevel());
+            pstmt.setString(12, student.getEnglishLevel());
+            pstmt.setString(13, student.getCreatedBy());
+            
+            int rowsAffected = pstmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    student.setStudentId(rs.getInt(1));
+                }
+                return true;
+            }
+            return false;
+            
+        } catch (SQLException e) {
+            System.err.println("Error creating student: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Check if student exists by PEN
+     */
+    public boolean studentExists(String studentPen) {
+        if (studentPen == null || studentPen.trim().isEmpty()) {
+            return false;
+        }
+        
+        String sql = "SELECT COUNT(*) FROM students WHERE student_pen = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, studentPen.trim());
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking student existence: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * Get all students
+     */
+    public List<Student> getAllStudents() {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students ORDER BY division, district, udise_no, class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting all students: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return students;
+    }
+    
+    /**
+     * Get students by division
+     */
+    public List<Student> getStudentsByDivision(String division) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE division = ? ORDER BY district, udise_no, class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, division);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting students by division: " + e.getMessage());
+        }
+        return students;
+    }
+    
+    /**
+     * Get students by district
+     */
+    public List<Student> getStudentsByDistrict(String district) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE district = ? ORDER BY udise_no, class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, district);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting students by district: " + e.getMessage());
+        }
+        return students;
+    }
+    
+    /**
+     * Get students by UDISE number
+     */
+    public List<Student> getStudentsByUdise(String udiseNo) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE udise_no = ? ORDER BY class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting students by UDISE: " + e.getMessage());
+        }
+        return students;
+    }
+    
+    /**
+     * Extract student from ResultSet
+     */
+    private Student extractStudentFromResultSet(ResultSet rs) throws SQLException {
+        Student student = new Student();
+        student.setStudentId(rs.getInt("student_id"));
+        student.setDivision(rs.getString("division"));
+        student.setDistrict(rs.getString("district"));
+        student.setUdiseNo(rs.getString("udise_no"));
+        student.setStudentClass(rs.getString("class"));
+        student.setSection(rs.getString("section"));
+        student.setClassCategory(rs.getString("class_category"));
+        student.setStudentName(rs.getString("student_name"));
+        student.setGender(rs.getString("gender"));
+        student.setStudentPen(rs.getString("student_pen"));
+        student.setMarathiLevel(rs.getString("marathi_level"));
+        student.setMathLevel(rs.getString("math_level"));
+        student.setEnglishLevel(rs.getString("english_level"));
+        
+        // Detailed language levels
+        student.setMarathiAksharaLevel(rs.getInt("marathi_akshara_level"));
+        student.setMarathiShabdaLevel(rs.getInt("marathi_shabda_level"));
+        student.setMarathiVakyaLevel(rs.getInt("marathi_vakya_level"));
+        student.setMarathiSamajpurvakLevel(rs.getInt("marathi_samajpurvak_level"));
+        
+        student.setMathAksharaLevel(rs.getInt("math_akshara_level"));
+        student.setMathShabdaLevel(rs.getInt("math_shabda_level"));
+        student.setMathVakyaLevel(rs.getInt("math_vakya_level"));
+        student.setMathSamajpurvakLevel(rs.getInt("math_samajpurvak_level"));
+        
+        student.setEnglishAksharaLevel(rs.getInt("english_akshara_level"));
+        student.setEnglishShabdaLevel(rs.getInt("english_shabda_level"));
+        student.setEnglishVakyaLevel(rs.getInt("english_vakya_level"));
+        student.setEnglishSamajpurvakLevel(rs.getInt("english_samajpurvak_level"));
+        
+        student.setCreatedDate(rs.getTimestamp("created_date"));
+        student.setCreatedBy(rs.getString("created_by"));
+        student.setUpdatedDate(rs.getTimestamp("updated_date"));
+        student.setUpdatedBy(rs.getString("updated_by"));
+        return student;
+    }
+    
+    /**
+     * Get students by UDISE with pagination
+     */
+    public List<Student> getStudentsByUdiseWithPagination(String udiseNo, int page, int pageSize) {
+        List<Student> students = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+        String sql = "SELECT * FROM students WHERE udise_no = ? ORDER BY class, section, student_name LIMIT ? OFFSET ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            pstmt.setInt(2, pageSize);
+            pstmt.setInt(3, offset);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting students by UDISE with pagination: " + e.getMessage());
+        }
+        return students;
+    }
+    
+    /**
+     * Get total count of students by UDISE
+     */
+    public int getStudentCountByUdise(String udiseNo) {
+        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting student count by UDISE: " + e.getMessage());
+        }
+        return 0;
+    }
+    
+    /**
+     * Update student language levels
+     */
+    public boolean updateLanguageLevels(int studentId, 
+                                       int marathiAkshara, int marathiShabda, int marathiVakya, int marathiSamajpurvak,
+                                       int mathAkshara, int mathShabda, int mathVakya, int mathSamajpurvak,
+                                       int englishAkshara, int englishShabda, int englishVakya, int englishSamajpurvak) {
+        String sql = "UPDATE students SET " +
+                     "marathi_akshara_level = ?, marathi_shabda_level = ?, marathi_vakya_level = ?, marathi_samajpurvak_level = ?, " +
+                     "math_akshara_level = ?, math_shabda_level = ?, math_vakya_level = ?, math_samajpurvak_level = ?, " +
+                     "english_akshara_level = ?, english_shabda_level = ?, english_vakya_level = ?, english_samajpurvak_level = ? " +
+                     "WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, marathiAkshara);
+            pstmt.setInt(2, marathiShabda);
+            pstmt.setInt(3, marathiVakya);
+            pstmt.setInt(4, marathiSamajpurvak);
+            pstmt.setInt(5, mathAkshara);
+            pstmt.setInt(6, mathShabda);
+            pstmt.setInt(7, mathVakya);
+            pstmt.setInt(8, mathSamajpurvak);
+            pstmt.setInt(9, englishAkshara);
+            pstmt.setInt(10, englishShabda);
+            pstmt.setInt(11, englishVakya);
+            pstmt.setInt(12, englishSamajpurvak);
+            pstmt.setInt(13, studentId);
+            
+            return pstmt.executeUpdate() > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating language levels: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Delete all students (for testing)
+     */
+    public boolean deleteAllStudents() {
+        String sql = "DELETE FROM students";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.executeUpdate();
+            return true;
+
+        } catch (SQLException e) {
+            System.err.println("Error deleting all students: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if a phase is complete for a school (all students have data for that phase)
+     */
+    public boolean isPhaseComplete(String udiseNo, int phase) {
+        String columnPrefix = "phase" + phase + "_";
+        String sql = "SELECT COUNT(*) as total, " +
+                     "SUM(CASE WHEN " + columnPrefix + "marathi IS NOT NULL AND " +
+                     columnPrefix + "math IS NOT NULL AND " +
+                     columnPrefix + "english IS NOT NULL THEN 1 ELSE 0 END) as completed " +
+                     "FROM students WHERE udise_no = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int total = rs.getInt("total");
+                int completed = rs.getInt("completed");
+                System.out.println("Phase " + phase + " check - Total: " + total + ", Completed: " + completed);
+                return total > 0 && total == completed;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking phase completion: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    /**
+     * Update language levels for a specific phase
+     */
+    public boolean updatePhaseLanguageLevels(int studentId, int phase, 
+                                            int marathiLevel, int mathLevel, int englishLevel,
+                                            String updatedBy) {
+        String columnPrefix = "phase" + phase + "_";
+        String sql = "UPDATE students SET " +
+                     columnPrefix + "marathi = ?, " +
+                     columnPrefix + "math = ?, " +
+                     columnPrefix + "english = ?, " +
+                     columnPrefix + "date = NOW() " +
+                     "WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, marathiLevel);
+            pstmt.setInt(2, mathLevel);
+            pstmt.setInt(3, englishLevel);
+            pstmt.setInt(4, studentId);
+            
+            int rows = pstmt.executeUpdate();
+            
+            // Create audit entry
+            if (rows > 0) {
+                auditPhaseChange(studentId, phase, marathiLevel, mathLevel, englishLevel, updatedBy);
+            }
+            
+            return rows > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating phase language levels: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Create audit entry for phase changes
+     */
+    private void auditPhaseChange(int studentId, int phase, int marathiLevel, 
+                                 int mathLevel, int englishLevel, String changedBy) {
+        String sql = "INSERT INTO student_phase_audit (student_id, phase, marathi_level, " +
+                     "math_level, english_level, changed_by, action_type) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, 'UPDATE')";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, studentId);
+            pstmt.setInt(2, phase);
+            pstmt.setInt(3, marathiLevel);
+            pstmt.setInt(4, mathLevel);
+            pstmt.setInt(5, englishLevel);
+            pstmt.setString(6, changedBy);
+            pstmt.executeUpdate();
+            
+        } catch (SQLException e) {
+            System.err.println("Error creating audit entry: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Get phase completion percentage for a school
+     */
+    public int getPhaseCompletionPercentage(String udiseNo, int phase) {
+        String columnPrefix = "phase" + phase + "_";
+        String sql = "SELECT COUNT(*) as total, " +
+                     "SUM(CASE WHEN " + columnPrefix + "marathi IS NOT NULL AND " +
+                     columnPrefix + "math IS NOT NULL AND " +
+                     columnPrefix + "english IS NOT NULL THEN 1 ELSE 0 END) as completed " +
+                     "FROM students WHERE udise_no = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int total = rs.getInt("total");
+                int completed = rs.getInt("completed");
+                if (total > 0) {
+                    return (completed * 100) / total;
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting phase completion percentage: " + e.getMessage());
+        }
+        return 0;
+    }
+}
