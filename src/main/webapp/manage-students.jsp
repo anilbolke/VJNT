@@ -386,9 +386,9 @@
                             <th style="vertical-align: middle;">Name</th>
                             <th style="vertical-align: middle;">Class</th>
                             <th style="vertical-align: middle;">Section</th>
-                            <th style="text-align: center; background: #fff3e0;">🇮🇳 मराठी भाषा स्तर</th>
-                            <th style="text-align: center; background: #e3f2fd;">🔢 गणित स्तर</th>
-                            <th style="text-align: center; background: #f3e5f5;">🇬🇧 इंग्रजी स्तर</th>
+                            <th style="text-align: center; background: #5e3f0e;">मराठी भाषा स्तर</th>
+                            <th style="text-align: center; background: #005695;">गणित स्तर</th>
+                            <th style="text-align: center; background: #a901c1;">इंग्रजी स्तर</th>
                             <th style="vertical-align: middle;">Action</th>
                         </tr>
                     </thead>
@@ -405,33 +405,34 @@
                             <td>
                                 <select name="marathi_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
                                     <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>निरांक</option>
-                                    <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>अक्षर स्तर</option>
-                                    <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>शब्द स्तर</option>
-                                    <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>वाक्य स्तर</option>
-                                    <option value="4" <%= s.getMarathiAksharaLevel() == 4 ? "selected" : "" %>>समजपुर्वक उतार</option>
+                                    <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
+                                    <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
+                                    <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>वाक्य स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="4" <%= s.getMarathiAksharaLevel() == 4 ? "selected" : "" %>>समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या</option>
                                 </select>
                             </td>
                             <!-- Math Levels -->
                             <td>
                                 <select name="math_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
                                     <option value="0" <%= s.getMathAksharaLevel() == 0 ? "selected" : "" %>>निरांक</option>
-                                    <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभीक स्तर</option>
-                                    <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक स्तर</option>
-                                    <option value="3" <%= s.getMathAksharaLevel() == 3 ? "selected" : "" %>>संख्या वाचन</option>
-                                    <option value="4" <%= s.getMathAksharaLevel() == 4 ? "selected" : "" %>>बेरीज</option>
-                                    <option value="5" <%= s.getMathAksharaLevel() == 5 ? "selected" : "" %>>वजाबाकी</option>
-                                    <option value="6" <%= s.getMathAksharaLevel() == 6 ? "selected" : "" %>>गुणाकार</option>
-                                    <option value="7" <%= s.getMathAksharaLevel() == 7 ? "selected" : "" %>>भागाकर</option>
+                                    <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभीक स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="3" <%= s.getMathAksharaLevel() == 3 ? "selected" : "" %>>संख्या वाचन स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="4" <%= s.getMathAksharaLevel() == 4 ? "selected" : "" %>>बेरीज स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="5" <%= s.getMathAksharaLevel() == 5 ? "selected" : "" %>>वजाबाकी स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="6" <%= s.getMathAksharaLevel() == 6 ? "selected" : "" %>>गुणाकार स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="7" <%= s.getMathAksharaLevel() == 7 ? "selected" : "" %>>भागाकर स्तरावरील विद्यार्थी संख्या</option>
                                 </select>
                             </td>
                             <!-- English Levels -->
                             <td>
                                 <select name="english_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>निरांक</option>
-                                    <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>Letter</option>
-                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>Word</option>
-                                    <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>Sentence</option>
-                                    <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>Paragraph</option>
+                                    <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>NA</option>
+                                    <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>BEGINER LEVEL</option>
+                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>ALPHABET LEVEL Reading and Writing</option>
+                                    <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>WORD LEVEL Reading and Writing</option>
+                                    <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>SENTENCE LEVEL</option>
+                                    <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
                                 </select>
                             </td>
                             <td>
@@ -498,16 +499,16 @@
             var englishLevel = row.querySelector('[name="english_akshara"]').value;
             var phase = document.getElementById('phaseSelector').value;
             
-            fetch('<%= request.getContextPath() %>/update-student-levels', {
+            fetch('<%= request.getContextPath() %>/update-language-levels', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: 'studentId=' + studentId + 
                       '&phase=' + phase +
-                      '&marathiLevel=' + marathiLevel + 
-                      '&mathLevel=' + mathLevel + 
-                      '&englishLevel=' + englishLevel
+                      '&marathi_akshara=' + marathiLevel + 
+                      '&math_akshara=' + mathLevel + 
+                      '&english_akshara=' + englishLevel
             })
             .then(response => response.json())
             .then(data => {

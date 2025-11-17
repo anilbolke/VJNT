@@ -1,7 +1,11 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.vjnt.model.User" %>
 <%@ page import="com.vjnt.dao.StudentDAO" %>
+<%@ page import="com.vjnt.dao.SchoolDAO" %>
+<%@ page import="com.vjnt.dao.PhaseApprovalDAO" %>
 <%@ page import="com.vjnt.model.Student" %>
+<%@ page import="com.vjnt.model.School" %>
+<%@ page import="com.vjnt.model.PhaseApproval" %>
 <%@ page import="java.util.*" %>
 <%
     User user = (User) session.getAttribute("user");
@@ -12,6 +16,7 @@
     }
     
     StudentDAO studentDAO = new StudentDAO();
+    SchoolDAO schoolDAO = new SchoolDAO();
     
     // Pagination parameters
     int currentPage = 1;
@@ -27,6 +32,10 @@
     
     // Get statistics for this school (UDISE)
     String udiseNo = user.getUdiseNo();
+    
+    // Get school name from schools table
+    School school = schoolDAO.getSchoolByUdise(udiseNo);
+    String schoolName = school != null ? school.getSchoolName() : "Unknown School";
     List<com.vjnt.model.Student> allStudents = studentDAO.getStudentsByUdise(udiseNo);
     int totalStudents = studentDAO.getStudentCountByUdise(udiseNo);
     int totalPages = (int) Math.ceil((double) totalStudents / pageSize);
@@ -50,6 +59,11 @@
     int englishShabdaTotal = 0, englishVakyaTotal = 0, englishSamajpurvakTotal = 0;
     
     for (com.vjnt.model.Student student : allStudents) {
+        // Skip students with all default values (0) - they are not assessed yet
+        boolean hasValidData = !(student.getMarathiAksharaLevel() == 0 && 
+                                 student.getMathAksharaLevel() == 0 && 
+                                 student.getEnglishAksharaLevel() == 0);
+        
         String studentClass = student.getStudentClass();
         String section = student.getSection();
         
@@ -67,45 +81,107 @@
             femaleCount++;
         }
         
-        // Count students by Marathi level
-        switch (student.getMarathiAksharaLevel()) {
-            case 0: marathiNone++; break;
-            case 1: marathiLevel1++; break;
-            case 2: marathiLevel2++; break;
-            case 3: marathiLevel3++; break;
-            case 4: marathiLevel4++; break;
+        // Only count students with valid assessment data in statistics
+        if (hasValidData) {
+            // Count students by Marathi level
+            switch (student.getMarathiAksharaLevel()) {
+                case 0: marathiNone++; break;
+                case 1: marathiLevel1++; break;
+                case 2: marathiLevel2++; break;
+                case 3: marathiLevel3++; break;
+                case 4: marathiLevel4++; break;
+            }
+            marathiShabdaTotal += student.getMarathiShabdaLevel();
+            marathiVakyaTotal += student.getMarathiVakyaLevel();
+            marathiSamajpurvakTotal += student.getMarathiSamajpurvakLevel();
+            
+            // Count students by Math level
+            switch (student.getMathAksharaLevel()) {
+                case 0: mathNone++; break;
+                case 1: mathLevel1++; break;
+                case 2: mathLevel2++; break;
+                case 3: mathLevel3++; break;
+                case 4: mathLevel4++; break;
+                case 5: mathLevel5++; break;
+                case 6: mathLevel6++; break;
+                case 7: mathLevel7++; break;
+            }
+            mathShabdaTotal += student.getMathShabdaLevel();
+            mathVakyaTotal += student.getMathVakyaLevel();
+            mathSamajpurvakTotal += student.getMathSamajpurvakLevel();
+            
+            // Count students by English level
+            switch (student.getEnglishAksharaLevel()) {
+                case 0: englishNone++; break;
+                case 1: englishLevel1++; break;
+                case 2: englishLevel2++; break;
+                case 3: englishLevel3++; break;
+                case 4: englishLevel4++; break;
+                case 5: englishLevel5++; break;
+            }
+            englishShabdaTotal += student.getEnglishShabdaLevel();
+            englishVakyaTotal += student.getEnglishVakyaLevel();
+            englishSamajpurvakTotal += student.getEnglishSamajpurvakLevel();
         }
-        marathiShabdaTotal += student.getMarathiShabdaLevel();
-        marathiVakyaTotal += student.getMarathiVakyaLevel();
-        marathiSamajpurvakTotal += student.getMarathiSamajpurvakLevel();
+    }
+    
+    // Calculate phase completion percentages
+    int phase1Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 1);
+    int phase2Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 2);
+    int phase3Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 3);
+    int phase4Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 4);
+    
+    boolean phase1Complete = studentDAO.isPhaseComplete(udiseNo, 1);
+    boolean phase2Complete = studentDAO.isPhaseComplete(udiseNo, 2);
+    boolean phase3Complete = studentDAO.isPhaseComplete(udiseNo, 3);
+    boolean phase4Complete = studentDAO.isPhaseComplete(udiseNo, 4);
+    
+    // Get phase approval status
+    PhaseApprovalDAO approvalDAO = new PhaseApprovalDAO();
+    PhaseApproval phase1Approval = approvalDAO.getPhaseApproval(udiseNo, 1);
+    PhaseApproval phase2Approval = approvalDAO.getPhaseApproval(udiseNo, 2);
+    PhaseApproval phase3Approval = approvalDAO.getPhaseApproval(udiseNo, 3);
+    PhaseApproval phase4Approval = approvalDAO.getPhaseApproval(udiseNo, 4);
+    
+    int pendingApprovalsCount = approvalDAO.getPendingApprovalCount(udiseNo);
+    
+    // Separate students by phase completion status
+    Map<Integer, List<com.vjnt.model.Student>> phaseCompletedStudents = new HashMap<>();
+    Map<Integer, List<com.vjnt.model.Student>> phasePendingStudents = new HashMap<>();
+    
+    for (int phase = 1; phase <= 4; phase++) {
+        phaseCompletedStudents.put(phase, new ArrayList<>());
+        phasePendingStudents.put(phase, new ArrayList<>());
+    }
+    
+    for (com.vjnt.model.Student student : allStudents) {
+        // Check Phase 1 - Based on save button click (phase1_date), includes students with all 0s if saved
+        if (student.getPhase1Date() != null) {
+            phaseCompletedStudents.get(1).add(student);
+        } else {
+            phasePendingStudents.get(1).add(student);
+        }
         
-        // Count students by Math level
-        switch (student.getMathAksharaLevel()) {
-            case 0: mathNone++; break;
-            case 1: mathLevel1++; break;
-            case 2: mathLevel2++; break;
-            case 3: mathLevel3++; break;
-            case 4: mathLevel4++; break;
-            case 5: mathLevel5++; break;
-            case 6: mathLevel6++; break;
-            case 7: mathLevel7++; break;
+        // Check Phase 2 - Based on save button click (phase2_date), includes students with all 0s if saved
+        if (student.getPhase2Date() != null) {
+            phaseCompletedStudents.get(2).add(student);
+        } else {
+            phasePendingStudents.get(2).add(student);
         }
-        mathShabdaTotal += student.getMathShabdaLevel();
-        mathVakyaTotal += student.getMathVakyaLevel();
-        mathSamajpurvakTotal += student.getMathSamajpurvakLevel();
         
-        // Count students by English level
-        switch (student.getEnglishAksharaLevel()) {
-            case 0: englishNone++; break;
-            case 1: englishLevel1++; break;
-            case 2: englishLevel2++; break;
-            case 3: englishLevel3++; break;
-            case 4: englishLevel4++; break;
-            case 5: englishLevel5++; break;
+        // Check Phase 3 - Based on save button click (phase3_date), includes students with all 0s if saved
+        if (student.getPhase3Date() != null) {
+            phaseCompletedStudents.get(3).add(student);
+        } else {
+            phasePendingStudents.get(3).add(student);
         }
-        englishShabdaTotal += student.getEnglishShabdaLevel();
-        englishVakyaTotal += student.getEnglishVakyaLevel();
-        englishSamajpurvakTotal += student.getEnglishSamajpurvakLevel();
+        
+        // Check Phase 4 - Based on save button click (phase4_date), includes students with all 0s if saved
+        if (student.getPhase4Date() != null) {
+            phaseCompletedStudents.get(4).add(student);
+        } else {
+            phasePendingStudents.get(4).add(student);
+        }
     }
 %>
 <!DOCTYPE html>
@@ -113,7 +189,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Dashboard - UDISE <%= udiseNo %></title>
+    <title><%= schoolName %> - UDISE <%= udiseNo %></title>
     <style>
         * {
             margin: 0;
@@ -123,14 +199,18 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
         
         .header {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 25px 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         
         .header-content {
@@ -139,63 +219,158 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .school-icon {
+            font-size: 48px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .header-title {
+            display: flex;
+            flex-direction: column;
         }
         
         .header h1 {
-            font-size: 24px;
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 400;
         }
         
         .header-info {
-            text-align: right;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
         }
         
-        .user-info {
+        .user-badge {
+            background: rgba(255,255,255,0.15);
+            padding: 10px 15px;
+            border-radius: 25px;
             font-size: 14px;
-            margin-bottom: 5px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .user-badge strong {
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
         }
         
         .btn {
-            padding: 8px 16px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 5px;
+            border-radius: 25px;
             cursor: pointer;
             text-decoration: none;
             font-size: 14px;
-            display: inline-block;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         
         .btn-logout {
-            background: rgba(255,255,255,0.2);
+            background: #ff4757;
             color: white;
-            margin-left: 10px;
         }
         
         .btn-logout:hover {
-            background: rgba(255,255,255,0.3);
+            background: #ff3838;
         }
         
         .btn-change-password {
             background: rgba(255,255,255,0.2);
             color: white;
+            border: 2px solid rgba(255,255,255,0.3);
         }
         
         .btn-change-password:hover {
             background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
         }
         
         .container {
             max-width: 1400px;
             margin: 30px auto;
-            padding: 0 30px;
+            padding: 0 20px 30px 20px;
+        }
+        
+        .welcome-card {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .welcome-content h2 {
+            font-size: 26px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .welcome-content p {
+            font-size: 15px;
+            opacity: 0.95;
+        }
+        
+        .welcome-icon {
+            font-size: 64px;
+            animation: wave 3s infinite;
+        }
+        
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(20deg); }
+            75% { transform: rotate(-20deg); }
         }
         
         .breadcrumb {
             background: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid #667eea;
         }
         
         .breadcrumb span {
@@ -208,57 +383,71 @@
         
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
         .stat-card {
             background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            transition: transform 0.3s;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            text-align: center;
         }
         
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
+        .stat-card:nth-child(1) { border-left-color: #667eea; }
+        .stat-card:nth-child(2) { border-left-color: #f093fb; }
+        .stat-card:nth-child(3) { border-left-color: #4facfe; }
+        .stat-card:nth-child(4) { border-left-color: #43e97b; }
+        .stat-card:nth-child(5) { border-left-color: #fa709a; }
+        
         .stat-icon {
-            font-size: 36px;
-            margin-bottom: 10px;
+            font-size: 28px;
+            margin-bottom: 6px;
+            display: block;
         }
         
         .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #43e97b;
-            margin-bottom: 5px;
+            font-size: 26px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 4px;
         }
         
         .stat-label {
-            font-size: 14px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 11px;
+            color: #718096;
+            font-weight: 500;
         }
         
         .section {
             background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             margin-bottom: 30px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
         }
         
         .section-title {
-            font-size: 20px;
+            font-size: 22px;
             color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #43e97b;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid transparent;
+            border-image: linear-gradient(90deg, #667eea, #764ba2) 1;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .table {
@@ -395,40 +584,70 @@
         }
         
         .level-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+            padding: 25px;
+            border-radius: 15px;
             margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .level-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: rgba(102, 126, 234, 0.3);
         }
         
         .level-title {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             color: #333;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #43e97b;
-            padding-bottom: 5px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+        
+        .level-card:nth-child(1) .level-title { border-color: #ff9a9e; }
+        .level-card:nth-child(2) .level-title { border-color: #a18cd1; }
+        .level-card:nth-child(3) .level-title { border-color: #fbc2eb; }
         
         .level-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #dee2e6;
+            align-items: center;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: white;
+            transition: all 0.2s;
+        }
+        
+        .level-row:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
         }
         
         .level-row:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
         
         .level-name {
             font-size: 14px;
-            color: #666;
+            color: #555;
+            font-weight: 500;
         }
         
         .level-count {
-            font-weight: 600;
-            color: #43e97b;
+            font-weight: 700;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .btn-save {
@@ -503,8 +722,421 @@
             color: #888;
             line-height: 1.5;
         }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .header-left {
+                flex-direction: column;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .stat-card {
+                padding: 12px;
+            }
+            
+            .stat-icon {
+                font-size: 24px;
+                margin-bottom: 4px;
+            }
+            
+            .stat-value {
+                font-size: 22px;
+            }
+            
+            .stat-label {
+                font-size: 10px;
+            }
+            
+            .welcome-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-action-card {
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            
+            .stat-card {
+                padding: 10px;
+            }
+            
+            .stat-icon {
+                font-size: 20px;
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+            
+            .stat-label {
+                font-size: 9px;
+            }
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #667eea;
+        }
+        
+        /* Phase Report Styles */
+        .phase-reports {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .phase-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 3px solid transparent;
+        }
+        
+        .phase-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .phase-card.complete {
+            border-color: #4caf50;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+        
+        .phase-card.in-progress {
+            border-color: #ff9800;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        }
+        
+        .phase-card.not-started {
+            border-color: #9e9e9e;
+            background: linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+        }
+        
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+        }
+        
+        .phase-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .phase-icon {
+            font-size: 32px;
+        }
+        
+        .phase-progress {
+            margin: 20px 0;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 12px;
+        }
+        
+        .progress-bar.complete {
+            background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
+        }
+        
+        .progress-bar.in-progress {
+            background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
+        }
+        
+        .phase-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        
+        .phase-status.complete {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .phase-status.in-progress {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .phase-status.not-started {
+            background: #9e9e9e;
+            color: white;
+        }
+        
+        .phase-status.pending-approval {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .phase-status.rejected {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-submit-phase {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-submit-phase:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .phase-stats {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .phase-stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        
+        /* Student Details Styles */
+        .view-details-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .view-details-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .view-details-btn.active {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .student-details {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .student-details.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .student-list-header {
+            display: grid;
+            grid-template-columns: 50px 1fr 100px;
+            gap: 10px;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        
+        .student-item {
+            display: grid;
+            grid-template-columns: 50px 1fr 100px;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 13px;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .student-item:hover {
+            border-left-color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateX(3px);
+        }
+        
+        .student-item.completed {
+            border-left-color: #4caf50;
+            background: #f1f8f4;
+        }
+        
+        .student-item.pending {
+            border-left-color: #ff9800;
+            background: #fff8f0;
+        }
+        
+        .student-no {
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .student-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .student-status {
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .student-status.completed {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .student-status.pending {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .no-students {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .student-details::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .student-details::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .student-details::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
     </style>
     <script>
+        function toggleStudentDetails(phaseNum) {
+            const detailsDiv = document.getElementById('phase' + phaseNum + 'Details');
+            const btn = document.getElementById('phase' + phaseNum + 'Btn');
+            
+            if (detailsDiv.classList.contains('show')) {
+                detailsDiv.classList.remove('show');
+                btn.innerHTML = '👁️ View Student Details';
+                btn.classList.remove('active');
+            } else {
+                detailsDiv.classList.add('show');
+                btn.innerHTML = '👁️ Hide Student Details';
+                btn.classList.add('active');
+            }
+        }
+        
         function changePhase() {
             const phaseSelector = document.getElementById('phaseSelector');
             const selectedPhase = phaseSelector.value;
@@ -619,36 +1251,94 @@
                 btn.disabled = false;
             });
         }
+        
+        // Submit phase for approval
+        function submitPhaseForApproval(phaseNumber) {
+            const remarks = prompt('Enter remarks for Phase ' + phaseNumber + ' submission (optional):');
+            if (remarks === null) return; // User cancelled
+            
+            if (!confirm('Submit Phase ' + phaseNumber + ' for Head Master approval?')) {
+                return;
+            }
+            
+            fetch('<%= request.getContextPath() %>/submit-phase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'phaseNumber=' + phaseNumber + '&remarks=' + encodeURIComponent(remarks)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✓ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting phase: ' + error);
+            });
+        }
     </script>
 </head>
 <body>
     <div class="header">
         <div class="header-content">
-            <div>
-                <h1>🏫 VJNT Class Management System</h1>
-                <p>School Dashboard - UDISE <%= udiseNo %></p>
+            <div class="header-left">
+                <div class="school-icon">🏫</div>
+                <div class="header-title">
+                    <h1><%= schoolName %></h1>
+                    <div class="header-subtitle">UDISE: <%= udiseNo %> | <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %></div>
+                </div>
             </div>
             <div class="header-info">
-                <div class="user-info">
-                    Welcome, <strong><%= user.getFullName() %></strong>
+                <div class="user-badge">
+                    👤 <strong><%= user.getFullName() %></strong>
                 </div>
-                <div class="user-info">
-                    Role: <strong><%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %></strong>
+                <div class="user-badge">
+                    🏷️ <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %>
                 </div>
-                <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password">Change Password</a>
-                <a href="<%= request.getContextPath() %>/logout" class="btn btn-logout">Logout</a>
+                <div class="header-actions">
+                    <% if (user.getUserType().equals(User.UserType.HEAD_MASTER) && pendingApprovalsCount > 0) { %>
+                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="background: #ff9800; color: white;">
+                            ⏳ Pending Approvals (<%= pendingApprovalsCount %>)
+                        </a>
+                    <% } else if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
+                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="background: #2196f3; color: white;">
+                            🔍 View Approvals
+                        </a>
+                    <% } %>
+                    <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password">
+                        🔐 Change Password
+                    </a>
+                    <a href="<%= request.getContextPath() %>/logout" class="btn btn-logout">
+                        🚪 Logout
+                    </a>
+                </div>
             </div>
         </div>
     </div>
     
     <div class="container">
+        <!-- Welcome Card -->
+        <div class="welcome-card">
+            <div class="welcome-content">
+                <h2>नमस्कार <%= user.getFullName() %>! 🙏</h2>
+                <p>Welcome to your dashboard. Manage your school's student data and track language proficiency levels.</p>
+            </div>
+            <div class="welcome-icon">👋</div>
+        </div>
+        
         <!-- Breadcrumb -->
         <div class="breadcrumb">
-            <span>Division:</span> <strong><%= user.getDivisionName() %></strong> 
+            <span>📍 Division:</span> <strong><%= user.getDivisionName() %></strong> 
             <span style="margin: 0 10px;">→</span> 
-            <span>District:</span> <strong><%= user.getDistrictName() %></strong>
+            <span>🏛️ District:</span> <strong><%= user.getDistrictName() %></strong>
             <span style="margin: 0 10px;">→</span>
-            <span>School UDISE:</span> <strong><%= udiseNo %></strong>
+            <span>🏫 School:</span> <strong><%= schoolName %></strong> (<%= udiseNo %>)
         </div>
         
         <!-- Statistics Cards -->
@@ -684,352 +1374,189 @@
             </div>
         </div>
         
-        <!-- Quick Actions -->
-        <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <h2 class="section-title" style="color: white; border-bottom: 2px solid rgba(255,255,255,0.3);">⚡ त्वरित कृती (Quick Actions)</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <a href="<%= request.getContextPath() %>/manage-students.jsp" class="quick-action-card">
-                    <div class="quick-action-icon">📋</div>
-                    <div class="quick-action-title">विद्यार्थी यादी व्यवस्थापन</div>
-                    <div class="quick-action-subtitle">Manage Student List</div>
-                    <div class="quick-action-desc">View and update student language levels by phase</div>
-                </a>
-                
-                <div class="quick-action-card quick-action-disabled">
-                    <div class="quick-action-icon">📊</div>
-                    <div class="quick-action-title">प्रगती अहवाल</div>
-                    <div class="quick-action-subtitle">Progress Reports</div>
-                    <div class="quick-action-desc">Generate and view detailed reports</div>
-                    <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">Coming Soon</div>
-                </div>
-                
-                <div class="quick-action-card quick-action-disabled">
-                    <div class="quick-action-icon">🎯</div>
-                    <div class="quick-action-title">लक्ष्य ट्रॅकिंग</div>
-                    <div class="quick-action-subtitle">Goal Tracking</div>
-                    <div class="quick-action-desc">Monitor phase completion targets</div>
-                    <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">Coming Soon</div>
+
                 </div>
             </div>
         </div>
         
-        <!-- Language Proficiency Summary -->
+        <!-- Phase Reports -->
         <div class="section">
-            <h2 class="section-title">📊 भाषा स्तर सांख्यिकी (Language Proficiency Statistics)</h2>
-            <div class="grid-3">
-                <!-- Marathi -->
-                <div class="level-card">
-                    <div class="level-title">🇮🇳 मराठी भाषा स्तर</div>
-                    <div class="level-row">
-                        <span class="level-name">निरांक</span>
-                        <span class="level-count"><%= marathiNone %> विद्यार्थी</span>
+            <h2 class="section-title">📈 चरण अहवाल (Phase Completion Reports)</h2>
+            <p style="margin-bottom: 20px; color: #666;">Track the progress of each phase for your school</p>
+            
+            <div class="phase-reports">
+                <!-- Phase 1 -->
+                <div class="phase-card <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "not-started") %>">
+                    <div class="phase-header">
+                        <div class="phase-title">चरण 1 (Phase 1)</div>
+                        <div class="phase-icon"><%= phase1Complete ? "✅" : (phase1Completion > 0 ? "⏳" : "🔒") %></div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</span>
-                        <span class="level-count"><%= marathiLevel1 %> विद्यार्थी</span>
+                    
+                    <div class="phase-progress">
+                        <div class="progress-label">
+                            <span>Progress</span>
+                            <span><strong><%= phase1Completion %>%</strong></span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "") %>" 
+                                 style="width: <%= phase1Completion %>%">
+                                <%= phase1Completion > 10 ? phase1Completion + "%" : "" %>
+                            </div>
+                        </div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</span>
-                        <span class="level-count"><%= marathiLevel2 %> विद्यार्थी</span>
-                    </div>
-                    <div class="level-row">
-                        <span class="level-name">वाक्य स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= marathiLevel3 %> विद्यार्थी</span>
-                    </div>
-                    <div class="level-row">
-                        <span class="level-name">समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= marathiLevel4 %> विद्यार्थी</span>
-                    </div>
-                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #dee2e6;">
-                    <div class="level-row">
-                        <span class="level-name">एकूण विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= totalStudents %></span>
-                    </div>
+                    
+                    <% if (phase1Approval != null && phase1Approval.isPending()) { %>
+                        <div class="phase-status pending-approval">⏳ Pending Approval</div>
+                    <% } else if (phase1Approval != null && phase1Approval.isApproved()) { %>
+                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase1Approval != null && phase1Approval.isRejected()) { %>
+                        <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else { %>
+                        <div class="phase-status <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "not-started") %>">
+                            <%= phase1Complete ? "✓ Completed" : (phase1Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
+                        </div>
+                    <% } %>
+                    
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase1Complete && (phase1Approval == null || phase1Approval.isRejected())) { %>
+                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(1)">
+                            📤 Submit for Approval
+                        </button>
+                    <% } %>
                 </div>
                 
-                <!-- Math -->
-                <div class="level-card">
-                    <div class="level-title">🔢 गणित स्तर</div>
-                    <div class="level-row">
-                        <span class="level-name">निरांक</span>
-                        <span class="level-count"><%= mathNone %> विद्यार्थी</span>
+                <!-- Phase 2 -->
+                <div class="phase-card <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "not-started") %>">
+                    <div class="phase-header">
+                        <div class="phase-title">चरण 2 (Phase 2)</div>
+                        <div class="phase-icon"><%= phase2Complete ? "✅" : (phase2Completion > 0 ? "⏳" : "🔒") %></div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">प्रारंभीक स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= mathLevel1 %> विद्यार्थी</span>
+                    
+                    <div class="phase-progress">
+                        <div class="progress-label">
+                            <span>Progress</span>
+                            <span><strong><%= phase2Completion %>%</strong></span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "") %>" 
+                                 style="width: <%= phase2Completion %>%">
+                                <%= phase2Completion > 10 ? phase2Completion + "%" : "" %>
+                            </div>
+                        </div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">अंक स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= mathLevel2 %> विद्यार्थी</span>
-                    </div>
-                    <div class="level-row">
-                        <span class="level-name">संख्या वाचन स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= mathLevel3 %> विद्यार्थी</span>
-                    </div>
-                    <div class="level-row">
-                        <span class="level-name">बेरीज स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= mathLevel4 %> विद्यार्थी</span>
-                    </div>
-                    <div class="level-row">
-                        <span class="level-name">वजाबाकी स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= mathLevel5 %> विद्यार्थी</span>
-                    </div>
-                    <div class="level-row">
-                        <span class="level-name">गुणाकार स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= mathLevel6 %> विद्यार्थी</span>
-                    </div>
-                    <div class="level-row">
-                        <span class="level-name">भागाकर स्तरावरील विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= mathLevel7 %> विद्यार्थी</span>
-                    </div>
-                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #dee2e6;">
-                    <div class="level-row">
-                        <span class="level-name">एकूण विद्यार्थी संख्या</span>
-                        <span class="level-count"><%= totalStudents %></span>
-                    </div>
+                    
+                    <% if (phase2Approval != null && phase2Approval.isPending()) { %>
+                        <div class="phase-status pending-approval">⏳ Pending Approval</div>
+                    <% } else if (phase2Approval != null && phase2Approval.isApproved()) { %>
+                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase2Approval != null && phase2Approval.isRejected()) { %>
+                        <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else { %>
+                        <div class="phase-status <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "not-started") %>">
+                            <%= phase2Complete ? "✓ Completed" : (phase2Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
+                        </div>
+                    <% } %>
+                    
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase2Complete && (phase2Approval == null || phase2Approval.isRejected())) { %>
+                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(2)">
+                            📤 Submit for Approval
+                        </button>
+                    <% } %>
                 </div>
                 
-                <!-- English -->
-                <div class="level-card">
-                    <div class="level-title">🇬🇧 इंग्रजी स्तर</div>
-                    <div class="level-row">
-                        <span class="level-name">NA</span>
-                        <span class="level-count"><%= englishNone %> Students</span>
+                <!-- Phase 3 -->
+                <div class="phase-card <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "not-started") %>">
+                    <div class="phase-header">
+                        <div class="phase-title">चरण 3 (Phase 3)</div>
+                        <div class="phase-icon"><%= phase3Complete ? "✅" : (phase3Completion > 0 ? "⏳" : "🔒") %></div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">BEGINER LEVEL</span>
-                        <span class="level-count"><%= englishLevel1 %> Students</span>
+                    
+                    <div class="phase-progress">
+                        <div class="progress-label">
+                            <span>Progress</span>
+                            <span><strong><%= phase3Completion %>%</strong></span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "") %>" 
+                                 style="width: <%= phase3Completion %>%">
+                                <%= phase3Completion > 10 ? phase3Completion + "%" : "" %>
+                            </div>
+                        </div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">ALPHABET LEVEL Reading and Writing</span>
-                        <span class="level-count"><%= englishLevel2 %> Students</span>
+                    
+                    <% if (phase3Approval != null && phase3Approval.isPending()) { %>
+                        <div class="phase-status pending-approval">⏳ Pending Approval</div>
+                    <% } else if (phase3Approval != null && phase3Approval.isApproved()) { %>
+                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase3Approval != null && phase3Approval.isRejected()) { %>
+                        <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else { %>
+                        <div class="phase-status <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "not-started") %>">
+                            <%= phase3Complete ? "✓ Completed" : (phase3Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
+                        </div>
+                    <% } %>
+                    
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase3Complete && (phase3Approval == null || phase3Approval.isRejected())) { %>
+                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(3)">
+                            📤 Submit for Approval
+                        </button>
+                    <% } %>
+                </div>
+                
+                <!-- Phase 4 -->
+                <div class="phase-card <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "not-started") %>">
+                    <div class="phase-header">
+                        <div class="phase-title">चरण 4 (Phase 4)</div>
+                        <div class="phase-icon"><%= phase4Complete ? "✅" : (phase4Completion > 0 ? "⏳" : "🔒") %></div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">WORD LEVEL Reading and Writing</span>
-                        <span class="level-count"><%= englishLevel3 %> Students</span>
+                    
+                    <div class="phase-progress">
+                        <div class="progress-label">
+                            <span>Progress</span>
+                            <span><strong><%= phase4Completion %>%</strong></span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "") %>" 
+                                 style="width: <%= phase4Completion %>%">
+                                <%= phase4Completion > 10 ? phase4Completion + "%" : "" %>
+                            </div>
+                        </div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">SENTENCE LEVEL</span>
-                        <span class="level-count"><%= englishLevel4 %> Students</span>
+                    
+                    <% if (phase4Approval != null && phase4Approval.isPending()) { %>
+                        <div class="phase-status pending-approval">⏳ Pending Approval</div>
+                    <% } else if (phase4Approval != null && phase4Approval.isApproved()) { %>
+                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase4Approval != null && phase4Approval.isRejected()) { %>
+                        <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else { %>
+                        <div class="phase-status <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "not-started") %>">
+                            <%= phase4Complete ? "✓ Completed" : (phase4Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
+                        </div>
+                    <% } %>
+                    
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase4Complete && (phase4Approval == null || phase4Approval.isRejected())) { %>
+                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(4)">
+                            📤 Submit for Approval
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+            
+            <!-- Phase Summary -->
+            <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 10px; border-left: 5px solid #2196f3;">
+                <h3 style="margin-bottom: 15px; color: #1976d2;">📊 Overall Progress Summary</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700; color: #4caf50;"><%= (phase1Complete ? 1 : 0) + (phase2Complete ? 1 : 0) + (phase3Complete ? 1 : 0) + (phase4Complete ? 1 : 0) %></div>
+                        <div style="color: #666; font-size: 14px; margin-top: 5px;">Phases Completed</div>
                     </div>
-                    <div class="level-row">
-                        <span class="level-name">Paragraph Reading with Understanding</span>
-                        <span class="level-count"><%= englishLevel5 %> Students</span>
-                    </div>
-                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #dee2e6;">
-                    <div class="level-row">
-                        <span class="level-name">Total Student Count</span>
-                        <span class="level-count"><%= totalStudents %></span>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: 700; color: #ff9800;"><%= (phase1Completion + phase2Completion + phase3Completion + phase4Completion) / 4 %>%</div>
+                        <div style="color: #666; font-size: 14px; margin-top: 5px;">Average Progress</div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Student List Section REMOVED - Now available via Quick Action -->
-        <!-- Use the "Manage Student List" quick action button above to access this feature -->
-        <!--
-        <div class="section">
-            <h2 class="section-title">📋 विद्यार्थी यादी आणि भाषा स्तर व्यवस्थापन (Student List & Language Level Management)</h2>
-            
-            <!-- Debug Information -->
-            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-                <strong>🔍 Debug Info:</strong><br>
-                UDISE Number: <code><%= udiseNo %></code><br>
-                Total Students: <strong><%= totalStudents %></strong><br>
-                Students List Size: <strong><%= students != null ? students.size() : 0 %></strong><br>
-                All Students Size: <strong><%= allStudents != null ? allStudents.size() : 0 %></strong>
-            </div>
-            
-            <%
-            // Check phase completion status
-            StudentDAO phaseDAO = new StudentDAO();
-            boolean phase1Complete = phaseDAO.isPhaseComplete(udiseNo, 1);
-            boolean phase2Complete = phaseDAO.isPhaseComplete(udiseNo, 2);
-            boolean phase3Complete = phaseDAO.isPhaseComplete(udiseNo, 3);
-            boolean phase4Complete = phaseDAO.isPhaseComplete(udiseNo, 4);
-            
-            // Get current selected phase from request parameter (default to Phase 1)
-            String selectedPhaseStr = request.getParameter("phase");
-            int selectedPhase = 1;
-            if (selectedPhaseStr != null) {
-                try {
-                    selectedPhase = Integer.parseInt(selectedPhaseStr);
-                } catch (NumberFormatException e) {
-                    selectedPhase = 1;
-                }
-            }
-            
-            // Check if current selected phase is complete
-            boolean currentPhaseComplete = false;
-            switch(selectedPhase) {
-                case 1: currentPhaseComplete = phase1Complete; break;
-                case 2: currentPhaseComplete = phase2Complete; break;
-                case 3: currentPhaseComplete = phase3Complete; break;
-                case 4: currentPhaseComplete = phase4Complete; break;
-            }
-            %>
-            
-            <!-- Phase Selection -->
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <label style="font-weight: 600; font-size: 16px; color: #333; margin-right: 15px;">
-                            📊 Select Phase (चरण निवडा):
-                        </label>
-                        <select id="phaseSelector" onchange="changePhase()" style="padding: 10px 15px; border: 2px solid #43e97b; border-radius: 5px; font-size: 14px; font-weight: 500; min-width: 150px;">
-                            <option value="1" <%= selectedPhase == 1 ? "selected" : "" %> <%= phase1Complete ? "disabled" : "" %>>Phase 1 <%= phase1Complete ? "✓ Completed" : "" %></option>
-                            <option value="2" <%= selectedPhase == 2 ? "selected" : "" %> <%= !phase1Complete || phase2Complete ? "disabled" : "" %>>Phase 2 <%= phase2Complete ? "✓ Completed" : "" %></option>
-                            <option value="3" <%= selectedPhase == 3 ? "selected" : "" %> <%= !phase2Complete || phase3Complete ? "disabled" : "" %>>Phase 3 <%= phase3Complete ? "✓ Completed" : "" %></option>
-                            <option value="4" <%= selectedPhase == 4 ? "selected" : "" %> <%= !phase3Complete || phase4Complete ? "disabled" : "" %>>Phase 4 <%= phase4Complete ? "✓ Completed" : "" %></option>
-                        </select>
-                    </div>
-                    <div>
-                        <span style="font-size: 14px; color: #666;">
-                            Current Phase: <strong style="color: #43e97b;">Phase <%= selectedPhase %></strong>
-                        </span>
-                    </div>
-                </div>
-                
-                <!-- Phase Status Indicators -->
-                <div style="margin-top: 15px; display: flex; gap: 10px;">
-                    <span style="padding: 5px 12px; border-radius: 15px; font-size: 12px; <%= phase1Complete ? "background: #4caf50; color: white;" : "background: #fff3e0; color: #f57c00;" %>">
-                        Phase 1: <%= phase1Complete ? "✓ Complete" : "⏳ In Progress" %>
-                    </span>
-                    <span style="padding: 5px 12px; border-radius: 15px; font-size: 12px; <%= phase2Complete ? "background: #4caf50; color: white;" : "background: #e0e0e0; color: #666;" %>">
-                        Phase 2: <%= phase2Complete ? "✓ Complete" : (phase1Complete ? "⏳ Available" : "🔒 Locked") %>
-                    </span>
-                    <span style="padding: 5px 12px; border-radius: 15px; font-size: 12px; <%= phase3Complete ? "background: #4caf50; color: white;" : "background: #e0e0e0; color: #666;" %>">
-                        Phase 3: <%= phase3Complete ? "✓ Complete" : (phase2Complete ? "⏳ Available" : "🔒 Locked") %>
-                    </span>
-                    <span style="padding: 5px 12px; border-radius: 15px; font-size: 12px; <%= phase4Complete ? "background: #4caf50; color: white;" : "background: #e0e0e0; color: #666;" %>">
-                        Phase 4: <%= phase4Complete ? "✓ Complete" : (phase3Complete ? "⏳ Available" : "🔒 Locked") %>
-                    </span>
-                </div>
-            </div>
-            
-            <% if (currentPhaseComplete) { %>
-            <!-- Phase Complete Notification -->
-            <div style="background: #4caf50; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <strong style="font-size: 16px;">✓ Phase <%= selectedPhase %> Completed!</strong>
-                    <p style="margin: 5px 0 0 0; font-size: 14px;">All students have been assigned language levels for this phase. Data is now read-only.</p>
-                </div>
-                <span style="font-size: 24px;">🎉</span>
-            </div>
-            <% } %>
-            
-            <p style="margin-bottom: 15px; color: #666;">
-                Showing <%= (currentPage - 1) * pageSize + 1 %> to <%= Math.min(currentPage * pageSize, totalStudents) %> of <%= totalStudents %> students
-                <% if (currentPhaseComplete) { %>
-                <span style="color: #4caf50; font-weight: 600; margin-left: 10px;">● Phase <%= selectedPhase %> Complete</span>
-                <% } %>
-            </p>
-            
-            <div style="overflow-x: auto;">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th style="vertical-align: middle;">PEN</th>
-                            <th style="vertical-align: middle;">Name</th>
-                            <th style="vertical-align: middle;">Class</th>
-                            <th style="vertical-align: middle;">Section</th>
-                            <th style="text-align: center; background: #fff3e0;">🇮🇳 मराठी भाषा स्तर</th>
-                            <th style="text-align: center; background: #e3f2fd;">🔢 गणित स्तर</th>
-                            <th style="text-align: center; background: #f3e5f5;">🇬🇧 इंग्रजी स्तर</th>
-                            <th style="vertical-align: middle;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% 
-                        for (com.vjnt.model.Student s : students) {
-                        %>
-                        <tr id="row-<%= s.getStudentId() %>">
-                            <td><%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %></td>
-                            <td><strong><%= s.getStudentName() %></strong></td>
-                            <td><%= s.getStudentClass() %></td>
-                            <td><%= s.getSection() %></td>
-                            <!-- Marathi Levels -->
-                            <td>
-                                <select name="marathi_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>निरांक</option>
-                                    <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
-                                    <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
-                                    <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>वाक्य स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="4" <%= s.getMarathiAksharaLevel() == 4 ? "selected" : "" %>>समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या</option>
-                                </select>
-                            </td>
-                            <!-- Math Levels -->
-                            <td>
-                                <select name="math_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getMathAksharaLevel() == 0 ? "selected" : "" %>>निरांक</option>
-                                    <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभीक स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="3" <%= s.getMathAksharaLevel() == 3 ? "selected" : "" %>>संख्या वाचन स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="4" <%= s.getMathAksharaLevel() == 4 ? "selected" : "" %>>बेरीज स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="5" <%= s.getMathAksharaLevel() == 5 ? "selected" : "" %>>वजाबाकी स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="6" <%= s.getMathAksharaLevel() == 6 ? "selected" : "" %>>गुणाकार स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="7" <%= s.getMathAksharaLevel() == 7 ? "selected" : "" %>>भागाकर स्तरावरील विद्यार्थी संख्या</option>
-                                </select>
-                            </td>
-                            <!-- English Levels -->
-                            <td>
-                                <select name="english_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>NA</option>
-                                    <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>BEGINER LEVEL</option>
-                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>ALPHABET LEVEL Reading and Writing</option>
-                                    <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>WORD LEVEL Reading and Writing</option>
-                                    <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>SENTENCE LEVEL</option>
-                                    <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
-                                </select>
-                            </td>
-                            <td>
-                                <% if (currentPhaseComplete) { %>
-                                    <button type="button" class="btn-save" disabled style="background: #9e9e9e; cursor: not-allowed;">✓ Complete</button>
-                                <% } else { %>
-                                    <button type="button" class="btn-save" onclick="updateLanguageLevels(<%= s.getStudentId() %>)">Save</button>
-                                <% } %>
-                            </td>
-                        </tr>
-                        <% } %>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Pagination -->
-            <div class="pagination">
-                <% if (currentPage > 1) { %>
-                    <a href="?page=1">First</a>
-                    <a href="?page=<%= currentPage - 1 %>">Previous</a>
-                <% } else { %>
-                    <span class="disabled">First</span>
-                    <span class="disabled">Previous</span>
-                <% } %>
-                
-                <% 
-                int startPage = Math.max(1, currentPage - 2);
-                int endPage = Math.min(totalPages, currentPage + 2);
-                for (int i = startPage; i <= endPage; i++) {
-                    if (i == currentPage) {
-                %>
-                    <span class="active"><%= i %></span>
-                <% } else { %>
-                    <a href="?page=<%= i %>"><%= i %></a>
-                <% 
-                    }
-                }
-                %>
-                
-                <% if (currentPage < totalPages) { %>
-                    <a href="?page=<%= currentPage + 1 %>">Next</a>
-                    <a href="?page=<%= totalPages %>">Last</a>
-                <% } else { %>
-                    <span class="disabled">Next</span>
-                    <span class="disabled">Last</span>
-                <% } %>
-            </div>
-        </div>
-        -->
-        <!-- End of commented student list section -->
-    </div>
 </body>
 </html>

@@ -209,6 +209,12 @@ public class StudentDAO {
         student.setEnglishVakyaLevel(rs.getInt("english_vakya_level"));
         student.setEnglishSamajpurvakLevel(rs.getInt("english_samajpurvak_level"));
         
+        // Load phase dates to track save button clicks
+        student.setPhase1Date(rs.getTimestamp("phase1_date"));
+        student.setPhase2Date(rs.getTimestamp("phase2_date"));
+        student.setPhase3Date(rs.getTimestamp("phase3_date"));
+        student.setPhase4Date(rs.getTimestamp("phase4_date"));
+        
         student.setCreatedDate(rs.getTimestamp("created_date"));
         student.setCreatedBy(rs.getString("created_by"));
         student.setUpdatedDate(rs.getTimestamp("updated_date"));
@@ -322,13 +328,14 @@ public class StudentDAO {
     
     /**
      * Check if a phase is complete for a school (all students have data for that phase)
+     * Only counts students where save button was clicked (phase_date is NOT NULL)
+     * Students with all three values as 0 (default) are counted if save was clicked
      */
     public boolean isPhaseComplete(String udiseNo, int phase) {
         String columnPrefix = "phase" + phase + "_";
         String sql = "SELECT COUNT(*) as total, " +
-                     "SUM(CASE WHEN " + columnPrefix + "marathi IS NOT NULL AND " +
-                     columnPrefix + "math IS NOT NULL AND " +
-                     columnPrefix + "english IS NOT NULL THEN 1 ELSE 0 END) as completed " +
+                     "SUM(CASE WHEN " + columnPrefix + "date IS NOT NULL " +
+                     "THEN 1 ELSE 0 END) as completed " +
                      "FROM students WHERE udise_no = ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
@@ -340,7 +347,7 @@ public class StudentDAO {
             if (rs.next()) {
                 int total = rs.getInt("total");
                 int completed = rs.getInt("completed");
-                System.out.println("Phase " + phase + " check - Total: " + total + ", Completed: " + completed);
+                System.out.println("Phase " + phase + " check - Total: " + total + ", Completed: " + completed + " (based on save button action - phase_date)");
                 return total > 0 && total == completed;
             }
             
@@ -357,12 +364,18 @@ public class StudentDAO {
     public boolean updatePhaseLanguageLevels(int studentId, int phase, 
                                             int marathiLevel, int mathLevel, int englishLevel,
                                             String updatedBy) {
+        // Update both phase-specific columns AND the main akshara_level columns
         String columnPrefix = "phase" + phase + "_";
         String sql = "UPDATE students SET " +
                      columnPrefix + "marathi = ?, " +
                      columnPrefix + "math = ?, " +
                      columnPrefix + "english = ?, " +
-                     columnPrefix + "date = NOW() " +
+                     columnPrefix + "date = NOW(), " +
+                     "marathi_akshara_level = ?, " +
+                     "math_akshara_level = ?, " +
+                     "english_akshara_level = ?, " +
+                     "updated_date = NOW(), " +
+                     "updated_by = ? " +
                      "WHERE student_id = ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
@@ -371,7 +384,11 @@ public class StudentDAO {
             pstmt.setInt(1, marathiLevel);
             pstmt.setInt(2, mathLevel);
             pstmt.setInt(3, englishLevel);
-            pstmt.setInt(4, studentId);
+            pstmt.setInt(4, marathiLevel);  // Also update main columns
+            pstmt.setInt(5, mathLevel);
+            pstmt.setInt(6, englishLevel);
+            pstmt.setString(7, updatedBy);
+            pstmt.setInt(8, studentId);
             
             int rows = pstmt.executeUpdate();
             
@@ -417,13 +434,14 @@ public class StudentDAO {
     
     /**
      * Get phase completion percentage for a school
+     * Only counts students where save button was clicked (phase_date is NOT NULL)
+     * Students with all three values as 0 (default) are counted if save was clicked
      */
     public int getPhaseCompletionPercentage(String udiseNo, int phase) {
         String columnPrefix = "phase" + phase + "_";
         String sql = "SELECT COUNT(*) as total, " +
-                     "SUM(CASE WHEN " + columnPrefix + "marathi IS NOT NULL AND " +
-                     columnPrefix + "math IS NOT NULL AND " +
-                     columnPrefix + "english IS NOT NULL THEN 1 ELSE 0 END) as completed " +
+                     "SUM(CASE WHEN " + columnPrefix + "date IS NOT NULL " +
+                     "THEN 1 ELSE 0 END) as completed " +
                      "FROM students WHERE udise_no = ?";
         
         try (Connection conn = DatabaseConnection.getConnection();

@@ -19,6 +19,18 @@
     List<com.vjnt.model.Student> students = studentDAO.getStudentsByDistrict(districtName);
     List<User> districtUsers = userDAO.getUsersByDistrict(districtName);
     
+    // Pagination parameters for school list
+    int schoolCurrentPage = 1;
+    int schoolPageSize = 10;
+    String schoolPageParam = request.getParameter("schoolPage");
+    if (schoolPageParam != null) {
+        try {
+            schoolCurrentPage = Integer.parseInt(schoolPageParam);
+        } catch (NumberFormatException e) {
+            schoolCurrentPage = 1;
+        }
+    }
+    
     // Calculate statistics
     Map<String, Integer> udiseCount = new HashMap<>();
     Map<String, Integer> classCount = new HashMap<>();
@@ -282,6 +294,57 @@
             color: #666;
             margin-top: 5px;
         }
+        
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .page-btn {
+            padding: 8px 14px;
+            background: white;
+            color: #4facfe;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .page-btn:hover {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+        }
+        
+        .page-btn.active {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+            font-weight: bold;
+        }
+        
+        .page-btn:active {
+            transform: scale(0.95);
+        }
+        
+        @media (max-width: 768px) {
+            .pagination {
+                gap: 5px;
+            }
+            
+            .page-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -366,6 +429,24 @@
         <!-- School-wise Statistics -->
         <div class="section">
             <h2 class="section-title">🏫 School-wise Student Count</h2>
+            
+            <% 
+            // Sort and paginate school list
+            List<Map.Entry<String, Integer>> sortedUdise = new ArrayList<>(udiseCount.entrySet());
+            sortedUdise.sort((a, b) -> a.getKey().compareTo(b.getKey()));
+            
+            int totalSchools = sortedUdise.size();
+            int schoolTotalPages = (int) Math.ceil((double) totalSchools / schoolPageSize);
+            int schoolStartIndex = (schoolCurrentPage - 1) * schoolPageSize;
+            int schoolEndIndex = Math.min(schoolStartIndex + schoolPageSize, totalSchools);
+            
+            List<Map.Entry<String, Integer>> paginatedSchools = sortedUdise.subList(schoolStartIndex, schoolEndIndex);
+            %>
+            
+            <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
+                Showing <%= schoolStartIndex + 1 %> - <%= schoolEndIndex %> of <%= totalSchools %> schools
+            </div>
+            
             <table class="table">
                 <thead>
                     <tr>
@@ -378,10 +459,7 @@
                 </thead>
                 <tbody>
                     <% 
-                    List<Map.Entry<String, Integer>> sortedUdise = new ArrayList<>(udiseCount.entrySet());
-                    sortedUdise.sort((a, b) -> a.getKey().compareTo(b.getKey()));
-                    
-                    for (Map.Entry<String, Integer> entry : sortedUdise) {
+                    for (Map.Entry<String, Integer> entry : paginatedSchools) {
                         String udise = entry.getKey();
                         int totalCount = entry.getValue();
                         
@@ -408,41 +486,30 @@
                     <% } %>
                 </tbody>
             </table>
+            
+            <!-- Pagination Controls -->
+            <% if (schoolTotalPages > 1) { %>
+            <div class="pagination">
+                <% if (schoolCurrentPage > 1) { %>
+                    <a href="?schoolPage=<%= schoolCurrentPage - 1 %>" class="page-btn">« Previous</a>
+                <% } %>
+                
+                <% 
+                int startPage = Math.max(1, schoolCurrentPage - 2);
+                int endPage = Math.min(schoolTotalPages, schoolCurrentPage + 2);
+                
+                for (int i = startPage; i <= endPage; i++) { 
+                %>
+                    <a href="?schoolPage=<%= i %>" class="page-btn <%= i == schoolCurrentPage ? "active" : "" %>"><%= i %></a>
+                <% } %>
+                
+                <% if (schoolCurrentPage < schoolTotalPages) { %>
+                    <a href="?schoolPage=<%= schoolCurrentPage + 1 %>" class="page-btn">Next »</a>
+                <% } %>
+            </div>
+            <% } %>
         </div>
         
-        <!-- Recent Students -->
-        <div class="section">
-            <h2 class="section-title">📋 Recent Student Records (Last 20)</h2>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Student PEN</th>
-                        <th>Name</th>
-                        <th>Class</th>
-                        <th>Section</th>
-                        <th>UDISE No</th>
-                        <th>Gender</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% 
-                    int count = 0;
-                    for (int i = students.size() - 1; i >= 0 && count < 20; i--) {
-                        com.vjnt.model.Student s = students.get(i);
-                        count++;
-                    %>
-                    <tr>
-                        <td><%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %></td>
-                        <td><strong><%= s.getStudentName() %></strong></td>
-                        <td><%= s.getStudentClass() %></td>
-                        <td><%= s.getSection() %></td>
-                        <td><%= s.getUdiseNo() %></td>
-                        <td><span class="badge badge-<%= "Male".equalsIgnoreCase(s.getGender()) || "पुरुष".equals(s.getGender()) ? "primary" : "warning" %>"><%= s.getGender() %></span></td>
-                    </tr>
-                    <% } %>
-                </tbody>
-            </table>
-        </div>
     </div>
 </body>
 </html>

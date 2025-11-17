@@ -1,0 +1,67 @@
+====================================================
+  IMPORTANT: RESTART TOMCAT NOW!
+====================================================
+
+STATUS:
+✓ PhaseApproval.class - Compiled (just now)
+✓ PhaseApprovalDAO.class - Compiled (just now)  
+✓ Database table created
+✓ Column names fixed
+✓ Null safety added to enum conversion
+
+====================================================
+  HOW TO RESTART:
+====================================================
+
+METHOD 1: Eclipse (RECOMMENDED)
+--------------------------------
+1. Open Eclipse
+2. Bottom panel → Servers tab
+3. Find: "Tomcat v9.0 Server at localhost"
+4. Right-click → "Clean..."
+5. Click OK
+6. Right-click again → "Restart"
+7. Wait for "Server startup in xxx ms"
+
+METHOD 2: If Tomcat is External
+--------------------------------
+1. Stop Tomcat
+2. Delete: apache-tomcat\work\Catalina\localhost\VJNT_Class_Managment
+3. Start Tomcat
+
+====================================================
+  AFTER RESTART - TEST:
+====================================================
+
+1. Open: http://localhost:8080/VJNT_Class_Management/login.jsp
+
+2. Login as School Coordinator
+
+3. Dashboard should load WITHOUT errors!
+
+4. You should see:
+   ✓ Phase cards displaying
+   ✓ No "Column not found" error
+   ✓ Submit buttons (if phase complete)
+
+====================================================
+  WHAT WAS FIXED:
+====================================================
+
+1. Column names in DAO:
+   - created_date → completed_date
+   - updated_date → approved_date
+
+2. Null safety for approval_status:
+   - Added check before converting to enum
+   - Defaults to PENDING if null
+
+3. Recompiled classes:
+   - PhaseApproval.java
+   - PhaseApprovalDAO.java
+
+====================================================
+
+⚠️  ACTION REQUIRED: RESTART TOMCAT NOW!
+
+====================================================

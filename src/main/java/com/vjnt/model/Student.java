@@ -41,6 +41,12 @@ public class Student {
     private int englishVakyaLevel;
     private int englishSamajpurvakLevel;
     
+    // Phase save timestamps - to track if save button was clicked
+    private Date phase1Date;
+    private Date phase2Date;
+    private Date phase3Date;
+    private Date phase4Date;
+    
     private Date createdDate;
     private String createdBy;
     private Date updatedDate;
@@ -284,6 +290,96 @@ public class Student {
     
     public void setEnglishSamajpurvakLevel(int englishSamajpurvakLevel) {
         this.englishSamajpurvakLevel = englishSamajpurvakLevel;
+    }
+    
+    // Helper methods for phase data
+    public String getFullName() {
+        return studentName != null ? studentName : "";
+    }
+    
+    // Phase 1 methods
+    public Integer getPhase1Marathi() {
+        return marathiAksharaLevel > 0 ? marathiAksharaLevel : null;
+    }
+    
+    public Integer getPhase1Math() {
+        return mathAksharaLevel > 0 ? mathAksharaLevel : null;
+    }
+    
+    public Integer getPhase1English() {
+        return englishAksharaLevel > 0 ? englishAksharaLevel : null;
+    }
+    
+    // Phase 2 methods
+    public Integer getPhase2Marathi() {
+        return marathiShabdaLevel > 0 ? marathiShabdaLevel : null;
+    }
+    
+    public Integer getPhase2Math() {
+        return mathShabdaLevel > 0 ? mathShabdaLevel : null;
+    }
+    
+    public Integer getPhase2English() {
+        return englishShabdaLevel > 0 ? englishShabdaLevel : null;
+    }
+    
+    // Phase 3 methods
+    public Integer getPhase3Marathi() {
+        return marathiVakyaLevel > 0 ? marathiVakyaLevel : null;
+    }
+    
+    public Integer getPhase3Math() {
+        return mathVakyaLevel > 0 ? mathVakyaLevel : null;
+    }
+    
+    public Integer getPhase3English() {
+        return englishVakyaLevel > 0 ? englishVakyaLevel : null;
+    }
+    
+    // Phase 4 methods
+    public Integer getPhase4Marathi() {
+        return marathiSamajpurvakLevel > 0 ? marathiSamajpurvakLevel : null;
+    }
+    
+    public Integer getPhase4Math() {
+        return mathSamajpurvakLevel > 0 ? mathSamajpurvakLevel : null;
+    }
+    
+    public Integer getPhase4English() {
+        return englishSamajpurvakLevel > 0 ? englishSamajpurvakLevel : null;
+    }
+    
+    // Phase date getters and setters
+    public Date getPhase1Date() {
+        return phase1Date;
+    }
+    
+    public void setPhase1Date(Date phase1Date) {
+        this.phase1Date = phase1Date;
+    }
+    
+    public Date getPhase2Date() {
+        return phase2Date;
+    }
+    
+    public void setPhase2Date(Date phase2Date) {
+        this.phase2Date = phase2Date;
+    }
+    
+    public Date getPhase3Date() {
+        return phase3Date;
+    }
+    
+    public void setPhase3Date(Date phase3Date) {
+        this.phase3Date = phase3Date;
+    }
+    
+    public Date getPhase4Date() {
+        return phase4Date;
+    }
+    
+    public void setPhase4Date(Date phase4Date) {
+        this.phase4Date = phase4Date;
     }
     
     @Override

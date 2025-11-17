@@ -1,7 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.vjnt.model.User" %>
 <%@ page import="com.vjnt.dao.StudentDAO" %>
+<%@ page import="com.vjnt.dao.SchoolDAO" %>
 <%@ page import="com.vjnt.dao.UserDAO" %>
+<%@ page import="com.vjnt.model.School" %>
 <%@ page import="java.util.*" %>
 <%
     User user = (User) session.getAttribute("user");
@@ -12,9 +14,14 @@
     }
     
     StudentDAO studentDAO = new StudentDAO();
+    SchoolDAO schoolDAO = new SchoolDAO();
     
     // Get statistics for this school (UDISE)
     String udiseNo = user.getUdiseNo();
+    
+    // Get school name from schools table
+    School school = schoolDAO.getSchoolByUdise(udiseNo);
+    String schoolName = school != null ? school.getSchoolName() : "Unknown School";
     List<com.vjnt.model.Student> students = studentDAO.getStudentsByUdise(udiseNo);
     
     // Calculate statistics
@@ -71,7 +78,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Dashboard - UDISE <%= udiseNo %></title>
+    <title><%= schoolName %> - UDISE <%= udiseNo %></title>
     <style>
         * {
             margin: 0;
@@ -332,8 +339,8 @@
     <div class="header">
         <div class="header-content">
             <div>
-                <h1>🏫 VJNT Class Management System</h1>
-                <p>School Dashboard - UDISE <%= udiseNo %></p>
+                <h1>🏫 <%= schoolName %></h1>
+                <p>UDISE: <%= udiseNo %> | School Dashboard</p>
             </div>
             <div class="header-info">
                 <div class="user-info">
@@ -355,7 +362,7 @@
             <span style="margin: 0 10px;">→</span> 
             <span>District:</span> <strong><%= user.getDistrictName() %></strong>
             <span style="margin: 0 10px;">→</span>
-            <span>School UDISE:</span> <strong><%= udiseNo %></strong>
+            <span>School:</span> <strong><%= schoolName %></strong> (<%= udiseNo %>)
         </div>
         
         <!-- Statistics Cards -->
@@ -442,7 +449,7 @@
                 <div>
                     <% if (!marathiLevelCount.isEmpty()) { %>
                     <div class="performance-card">
-                        <div class="performance-title">🇮🇳 मराठी भाषा स्तर</div>
+                        <div class="performance-title">मराठी भाषा स्तर</div>
                         <% for (Map.Entry<String, Integer> entry : marathiLevelCount.entrySet()) { %>
                         <div class="performance-item">
                             <span><%= entry.getKey() %></span>
@@ -454,7 +461,7 @@
                     
                     <% if (!englishLevelCount.isEmpty()) { %>
                     <div class="performance-card">
-                        <div class="performance-title">🇬🇧 इंग्रजी स्तर</div>
+                        <div class="performance-title">इंग्रजी स्तर</div>
                         <% for (Map.Entry<String, Integer> entry : englishLevelCount.entrySet()) { %>
                         <div class="performance-item">
                             <span><%= entry.getKey() %></span>
@@ -468,7 +475,7 @@
                 <div>
                     <% if (!mathLevelCount.isEmpty()) { %>
                     <div class="performance-card">
-                        <div class="performance-title">🔢 गणित स्तर</div>
+                        <div class="performance-title">गणित स्तर</div>
                         <% for (Map.Entry<String, Integer> entry : mathLevelCount.entrySet()) { %>
                         <div class="performance-item">
                             <span><%= entry.getKey() %></span>

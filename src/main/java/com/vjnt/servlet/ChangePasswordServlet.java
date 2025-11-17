@@ -108,16 +108,11 @@ public class ChangePasswordServlet extends HttpServlet {
         // Update password
         String hashedNewPassword = PasswordUtil.hashPassword(newPassword);
         if (userDAO.updatePassword(user.getUserId(), hashedNewPassword)) {
-            // Update session user object
-            user.setPassword(hashedNewPassword);
-            user.setFirstLogin(false);
-            user.setMustChangePassword(false);
-            session.setAttribute("user", user);
+            // Invalidate session to force re-login
+            session.invalidate();
             
-            // Redirect to appropriate dashboard
-            String dashboardUrl = getDashboardUrl(user.getUserType());
-            request.setAttribute("successMessage", "Password changed successfully!");
-            response.sendRedirect(request.getContextPath() + dashboardUrl);
+            // Redirect to login page with success message
+            response.sendRedirect(request.getContextPath() + "/login?message=Password changed successfully! Please login with your new password.");
         } else {
             request.setAttribute("errorMessage", "Failed to update password. Please try again.");
             request.setAttribute("isFirstLogin", user.isFirstLogin());

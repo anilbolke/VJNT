@@ -27,139 +27,208 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 15px;
         }
         
         .change-password-container {
             background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         
         .header h1 {
-            color: #333;
-            font-size: 26px;
-            margin-bottom: 10px;
+            color: #2d3748;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
         }
         
         .header p {
-            color: #666;
-            font-size: 14px;
+            color: #718096;
+            font-size: 13px;
         }
         
         .user-info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 18px;
+            border: 1px solid #e2e8f0;
         }
         
         .user-info p {
-            margin: 5px 0;
-            color: #555;
-            font-size: 14px;
+            margin: 4px 0;
+            color: #4a5568;
+            font-size: 13px;
         }
         
         .user-info strong {
-            color: #333;
+            color: #2d3748;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
+            margin-bottom: 6px;
+            color: #4a5568;
+            font-size: 14px;
             font-weight: 500;
         }
         
         .form-group input {
             width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            padding: 11px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             font-size: 14px;
-            transition: border-color 0.3s;
+            transition: all 0.2s;
         }
         
         .form-group input:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
         .btn-submit {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 6px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.2s;
+            margin-top: 5px;
         }
         
         .btn-submit:hover {
-            transform: translateY(-2px);
+            background: #5568d3;
+        }
+        
+        .btn-submit:active {
+            transform: scale(0.98);
         }
         
         .alert {
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.5;
         }
         
         .alert-error {
-            background-color: #fee;
-            color: #c33;
-            border: 1px solid #fcc;
+            background-color: #fed7d7;
+            color: #c53030;
+            border-left: 3px solid #fc8181;
         }
         
         .alert-warning {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
+            background-color: #fef5e7;
+            color: #d68910;
+            border-left: 3px solid #f39c12;
         }
         
         .password-requirements {
-            background: #f0f7ff;
-            padding: 15px;
-            border-radius: 8px;
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 6px;
             margin-top: 15px;
-            font-size: 13px;
-            color: #555;
+            font-size: 12px;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
         }
         
         .password-requirements h4 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 14px;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
         }
         
         .password-requirements ul {
-            margin-left: 20px;
+            margin-left: 18px;
         }
         
         .password-requirements li {
-            margin: 5px 0;
+            margin: 3px 0;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            .change-password-container {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .header p {
+                font-size: 12px;
+            }
+            
+            .user-info {
+                padding: 10px;
+                font-size: 12px;
+            }
+            
+            .user-info p {
+                font-size: 12px;
+            }
+            
+            .form-group input {
+                padding: 10px 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .btn-submit {
+                padding: 11px;
+                font-size: 14px;
+            }
+            
+            .password-requirements {
+                font-size: 11px;
+                padding: 10px;
+            }
+            
+            .password-requirements h4 {
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            body {
+                padding: 10px;
+            }
+            
+            .change-password-container {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
@@ -167,7 +236,7 @@
     <div class="change-password-container">
         <div class="header">
             <h1>🔐 Change Password</h1>
-            <p>Update your account password</p>
+            <p>Update your password</p>
         </div>
         
         <div class="user-info">
@@ -186,8 +255,8 @@
         
         <% if (isFirstLogin || mustChangePassword) { %>
             <div class="alert alert-warning">
-                ⚠️ <strong>Password Change Required!</strong><br>
-                You must change your password before proceeding.
+                <strong>Password Change Required</strong><br>
+                You must change your password to continue.
             </div>
         <% } %>
         
@@ -196,7 +265,7 @@
             if (errorMessage != null && !errorMessage.isEmpty()) {
         %>
             <div class="alert alert-error">
-                ⚠️ <%= errorMessage %>
+                <%= errorMessage %>
             </div>
         <% } %>
         
@@ -223,14 +292,14 @@
         </form>
         
         <div class="password-requirements">
-            <h4>📋 Password Requirements:</h4>
+            <h4>Password Requirements:</h4>
             <ul>
-                <li>Minimum 8 characters long</li>
-                <li>At least 1 uppercase letter (A-Z)</li>
-                <li>At least 1 lowercase letter (a-z)</li>
-                <li>At least 1 digit (0-9)</li>
-                <li>At least 1 special character (@, #, $, %, etc.)</li>
-                <li>Must be different from current password</li>
+                <li>At least 8 characters</li>
+                <li>One uppercase letter (A-Z)</li>
+                <li>One lowercase letter (a-z)</li>
+                <li>One number (0-9)</li>
+                <li>One special character (@#$%)</li>
+                <li>Different from current password</li>
             </ul>
         </div>
     </div>

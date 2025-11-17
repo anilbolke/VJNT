@@ -232,29 +232,36 @@
             <a href="<%= request.getContextPath() %>/logout" class="logout-btn">Logout</a>
         </div>
         
+        <!-- Quick Actions -->
+        <div style="margin-bottom: 30px; display: flex; gap: 15px; flex-wrap: wrap;">
+            <a href="<%= request.getContextPath() %>/upload-schools.jsp" 
+               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center; 
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'" 
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🏫</div>
+                <div style="font-size: 18px; font-weight: 600;">Upload School Master</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">UDISE & School Names</div>
+            </a>
+            <a href="<%= request.getContextPath() %>/manage-users.jsp" 
+               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center; 
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'" 
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">👥</div>
+                <div style="font-size: 18px; font-weight: 600;">Manage Users</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Create & Edit Users</div>
+            </a>
+        </div>
+        
         <!-- Upload Section -->
         <div class="upload-section">
             <h2>📤 Upload Student Data (Excel)</h2>
             
             <!-- Information Box -->
-            <div class="info-box">
-                <h3>ℹ️ Excel File Format Requirements:</h3>
-                <ul>
-                    <li><strong>Column 0:</strong> Division</li>
-                    <li><strong>Column 1:</strong> District (Dist)</li>
-                    <li><strong>Column 2:</strong> UDISE NO</li>
-                    <li><strong>Column 3:</strong> Class</li>
-                    <li><strong>Column 4:</strong> Section</li>
-                    <li><strong>Column 5:</strong> Class Category</li>
-                    <li><strong>Column 6:</strong> Student Name</li>
-                    <li><strong>Column 7:</strong> Gender</li>
-                    <li><strong>Column 8:</strong> Student PEN</li>
-                    <li><strong>Column 9:</strong> मराठी भाषा स्तर (Marathi Level)</li>
-                    <li><strong>Column 10:</strong> गणित स्तर (Math Level)</li>
-                    <li><strong>Column 11:</strong> इंग्रजी स्तर (English Level)</li>
-                </ul>
-                <p style="margin-top: 10px; font-weight: bold;">Note: First row must be header. Data starts from row 2.</p>
-            </div>
+     
             
             <!-- Upload Area -->
             <div class="upload-area" id="uploadArea">
