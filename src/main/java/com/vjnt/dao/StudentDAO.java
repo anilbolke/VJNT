@@ -177,6 +177,14 @@ public class StudentDAO {
     /**
      * Extract student from ResultSet
      */
+    /**
+     * Helper method to get Integer or null from ResultSet
+     */
+    private Integer getIntegerOrNull(ResultSet rs, String columnName) throws SQLException {
+        int value = rs.getInt(columnName);
+        return rs.wasNull() ? null : value;
+    }
+    
     private Student extractStudentFromResultSet(ResultSet rs) throws SQLException {
         Student student = new Student();
         student.setStudentId(rs.getInt("student_id"));
@@ -208,6 +216,20 @@ public class StudentDAO {
         student.setEnglishShabdaLevel(rs.getInt("english_shabda_level"));
         student.setEnglishVakyaLevel(rs.getInt("english_vakya_level"));
         student.setEnglishSamajpurvakLevel(rs.getInt("english_samajpurvak_level"));
+        
+        // Load phase-specific data
+        student.setPhase1Marathi(getIntegerOrNull(rs, "phase1_marathi"));
+        student.setPhase1Math(getIntegerOrNull(rs, "phase1_math"));
+        student.setPhase1English(getIntegerOrNull(rs, "phase1_english"));
+        student.setPhase2Marathi(getIntegerOrNull(rs, "phase2_marathi"));
+        student.setPhase2Math(getIntegerOrNull(rs, "phase2_math"));
+        student.setPhase2English(getIntegerOrNull(rs, "phase2_english"));
+        student.setPhase3Marathi(getIntegerOrNull(rs, "phase3_marathi"));
+        student.setPhase3Math(getIntegerOrNull(rs, "phase3_math"));
+        student.setPhase3English(getIntegerOrNull(rs, "phase3_english"));
+        student.setPhase4Marathi(getIntegerOrNull(rs, "phase4_marathi"));
+        student.setPhase4Math(getIntegerOrNull(rs, "phase4_math"));
+        student.setPhase4English(getIntegerOrNull(rs, "phase4_english"));
         
         // Load phase dates to track save button clicks
         student.setPhase1Date(rs.getTimestamp("phase1_date"));

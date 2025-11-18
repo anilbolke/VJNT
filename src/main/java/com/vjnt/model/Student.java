@@ -41,6 +41,20 @@ public class Student {
     private int englishVakyaLevel;
     private int englishSamajpurvakLevel;
     
+    // Phase-specific level storage
+    private Integer phase1Marathi;
+    private Integer phase1Math;
+    private Integer phase1English;
+    private Integer phase2Marathi;
+    private Integer phase2Math;
+    private Integer phase2English;
+    private Integer phase3Marathi;
+    private Integer phase3Math;
+    private Integer phase3English;
+    private Integer phase4Marathi;
+    private Integer phase4Math;
+    private Integer phase4English;
+    
     // Phase save timestamps - to track if save button was clicked
     private Date phase1Date;
     private Date phase2Date;
@@ -299,54 +313,102 @@ public class Student {
     
     // Phase 1 methods
     public Integer getPhase1Marathi() {
-        return marathiAksharaLevel > 0 ? marathiAksharaLevel : null;
+        return phase1Marathi;
+    }
+    
+    public void setPhase1Marathi(Integer phase1Marathi) {
+        this.phase1Marathi = phase1Marathi;
     }
     
     public Integer getPhase1Math() {
-        return mathAksharaLevel > 0 ? mathAksharaLevel : null;
+        return phase1Math;
+    }
+    
+    public void setPhase1Math(Integer phase1Math) {
+        this.phase1Math = phase1Math;
     }
     
     public Integer getPhase1English() {
-        return englishAksharaLevel > 0 ? englishAksharaLevel : null;
+        return phase1English;
+    }
+    
+    public void setPhase1English(Integer phase1English) {
+        this.phase1English = phase1English;
     }
     
     // Phase 2 methods
     public Integer getPhase2Marathi() {
-        return marathiShabdaLevel > 0 ? marathiShabdaLevel : null;
+        return phase2Marathi;
+    }
+    
+    public void setPhase2Marathi(Integer phase2Marathi) {
+        this.phase2Marathi = phase2Marathi;
     }
     
     public Integer getPhase2Math() {
-        return mathShabdaLevel > 0 ? mathShabdaLevel : null;
+        return phase2Math;
+    }
+    
+    public void setPhase2Math(Integer phase2Math) {
+        this.phase2Math = phase2Math;
     }
     
     public Integer getPhase2English() {
-        return englishShabdaLevel > 0 ? englishShabdaLevel : null;
+        return phase2English;
+    }
+    
+    public void setPhase2English(Integer phase2English) {
+        this.phase2English = phase2English;
     }
     
     // Phase 3 methods
     public Integer getPhase3Marathi() {
-        return marathiVakyaLevel > 0 ? marathiVakyaLevel : null;
+        return phase3Marathi;
+    }
+    
+    public void setPhase3Marathi(Integer phase3Marathi) {
+        this.phase3Marathi = phase3Marathi;
     }
     
     public Integer getPhase3Math() {
-        return mathVakyaLevel > 0 ? mathVakyaLevel : null;
+        return phase3Math;
+    }
+    
+    public void setPhase3Math(Integer phase3Math) {
+        this.phase3Math = phase3Math;
     }
     
     public Integer getPhase3English() {
-        return englishVakyaLevel > 0 ? englishVakyaLevel : null;
+        return phase3English;
+    }
+    
+    public void setPhase3English(Integer phase3English) {
+        this.phase3English = phase3English;
     }
     
     // Phase 4 methods
     public Integer getPhase4Marathi() {
-        return marathiSamajpurvakLevel > 0 ? marathiSamajpurvakLevel : null;
+        return phase4Marathi;
+    }
+    
+    public void setPhase4Marathi(Integer phase4Marathi) {
+        this.phase4Marathi = phase4Marathi;
     }
     
     public Integer getPhase4Math() {
-        return mathSamajpurvakLevel > 0 ? mathSamajpurvakLevel : null;
+        return phase4Math;
+    }
+    
+    public void setPhase4Math(Integer phase4Math) {
+        this.phase4Math = phase4Math;
     }
     
     public Integer getPhase4English() {
-        return englishSamajpurvakLevel > 0 ? englishSamajpurvakLevel : null;
+        return phase4English;
+    }
+    
+    public void setPhase4English(Integer phase4English) {
+        this.phase4English = phase4English;
     }
     
     // Phase date getters and setters

@@ -11,6 +11,8 @@
         return;
     }
     
+    boolean isCoordinator = user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR);
+    
     StudentDAO studentDAO = new StudentDAO();
     
     // Pagination parameters
@@ -51,44 +53,45 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 15px;
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            padding: 30px;
+            padding: 20px;
         }
         
         .header {
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
             color: white;
-            padding: 20px 30px;
+            padding: 15px 25px;
             border-radius: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
         .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
+            font-size: 24px;
+            margin-bottom: 3px;
         }
         
         .header p {
             opacity: 0.9;
+            font-size: 13px;
         }
         
         .breadcrumb {
             background: #f8f9fa;
-            padding: 15px 20px;
+            padding: 10px 15px;
             border-radius: 8px;
-            margin-bottom: 25px;
-            font-size: 14px;
+            margin-bottom: 15px;
+            font-size: 13px;
             color: #666;
         }
         
@@ -99,8 +102,8 @@
         .section {
             background: white;
             border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 25px;
+            padding: 15px;
+            margin-bottom: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
@@ -136,6 +139,8 @@
         .btn-save {
             background: #28a745;
             color: white;
+            padding: 6px 12px;
+            font-size: 12px;
         }
         
         .btn-save:hover {
@@ -145,7 +150,8 @@
         .table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
+            table-layout: fixed;
         }
         
         .table thead {
@@ -155,10 +161,25 @@
         
         .table th,
         .table td {
-            padding: 12px;
+            padding: 6px 8px;
             text-align: left;
             border-bottom: 1px solid #dee2e6;
+            font-size: 12px;
         }
+        
+        .table th {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .table th:nth-child(1), .table td:nth-child(1) { width: 8%; } /* PEN */
+        .table th:nth-child(2), .table td:nth-child(2) { width: 15%; } /* Name */
+        .table th:nth-child(3), .table td:nth-child(3) { width: 6%; } /* Class */
+        .table th:nth-child(4), .table td:nth-child(4) { width: 6%; } /* Section */
+        .table th:nth-child(5), .table td:nth-child(5) { width: 21%; } /* Marathi */
+        .table th:nth-child(6), .table td:nth-child(6) { width: 21%; } /* Math */
+        .table th:nth-child(7), .table td:nth-child(7) { width: 16%; } /* English */
+        .table th:nth-child(8), .table td:nth-child(8) { width: 7%; text-align: center; } /* Action */
         
         .table tbody tr:hover {
             background: #f8f9fa;
@@ -166,10 +187,10 @@
         
         .level-select {
             width: 100%;
-            padding: 8px;
+            padding: 5px 8px;
             border: 2px solid #ddd;
             border-radius: 5px;
-            font-size: 13px;
+            font-size: 12px;
         }
         
         .level-select:focus {
@@ -211,22 +232,22 @@
         
         .phase-selector {
             background: #f8f9fa;
-            padding: 20px;
+            padding: 12px 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
         
         .phase-status {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 10px;
             flex-wrap: wrap;
         }
         
         .phase-badge {
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 15px;
-            font-size: 12px;
+            font-size: 11px;
         }
         
         .phase-complete {
@@ -287,6 +308,14 @@
         
         <!-- Main Content Section -->
         <div class="section">
+            <% if (!isCoordinator) { %>
+            <!-- Access Restricted Message for Head Master -->
+            <div class="alert alert-info">
+                <strong style="font-size: 18px;">🔒 Access Restricted</strong>
+                <p style="margin: 10px 0 0 0; font-size: 15px;">This page is for <strong>School Coordinators</strong> only. As a Head Master, you can view and approve phase submissions from the Phase Approvals page.</p>
+                <a href="<%= request.getContextPath() %>/school-dashboard-enhanced.jsp" class="btn btn-back" style="margin-top: 15px; display: inline-block;">🏠 Return to Dashboard</a>
+            </div>
+            <% } else { %>
             <%
             // Check phase completion status
             StudentDAO phaseDAO = new StudentDAO();
@@ -435,9 +464,10 @@
                                     <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
                                 </select>
                             </td>
-                            <td>
+                            <td style="text-align: center;">
                                 <% if (!currentPhaseComplete) { %>
                                 <button class="btn btn-save" onclick="saveStudent(<%= s.getStudentId() %>)">💾 Save</button>
+                                <div id="msg-<%= s.getStudentId() %>" style="font-size: 11px; margin-top: 4px; font-weight: 600;"></div>
                                 <% } else { %>
                                 <span style="color: #28a745;">✓ Complete</span>
                                 <% } %>
@@ -483,6 +513,7 @@
             </div>
             <% } %>
             <% } %>
+            <% } %>
         </div>
     </div>
     
@@ -498,6 +529,14 @@
             var mathLevel = row.querySelector('[name="math_akshara"]').value;
             var englishLevel = row.querySelector('[name="english_akshara"]').value;
             var phase = document.getElementById('phaseSelector').value;
+            var saveBtn = event.target;
+            var msgDiv = document.getElementById('msg-' + studentId);
+            
+            // Show saving state
+            saveBtn.disabled = true;
+            saveBtn.style.background = '#6c757d';
+            msgDiv.textContent = 'Saving...';
+            msgDiv.style.color = '#6c757d';
             
             fetch('<%= request.getContextPath() %>/update-language-levels', {
                 method: 'POST',
@@ -513,15 +552,47 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✓ Student data saved successfully!');
+                    // Show success state
+                    saveBtn.style.background = '#28a745';
+                    msgDiv.textContent = '✓ Saved Successfully';
+                    msgDiv.style.color = '#28a745';
                     row.style.background = '#d4edda';
-                    setTimeout(() => { row.style.background = ''; }, 2000);
+                    row.style.transition = 'background 0.3s';
+                    
+                    setTimeout(() => { 
+                        row.style.background = ''; 
+                        msgDiv.textContent = '';
+                        saveBtn.style.background = '#28a745';
+                        saveBtn.disabled = false;
+                    }, 3000);
                 } else {
-                    alert('✗ Error: ' + data.message);
+                    // Show error state
+                    saveBtn.style.background = '#dc3545';
+                    msgDiv.textContent = '✗ ' + (data.message || 'Error saving');
+                    msgDiv.style.color = '#dc3545';
+                    row.style.background = '#f8d7da';
+                    
+                    setTimeout(() => { 
+                        row.style.background = ''; 
+                        msgDiv.textContent = '';
+                        saveBtn.style.background = '#28a745';
+                        saveBtn.disabled = false;
+                    }, 3000);
                 }
             })
             .catch(error => {
-                alert('✗ Error saving data: ' + error);
+                // Show error state
+                saveBtn.style.background = '#dc3545';
+                msgDiv.textContent = '✗ Failed to save';
+                msgDiv.style.color = '#dc3545';
+                row.style.background = '#f8d7da';
+                
+                setTimeout(() => { 
+                    row.style.background = ''; 
+                    msgDiv.textContent = '';
+                    saveBtn.style.background = '#28a745';
+                    saveBtn.disabled = false;
+                }, 3000);
             });
         }
     </script>

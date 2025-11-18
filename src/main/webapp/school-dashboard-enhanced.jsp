@@ -3,6 +3,7 @@
 <%@ page import="com.vjnt.dao.StudentDAO" %>
 <%@ page import="com.vjnt.dao.SchoolDAO" %>
 <%@ page import="com.vjnt.dao.PhaseApprovalDAO" %>
+<%@ page import="com.vjnt.dao.PalakMelavaDAO" %>
 <%@ page import="com.vjnt.model.Student" %>
 <%@ page import="com.vjnt.model.School" %>
 <%@ page import="com.vjnt.model.PhaseApproval" %>
@@ -144,6 +145,10 @@
     PhaseApproval phase4Approval = approvalDAO.getPhaseApproval(udiseNo, 4);
     
     int pendingApprovalsCount = approvalDAO.getPendingApprovalCount(udiseNo);
+    
+    // Get Palak Melava pending count
+    PalakMelavaDAO melavaDAO = new PalakMelavaDAO();
+    int palakMelavaPendingCount = melavaDAO.getPendingCount(udiseNo);
     
     // Separate students by phase completion status
     Map<Integer, List<com.vjnt.model.Student>> phaseCompletedStudents = new HashMap<>();
@@ -1302,14 +1307,34 @@
                     🏷️ <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %>
                 </div>
                 <div class="header-actions">
-                    <% if (user.getUserType().equals(User.UserType.HEAD_MASTER) && pendingApprovalsCount > 0) { %>
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
+                        <a href="<%= request.getContextPath() %>/manage-students.jsp" class="btn" style="background: #43e97b; color: white;">
+                            📝 Manage Students
+                        </a>
+                        <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="btn" style="background: #ffc107; color: black;">
+                            👥 Palak Melava
+                        </a>
+                    <% } %>
+                    <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
+                        <% if (pendingApprovalsCount > 0) { %>
                         <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="background: #ff9800; color: white;">
-                            ⏳ Pending Approvals (<%= pendingApprovalsCount %>)
+                            ⏳ Phase Approvals (<%= pendingApprovalsCount %>)
                         </a>
-                    <% } else if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
+                        <% } else { %>
                         <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="background: #2196f3; color: white;">
-                            🔍 View Approvals
+                            📋 Phase Approvals
                         </a>
+                        <% } %>
+                        
+                        <% if (palakMelavaPendingCount > 0) { %>
+                        <a href="<%= request.getContextPath() %>/palak-melava-approvals.jsp" class="btn" style="background: #ff5722; color: white;">
+                            👥 Palak Melava (<%= palakMelavaPendingCount %>)
+                        </a>
+                        <% } else { %>
+                        <a href="<%= request.getContextPath() %>/palak-melava-approvals.jsp" class="btn" style="background: #4caf50; color: white;">
+                            👥 Palak Melava
+                        </a>
+                        <% } %>
                     <% } %>
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password">
                         🔐 Change Password
@@ -1379,7 +1404,8 @@
             </div>
         </div>
         
-        <!-- Phase Reports -->
+        <!-- Phase Reports - School Coordinator Only -->
+        <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
         <div class="section">
             <h2 class="section-title">📈 चरण अहवाल (Phase Completion Reports)</h2>
             <p style="margin-bottom: 20px; color: #666;">Track the progress of each phase for your school</p>
@@ -1557,6 +1583,7 @@
                 </div>
             </div>
         </div>
+        <% } %>
         
 </body>
 </html>
