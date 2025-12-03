@@ -61,8 +61,9 @@ public class PalakMelavaDAO {
     public boolean create(PalakMelava melava) {
         String sql = "INSERT INTO palak_melava (udise_no, school_name, meeting_date, " +
                      "chief_attendee_info, total_parents_attended, photo_1_path, photo_2_path, " +
+                     "photo_1_content, photo_2_content, photo_1_filename, photo_2_filename, " +
                      "status, submitted_by, submitted_date, created_by, created_date) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, NOW())";
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, NOW())";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -74,9 +75,25 @@ public class PalakMelavaDAO {
             pstmt.setString(5, melava.getTotalParentsAttended());
             pstmt.setString(6, melava.getPhoto1Path());
             pstmt.setString(7, melava.getPhoto2Path());
-            pstmt.setString(8, melava.getStatus());
-            pstmt.setString(9, melava.getSubmittedBy());
-            pstmt.setString(10, melava.getCreatedBy());
+            
+            // Store image content as BLOB
+            if (melava.getPhoto1Content() != null) {
+                pstmt.setBytes(8, melava.getPhoto1Content());
+            } else {
+                pstmt.setNull(8, java.sql.Types.LONGVARBINARY);
+            }
+            
+            if (melava.getPhoto2Content() != null) {
+                pstmt.setBytes(9, melava.getPhoto2Content());
+            } else {
+                pstmt.setNull(9, java.sql.Types.LONGVARBINARY);
+            }
+            
+            pstmt.setString(10, melava.getPhoto1FileName());
+            pstmt.setString(11, melava.getPhoto2FileName());
+            pstmt.setString(12, melava.getStatus());
+            pstmt.setString(13, melava.getSubmittedBy());
+            pstmt.setString(14, melava.getCreatedBy());
             
             int rows = pstmt.executeUpdate();
             
@@ -100,6 +117,8 @@ public class PalakMelavaDAO {
         String sql = "UPDATE palak_melava SET meeting_date = ?, " +
                      "chief_attendee_info = ?, total_parents_attended = ?, " +
                      "photo_1_path = ?, photo_2_path = ?, " +
+                     "photo_1_content = ?, photo_2_content = ?, " +
+                     "photo_1_filename = ?, photo_2_filename = ?, " +
                      "updated_by = ?, updated_date = NOW() WHERE melava_id = ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
@@ -110,8 +129,24 @@ public class PalakMelavaDAO {
             pstmt.setString(3, melava.getTotalParentsAttended());
             pstmt.setString(4, melava.getPhoto1Path());
             pstmt.setString(5, melava.getPhoto2Path());
-            pstmt.setString(6, melava.getUpdatedBy());
-            pstmt.setInt(7, melava.getMelavaId());
+            
+            // Update image content as BLOB
+            if (melava.getPhoto1Content() != null) {
+                pstmt.setBytes(6, melava.getPhoto1Content());
+            } else {
+                pstmt.setNull(6, java.sql.Types.LONGVARBINARY);
+            }
+            
+            if (melava.getPhoto2Content() != null) {
+                pstmt.setBytes(7, melava.getPhoto2Content());
+            } else {
+                pstmt.setNull(7, java.sql.Types.LONGVARBINARY);
+            }
+            
+            pstmt.setString(8, melava.getPhoto1FileName());
+            pstmt.setString(9, melava.getPhoto2FileName());
+            pstmt.setString(10, melava.getUpdatedBy());
+            pstmt.setInt(11, melava.getMelavaId());
             
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -258,6 +293,16 @@ public class PalakMelavaDAO {
         melava.setTotalParentsAttended(rs.getString("total_parents_attended"));
         melava.setPhoto1Path(rs.getString("photo_1_path"));
         melava.setPhoto2Path(rs.getString("photo_2_path"));
+        
+        // Retrieve image content from database (BLOB)
+        byte[] photo1Content = rs.getBytes("photo_1_content");
+        byte[] photo2Content = rs.getBytes("photo_2_content");
+        
+        melava.setPhoto1Content(photo1Content);
+        melava.setPhoto2Content(photo2Content);
+        melava.setPhoto1FileName(rs.getString("photo_1_filename"));
+        melava.setPhoto2FileName(rs.getString("photo_2_filename"));
+        
         melava.setStatus(rs.getString("status"));
         melava.setSubmittedBy(rs.getString("submitted_by"));
         melava.setSubmittedDate(rs.getTimestamp("submitted_date"));

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unlock User Account</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #6c757d;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn-unlock {
+            width: 100%;
+            padding: 14px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn-unlock:hover {
+            background: #218838;
+        }
+        
+        .btn-unlock:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .info-box h3 {
+            color: #2196F3;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box ul {
+            margin-left: 20px;
+            color: #333;
+        }
+        
+        .info-box li {
+            margin-bottom: 5px;
+        }
+        
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-unlock-alt"></i> Unlock User Account</h1>
+        <p class="subtitle">Reset failed login attempts and unlock account</p>
+        
+        <div class="info-box">
+            <h3><i class="fas fa-info-circle"></i> Account Lock Policy</h3>
+            <ul>
+                <li>Accounts are locked after 5 failed login attempts</li>
+                <li>Use this page to unlock any locked account</li>
+                <li>Enter the username and click Unlock</li>
+            </ul>
+        </div>
+        
+        <form id="unlockForm">
+            <div class="form-group">
+                <label for="username">
+                    <i class="fas fa-user"></i> Username
+                </label>
+                <input type="text" id="username" name="username" 
+                       placeholder="Enter username to unlock" required autofocus>
+            </div>
+            
+            <button type="submit" class="btn-unlock" id="unlockBtn">
+                <i class="fas fa-unlock"></i> Unlock Account
+            </button>
+        </form>
+        
+        <div id="message" class="message"></div>
+        
+        <a href="login.jsp" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Login
+        </a>
+    </div>
+    
+    <script>
+        document.getElementById('unlockForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const unlockBtn = document.getElementById('unlockBtn');
+            const messageDiv = document.getElementById('message');
+            
+            if (!username) {
+                showMessage('Please enter a username', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            unlockBtn.disabled = true;
+            unlockBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Unlocking...';
+            messageDiv.style.display = 'none';
+            
+            // Send unlock request
+            fetch('UnlockUserAccountServlet', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'username=' + encodeURIComponent(username)
+            })
+            .then(response => response.json())
+            .then(data => {
+                unlockBtn.disabled = false;
+                unlockBtn.innerHTML = '<i class="fas fa-unlock"></i> Unlock Account';
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    document.getElementById('username').value = '';
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                unlockBtn.disabled = false;
+                unlockBtn.innerHTML = '<i class="fas fa-unlock"></i> Unlock Account';
+                showMessage('Error unlocking account. Please try again.', 'error');
+            });
+        });
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

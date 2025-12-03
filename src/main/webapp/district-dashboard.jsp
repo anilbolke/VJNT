@@ -74,10 +74,11 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
+            background: #f0f2f5;
+            color: #000;
             padding: 20px 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
         
         .header-content {
@@ -90,6 +91,7 @@
         
         .header h1 {
             font-size: 24px;
+            color: #000;
         }
         
         .header-info {
@@ -99,6 +101,7 @@
         .user-info {
             font-size: 14px;
             margin-bottom: 5px;
+            color: #000;
         }
         
         .btn {

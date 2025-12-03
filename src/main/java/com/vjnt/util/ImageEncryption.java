@@ -108,6 +108,40 @@ public class ImageEncryption {
     }
     
     /**
+     * Decrypt a byte array (for database stored content)
+     * @param encryptedBytes Encrypted byte array from database
+     * @return Decrypted image bytes
+     */
+    public static byte[] decryptBytesAES(byte[] encryptedBytes) {
+        try {
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, getSecretKey());
+            
+            return cipher.doFinal(encryptedBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * Encrypt a byte array to store in database
+     * @param imageBytes Original image bytes
+     * @return Encrypted bytes suitable for database storage
+     */
+    public static byte[] encryptBytesAES(byte[] imageBytes) {
+        try {
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, getSecretKey());
+            
+            return cipher.doFinal(imageBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
      * Get file extension without dot
      */
     public static String getFileExtension(String filename) {

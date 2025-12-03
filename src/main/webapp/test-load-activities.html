@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Activity Loading - Marathi vs Math</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 2px solid #ccc; }
+        .marathi { border-color: #4CAF50; background: #f1f8f4; }
+        .math { border-color: #2196F3; background: #e3f2fd; }
+        button { padding: 10px 20px; margin: 10px 5px; font-size: 16px; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Activity Loading - Marathi vs Math</h1>
+    
+    <div class="section marathi">
+        <h2>📗 Test MARATHI</h2>
+        <label>Week:</label>
+        <select id="marathiWeek">
+            <option value="1">Week 1</option>
+            <option value="2">Week 2</option>
+            <option value="3">Week 3</option>
+        </select>
+        <button onclick="testLoad('Marathi')">Load Marathi Activities</button>
+    </div>
+    
+    <div class="section math">
+        <h2>🔢 Test MATH</h2>
+        <label>Week:</label>
+        <select id="mathWeek">
+            <option value="1">Week 1</option>
+            <option value="2">Week 2</option>
+            <option value="3">Week 3</option>
+        </select>
+        <button onclick="testLoad('Math')">Load Math Activities</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testLoad(subject) {
+            const weekSelect = subject === 'Marathi' ? 'marathiWeek' : 'mathWeek';
+            const week = document.getElementById(weekSelect).value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<p>⏳ Loading...</p>';
+            
+            // Get context path from current location
+            const contextPath = window.location.pathname.substring(0, window.location.pathname.indexOf('/', 2));
+            
+            // Construct paths exactly like the application does
+            const paths = [
+                contextPath + '/' + subject.toUpperCase() + '/WEEK ' + week + '.html',
+                contextPath + '/' + subject.toUpperCase() + '/week ' + week + '.html'
+            ];
+            
+            resultDiv.innerHTML = `
+                <h3>Testing ${subject} Week ${week}</h3>
+                <p><strong>Trying paths:</strong></p>
+                <pre>1. ${paths[0]}\n2. ${paths[1]}</pre>
+                <p>Loading first available...</p>
+            `;
+            
+            // Try to load
+            tryLoadPath(paths, 0, subject, week, resultDiv);
+        }
+        
+        function tryLoadPath(paths, index, subject, week, resultDiv) {
+            if (index >= paths.length) {
+                resultDiv.innerHTML += '<p style="color:red;">❌ No file found!</p>';
+                return;
+            }
+            
+            const path = paths[index];
+            
+            fetch(path)
+                .then(response => {
+                    if (!response.ok) {
+                        resultDiv.innerHTML += `<p style="color:orange;">⚠️ Path ${index+1} not found, trying next...</p>`;
+                        tryLoadPath(paths, index + 1, subject, week, resultDiv);
+                        return null;
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    if (!html) return;
+                    
+                    resultDiv.innerHTML = `
+                        <h3>✅ Successfully loaded ${subject} Week ${week}</h3>
+                        <p><strong>Loaded from:</strong> <code>${path}</code></p>
+                    `;
+                    
+                    // Parse the HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const rows = doc.querySelectorAll('table tbody tr');
+                    
+                    let activities = '<h4>📋 Activities Found:</h4><ul>';
+                    let count = 0;
+                    
+                    rows.forEach((row, index) => {
+                        const cells = row.querySelectorAll('td');
+                        const headerCells = row.querySelectorAll('th');
+                        
+                        if (headerCells.length > 0 || cells.length < 2) return;
+                        
+                        const day = cells[0].textContent.trim();
+                        const objective = cells[1].textContent.trim();
+                        const activity = cells.length >= 3 ? cells[2].textContent.trim() : '';
+                        
+                        if (day && objective) {
+                            count++;
+                            activities += `<li><strong>${day}:</strong> ${objective} - ${activity}</li>`;
+                        }
+                    });
+                    
+                    activities += '</ul>';
+                    activities += `<p><strong>Total activities:</strong> ${count}</p>`;
+                    
+                    resultDiv.innerHTML += activities;
+                    
+                    // Check content type
+                    const hasMarathiWords = html.includes('व्यंजन') || html.includes('स्वर') || html.includes('शब्द') || html.includes('वाक्य');
+                    const hasMathWords = html.includes('बेरीज') || html.includes('वजाबाकी') || html.includes('गुणाकार') || html.includes('संख्या');
+                    
+                    resultDiv.innerHTML += `
+                        <h4>🔍 Content Analysis:</h4>
+                        <p>Contains Marathi words (व्यंजन, स्वर, शब्द): <strong style="color:${hasMarathiWords ? 'green' : 'red'}">${hasMarathiWords ? 'YES ✓' : 'NO ✗'}</strong></p>
+                        <p>Contains Math words (बेरीज, गुणाकार, संख्या): <strong style="color:${hasMathWords ? 'green' : 'red'}">${hasMathWords ? 'YES ✓' : 'NO ✗'}</strong></p>
+                    `;
+                    
+                    if (subject === 'Marathi' && hasMathWords && !hasMarathiWords) {
+                        resultDiv.innerHTML += '<p style="color:red;font-weight:bold;">⚠️ ERROR: Marathi file contains MATH content!</p>';
+                    } else if (subject === 'Math' && hasMarathiWords && !hasMathWords) {
+                        resultDiv.innerHTML += '<p style="color:red;font-weight:bold;">⚠️ ERROR: Math file contains MARATHI content!</p>';
+                    } else {
+                        resultDiv.innerHTML += '<p style="color:green;font-weight:bold;">✅ Content is CORRECT!</p>';
+                    }
+                })
+                .catch(error => {
+                    resultDiv.innerHTML += `<p style="color:red;">❌ Error: ${error.message}</p>`;
+                    tryLoadPath(paths, index + 1, subject, week, resultDiv);
+                });
+        }
+    </script>
+</body>
+</html>

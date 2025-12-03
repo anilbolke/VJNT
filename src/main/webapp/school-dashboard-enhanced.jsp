@@ -1,3 +1,4 @@
+<!-- VERSION: 2024-11-30-v12 - Reordered Quick Actions -->
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.vjnt.model.User" %>
 <%@ page import="com.vjnt.dao.StudentDAO" %>
@@ -204,11 +205,19 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f0f2f5;
             min-height: 100vh;
         }
         
         .header {
+            background: #f0f2f5;
+            color: #000;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .header-old {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 25px 30px;
@@ -318,7 +327,7 @@
         
         .btn-change-password {
             background: rgba(255,255,255,0.2);
-            color: white;
+            color: black;
             border: 2px solid rgba(255,255,255,0.3);
         }
         
@@ -334,18 +343,18 @@
         }
         
         .welcome-card {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: white;
-            padding: 25px 30px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
+		    background: linear-gradient(135deg, #fff 0%, #fff 100%);
+		    color: #333;
+		    padding: 25px 30px;
+		    border-radius: 15px;
+		    margin-bottom: 25px;
+		    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+		    display: flex;
+		    justify-content: space-between;
+		    align-items: center;
+		    flex-wrap: wrap;
+		    gap: 20px;
+		}
         
         .welcome-content h2 {
             font-size: 26px;
@@ -910,6 +919,300 @@
             background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
         }
         
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal.show {
+            display: block !important;
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 1200px;
+            border-radius: 15px;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDown {
+            from { 
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .close {
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: #f44336;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        /* Modal Controls */
+        .modal-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .export-btn {
+            padding: 10px 20px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .export-btn:hover {
+            background: #45a049;
+        }
+        
+        /* Student Table */
+        .student-table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        .student-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .student-table th {
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .student-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        
+        .student-table tbody tr:hover {
+            background: #f5f7fa;
+        }
+        
+        .student-table tbody tr:nth-child(even) {
+            background: #fafbfc;
+        }
+        
+        /* Pagination */
+        .modal-pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f7fa;
+            border-radius: 8px;
+        }
+        
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .pagination-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .page-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Level badges */
+        .level-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        
+        .level-0 { background: #f44336; color: white; }
+        .level-1 { background: #ff9800; color: white; }
+        .level-2 { background: #ffc107; color: #333; }
+        .level-3 { background: #4caf50; color: white; }
+        .level-4 { background: #2196f3; color: white; }
+        .level-5 { background: #9c27b0; color: white; }
+        .level-6 { background: #673ab7; color: white; }
+        .level-7 { background: #3f51b5; color: white; }
+        
+        .phase-card.clickable {
+            cursor: pointer;
+        }
+        
+        .phase-card.clickable:hover {
+            border-color: #667eea;
+        }
+        
+        .modal-summary {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+        }
+        
+        .summary-item .summary-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .summary-item .summary-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
         .progress-bar.in-progress {
             background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
         }
@@ -1127,6 +1430,48 @@
         }
     </style>
     <script>
+        // Test that script is loading - VERSION 12 - REORDERED
+        console.log('=== SCRIPT LOADED - VERSION 12 - REORDERED ===');
+        console.log('Page loaded at:', new Date());
+        
+        // Helper functions to get level display text - EXACT DROPDOWN VALUES
+        function getMarathiLevelText(level) {
+            const levels = {
+                0: 'स्तर निश्चित केला नाही',
+                1: 'अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)',
+                2: 'शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)',
+                3: 'वाक्य स्तरावरील विद्यार्थी संख्या',
+                4: 'समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या'
+            };
+            return levels[level] || 'Unknown';
+        }
+        
+        function getMathLevelText(level) {
+            const levels = {
+                0: 'स्तर निश्चित केला नाही',
+                1: 'प्रारंभीक स्तरावरील विद्यार्थी संख्या',
+                2: 'अंक स्तरावरील विद्यार्थी संख्या',
+                3: 'संख्या वाचन स्तरावरील विद्यार्थी संख्या',
+                4: 'बेरीज स्तरावरील विद्यार्थी संख्या',
+                5: 'वजाबाकी स्तरावरील विद्यार्थी संख्या',
+                6: 'गुणाकार स्तरावरील विद्यार्थी संख्या',
+                7: 'भागाकर स्तरावरील विद्यार्थी संख्या'
+            };
+            return levels[level] || 'Unknown';
+        }
+        
+        function getEnglishLevelText(level) {
+            const levels = {
+                0: 'स्तर निश्चित केला नाही',
+                1: 'BEGINER LEVEL',
+                2: 'ALPHABET LEVEL Reading and Writing',
+                3: 'WORD LEVEL Reading and Writing',
+                4: 'SENTENCE LEVEL',
+                5: 'Paragraph Reading with Understanding'
+            };
+            return levels[level] || 'Unknown';
+        }
+        
         function toggleStudentDetails(phaseNum) {
             const detailsDiv = document.getElementById('phase' + phaseNum + 'Details');
             const btn = document.getElementById('phase' + phaseNum + 'Btn');
@@ -1287,6 +1632,403 @@
                 alert('Error submitting phase: ' + error);
             });
         }
+        
+        // Global variables for table display
+        let currentPhaseData = [];
+        let filteredData = [];
+        let currentModalPage = 1;
+        let rowsPerPage = 20;
+        
+        // Show phase details in modal with table view
+        function showPhaseDetails(phaseNumber, event) {
+            try {
+                console.log('=== showPhaseDetails START ===');
+                
+                // Prevent click if clicking on a button
+                if (event && event.target && event.target.tagName === 'BUTTON') {
+                    return;
+                }
+                
+                const modal = document.getElementById('phaseModal');
+                const modalTitle = document.getElementById('modalPhaseTitle');
+                const modalBody = document.getElementById('modalStudentList');
+                
+                if (!modal) {
+                    alert('Error: Modal element not found. Please refresh the page.');
+                    return;
+                }
+                
+                modalTitle.textContent = 'चरण ' + phaseNumber + ' विद्यार्थी डेटा (Phase ' + phaseNumber + ' Student Data)';
+                modal.style.display = 'block';
+                modal.classList.add('show');
+                
+                // Get student data
+                const students = window['phase' + phaseNumber + 'Students'];
+                console.log('Students array:', students);
+                console.log('Number of students:', students ? students.length : 0);
+                
+                if (students && students.length > 0) {
+                    currentPhaseData = students;
+                    filteredData = [...students];
+                    currentModalPage = 1;
+                    
+                    // Build the UI
+                    let html = '';
+                    
+                    // Summary
+                    html += '<div class="modal-summary">';
+                    html += '<div class="summary-item"><div class="summary-value">' + students.length + '</div><div class="summary-label">Total Students</div></div>';
+                    let maleCount = students.filter(s => s.gender === 'Male' || s.gender === 'पुरुष').length;
+                    let femaleCount = students.filter(s => s.gender === 'Female' || s.gender === 'स्त्री').length;
+                    html += '<div class="summary-item"><div class="summary-value">' + maleCount + '</div><div class="summary-label">Male</div></div>';
+                    html += '<div class="summary-item"><div class="summary-value">' + femaleCount + '</div><div class="summary-label">Female</div></div>';
+                    html += '</div>';
+                    
+                    // Controls
+                    html += '<div class="modal-controls">';
+                    html += '<div class="search-box"><input type="text" id="studentSearch" placeholder="Search by PEN, name, class, section..." onkeyup="filterStudents()"></div>';
+                    html += '<div class="filter-group">';
+                    html += '<select id="classFilter" class="filter-select" onchange="filterStudents()"><option value="">All Classes</option></select>';
+                    html += '<select id="sectionFilter" class="filter-select" onchange="filterStudents()"><option value="">All Sections</option></select>';
+                    html += '</div>';
+                    html += '<button class="export-btn" onclick="exportToExcel(' + phaseNumber + ')">📥 Export Excel</button>';
+                    html += '</div>';
+                    
+                    // Table container
+                    html += '<div id="tableContainer"></div>';
+                    
+                    modalBody.innerHTML = html;
+                    
+                    // Populate filter options
+                    populateFilters();
+                    
+                    // Render table
+                    renderStudentTable();
+                } else {
+                    modalBody.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><h3>No students have completed Phase ' + phaseNumber + ' yet.</h3></div>';
+                }
+                
+                console.log('=== showPhaseDetails END ===');
+            } catch (error) {
+                console.error('ERROR in showPhaseDetails:', error);
+                alert('Error opening modal: ' + error.message);
+            }
+        }
+        
+        // Populate filter dropdowns
+        function populateFilters() {
+            const classes = [...new Set(currentPhaseData.map(s => s.class))].sort();
+            const sections = [...new Set(currentPhaseData.map(s => s.section))].sort();
+            
+            const classFilter = document.getElementById('classFilter');
+            const sectionFilter = document.getElementById('sectionFilter');
+            
+            classes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = 'Class ' + c;
+                classFilter.appendChild(opt);
+            });
+            
+            sections.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = 'Section ' + s;
+                sectionFilter.appendChild(opt);
+            });
+        }
+        
+        // Filter students based on search and filters
+        function filterStudents() {
+            const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+            const classFilter = document.getElementById('classFilter').value;
+            const sectionFilter = document.getElementById('sectionFilter').value;
+            
+            filteredData = currentPhaseData.filter(student => {
+                const matchesSearch = student.name.toLowerCase().includes(searchTerm) ||
+                                     student.class.toLowerCase().includes(searchTerm) ||
+                                     student.section.toLowerCase().includes(searchTerm) ||
+                                     (student.pen && student.pen.toLowerCase().includes(searchTerm));
+                const matchesClass = !classFilter || student.class === classFilter;
+                const matchesSection = !sectionFilter || student.section === sectionFilter;
+                
+                return matchesSearch && matchesClass && matchesSection;
+            });
+            
+            currentModalPage = 1;
+            renderStudentTable();
+        }
+        
+        // Render student table with pagination
+        function renderStudentTable() {
+            const container = document.getElementById('tableContainer');
+            if (!container) return;
+            
+            const start = (currentModalPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const pageData = filteredData.slice(start, end);
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            
+            let html = '<div class="student-table-container">';
+            html += '<table class="student-table">';
+            html += '<thead><tr>';
+            html += '<th>#</th>';
+            html += '<th>PEN</th>';
+            html += '<th>Student Name</th>';
+            html += '<th>Class</th>';
+            html += '<th>Section</th>';
+            html += '<th>Gender</th>';
+            html += '<th>मराठी Level</th>';
+            html += '<th>गणित Level</th>';
+            html += '<th>English Level</th>';
+            html += '<th>Completed Date</th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+            
+            if (pageData.length === 0) {
+                html += '<tr><td colspan="10" style="text-align:center; padding:20px;">No students found</td></tr>';
+            } else {
+                pageData.forEach((student, index) => {
+                    html += '<tr>';
+                    html += '<td>' + (start + index + 1) + '</td>';
+                    html += '<td><strong>' + (student.pen || 'N/A') + '</strong></td>';
+                    html += '<td>' + student.name + '</td>';
+                    html += '<td>' + student.class + '</td>';
+                    html += '<td>' + student.section + '</td>';
+                    html += '<td>' + student.gender + '</td>';
+                    html += '<td><span class="level-badge level-' + student.marathiLevel + '">' + getMarathiLevelText(student.marathiLevel) + '</span></td>';
+                    html += '<td><span class="level-badge level-' + student.mathLevel + '">' + getMathLevelText(student.mathLevel) + '</span></td>';
+                    html += '<td><span class="level-badge level-' + student.englishLevel + '">' + getEnglishLevelText(student.englishLevel) + '</span></td>';
+                    html += '<td>' + (student.phaseDate || '-') + '</td>';
+                    html += '</tr>';
+                });
+            }
+            
+            html += '</tbody></table></div>';
+            
+            // Pagination
+            if (totalPages > 1) {
+                html += '<div class="modal-pagination">';
+                html += '<div class="pagination-info">Showing ' + (start + 1) + ' to ' + Math.min(end, filteredData.length) + ' of ' + filteredData.length + ' students</div>';
+                html += '<div class="pagination-buttons">';
+                html += '<button class="page-btn" onclick="changeModalPage(' + (currentModalPage - 1) + ')" ' + (currentModalPage === 1 ? 'disabled' : '') + '>« Prev</button>';
+                
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= currentModalPage - 2 && i <= currentModalPage + 2)) {
+                        html += '<button class="page-btn ' + (i === currentModalPage ? 'active' : '') + '" onclick="changeModalPage(' + i + ')">' + i + '</button>';
+                    } else if (i === currentModalPage - 3 || i === currentModalPage + 3) {
+                        html += '<span style="padding: 8px;">...</span>';
+                    }
+                }
+                
+                html += '<button class="page-btn" onclick="changeModalPage(' + (currentModalPage + 1) + ')" ' + (currentModalPage === totalPages ? 'disabled' : '') + '>Next »</button>';
+                html += '</div></div>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Change page
+        function changeModalPage(page) {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentModalPage = page;
+            renderStudentTable();
+        }
+        
+        // Export to Excel
+        function exportToExcel(phaseNumber) {
+            let csv = 'Sr No,PEN,Student Name,Class,Section,Gender,Marathi Level,Math Level,English Level,Completed Date\n';
+            
+            filteredData.forEach((student, index) => {
+                csv += (index + 1) + ',';
+                csv += '"' + (student.pen || 'N/A') + '",';
+                csv += '"' + student.name + '",';
+                csv += student.class + ',';
+                csv += student.section + ',';
+                csv += student.gender + ',';
+                csv += '"' + getMarathiLevelText(student.marathiLevel) + '",';
+                csv += '"' + getMathLevelText(student.mathLevel) + '",';
+                csv += '"' + getEnglishLevelText(student.englishLevel) + '",';
+                csv += (student.phaseDate || '') + '\n';
+            });
+            
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'Phase_' + phaseNumber + '_Students_' + new Date().toISOString().split('T')[0] + '.csv';
+            link.click();
+        }
+        
+        // Close modal
+        function closeModal() {
+            console.log('closeModal called');
+            const modal = document.getElementById('phaseModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const phaseModal = document.getElementById('phaseModal');
+            const teacherModal = document.getElementById('addTeacherModal');
+            if (event.target === phaseModal) {
+                closeModal();
+            }
+            if (event.target === teacherModal) {
+                closeAddTeacherModal();
+            }
+        }
+        
+        // Open Add Teacher Modal
+        function openAddTeacherModal() {
+            console.log('Opening Add Teacher Modal');
+            const modal = document.getElementById('addTeacherModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.add('show');
+            }
+        }
+        
+        // Close Add Teacher Modal
+        function closeAddTeacherModal() {
+            console.log('Closing Add Teacher Modal');
+            const modal = document.getElementById('addTeacherModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+            }
+            // Reset form
+            document.getElementById('addTeacherForm').reset();
+            document.getElementById('subjectError').style.display = 'none';
+        }
+        
+        // Submit Teacher Form
+        function submitTeacher(event) {
+            event.preventDefault();
+            
+            // Get form data
+            const name = document.getElementById('teacherName').value.trim();
+            const mobile = document.getElementById('teacherMobile').value.trim();
+            const description = document.getElementById('teacherDescription').value.trim();
+            
+            // Get selected subjects
+            const subjectCheckboxes = document.querySelectorAll('.subject-checkbox:checked');
+            const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+            
+            // Validate at least one subject is selected
+            if (subjects.length === 0) {
+                document.getElementById('subjectError').style.display = 'block';
+                return;
+            } else {
+                document.getElementById('subjectError').style.display = 'none';
+            }
+            
+            // Prepare data - Use URLSearchParams instead of FormData
+            const formData = new URLSearchParams();
+            formData.append('teacherName', name);
+            formData.append('teacherMobile', mobile);
+            formData.append('subjects', subjects.join(','));
+            formData.append('description', description);
+            
+            console.log('Submitting teacher data:', {name, mobile, subjects: subjects.join(','), description});
+            console.log('FormData entries:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            
+            // Submit to server
+            console.log('Sending request to:', '<%= request.getContextPath() %>/add-teacher');
+            
+            fetch('<%= request.getContextPath() %>/add-teacher', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    console.error('HTTP error:', response.status, response.statusText);
+                    
+                    // Check if it's a 404 - servlet not found
+                    if (response.status === 404) {
+                        alert('❌ Error: Add Teacher servlet not found!\n\n' +
+                              'The backend servlet "/add-teacher" is not deployed.\n\n' +
+                              'Please create AddTeacherServlet.java and deploy it.');
+                        return;
+                    }
+                    
+                    // Try to get error text
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        alert('Server error: ' + response.status + '\n' + text);
+                    });
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return; // Already handled error above
+                
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    alert('✓ Teacher added successfully!\n\nName: ' + name + '\nMobile: ' + mobile + '\nSubjects: ' + subjects.join(', '));
+                    closeAddTeacherModal();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to add teacher'));
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('❌ Error adding teacher!\n\n' +
+                      'Error: ' + error.message + '\n\n' +
+                      'Check browser console (F12) for details.\n\n' +
+                      'Make sure AddTeacherServlet.java is created and deployed.');
+            });
+        }
+        
+        // Verify functions are defined
+        console.log('showPhaseDetails function defined:', typeof showPhaseDetails);
+        console.log('closeModal function defined:', typeof closeModal);
+        console.log('getMarathiLevelText function defined:', typeof getMarathiLevelText);
+        console.log('getMathLevelText function defined:', typeof getMathLevelText);
+        console.log('getEnglishLevelText function defined:', typeof getEnglishLevelText);
+        
+        // Test the conversion functions with actual dropdown values
+        console.log('Test Marathi Level 1:', getMarathiLevelText(1));
+        console.log('Test Math Level 1:', getMathLevelText(1));
+        console.log('Test English Level 2:', getEnglishLevelText(2));
+        
+        // Wait for page to fully load, then check student data
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('=== PAGE LOADED - Checking Student Data ===');
+            
+            // Direct test with exact values from user's data
+            console.log('DIRECT TEST - marathiLevel 1:', getMarathiLevelText(1));
+            console.log('DIRECT TEST - mathLevel 1:', getMathLevelText(1));
+            console.log('DIRECT TEST - englishLevel 2:', getEnglishLevelText(2));
+            
+            if (typeof window.phase1Students !== 'undefined') {
+                console.log('Phase 1 Students array exists:', window.phase1Students.length, 'students');
+                if (window.phase1Students.length > 0) {
+                    console.log('First student full data:', JSON.stringify(window.phase1Students[0], null, 2));
+                    console.log('First student Marathi level VALUE:', window.phase1Students[0].marathiLevel);
+                    console.log('First student Marathi level TYPE:', typeof window.phase1Students[0].marathiLevel);
+                    var convertedText = getMarathiLevelText(window.phase1Students[0].marathiLevel);
+                    console.log('CONVERTED TEXT RESULT:', convertedText);
+                    console.log('CONVERTED TEXT TYPE:', typeof convertedText);
+                }
+            } else {
+                console.log('Phase 1 Students array NOT FOUND - modal will not work!');
+            }
+        });
     </script>
 </head>
 <body>
@@ -1303,25 +2045,28 @@
                 <div class="user-badge">
                     👤 <strong><%= user.getFullName() %></strong>
                 </div>
-                <div class="user-badge">
+               <%--  <div class="user-badge">
                     🏷️ <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %>
-                </div>
+                </div> --%>
                 <div class="header-actions">
                     <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
-                        <a href="<%= request.getContextPath() %>/manage-students.jsp" class="btn" style="background: #43e97b; color: white;">
+                        <a href="<%= request.getContextPath() %>/manage-students.jsp" class="btn" style="color: black;">
                             📝 Manage Students
                         </a>
-                        <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="btn" style="background: #ffc107; color: black;">
+                        <a href="<%= request.getContextPath() %>/manage-teachers.jsp" class="btn" style="color: black;">
+                            👨‍🏫 Manage Teachers
+                        </a>
+                        <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="btn" style="color: black;">
                             👥 Palak Melava
                         </a>
                     <% } %>
                     <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
                         <% if (pendingApprovalsCount > 0) { %>
-                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="background: #ff9800; color: white;">
+                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="color: black;">
                             ⏳ Phase Approvals (<%= pendingApprovalsCount %>)
                         </a>
                         <% } else { %>
-                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="background: #2196f3; color: white;">
+                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="color: black;">
                             📋 Phase Approvals
                         </a>
                         <% } %>
@@ -1399,8 +2144,108 @@
             </div>
         </div>
         
-
-                </div>
+        <!-- Quick Actions -->
+        <div class="section" style="margin-bottom: 30px;">
+            <h2 class="section-title">⚡ Quick Actions</h2>
+            <p style="margin-bottom: 20px; color: #666;">त्वरित क्रिया (Quick access to important features)</p>
+            
+            <div class="grid-3">
+                <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
+                <!-- 1. Manage Students -->
+                <a href="<%= request.getContextPath() %>/manage-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📚</div>
+                    <div class="quick-action-title">Manage Students</div>
+                    <div class="quick-action-subtitle">विद्यार्थी व्यवस्थापन</div>
+                    <div class="quick-action-desc">Complete student management with view, edit, delete options. Search, filter, and export student data.</div>
+                </a>
+                
+                <!-- 2. View All Student Data -->
+                <a href="<%= request.getContextPath() %>/view-student-data.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-title">View All Student Data</div>
+                    <div class="quick-action-subtitle">सर्व विद्यार्थी डेटा</div>
+                    <div class="quick-action-desc">Display all student information registered against this UDISE number with filtering and search capabilities.</div>
+                </a>
+                
+                <!-- 3. Palak Melava -->
+                <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">👥</div>
+                    <div class="quick-action-title">Palak Melava</div>
+                    <div class="quick-action-subtitle">पालक मेळावा</div>
+                    <div class="quick-action-desc">Register parent meetings, upload photos, and manage approvals. Track all palak melava activities.</div>
+                </a>
+                
+                <!-- 4. Add Student -->
+                <a href="<%= request.getContextPath() %>/add-modify-student.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">➕</div>
+                    <div class="quick-action-title">Add Student</div>
+                    <div class="quick-action-subtitle">विद्यार्थी जोडा</div>
+                    <div class="quick-action-desc">Add new student records with personal, academic details and language proficiency information.</div>
+                </a>
+                
+                <!-- 5. Add Teacher -->
+                <a href="javascript:void(0);" onclick="openAddTeacherModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">👨‍🏫</div>
+                    <div class="quick-action-title">Add Teacher</div>
+                    <div class="quick-action-subtitle">शिक्षक जोडा</div>
+                    <div class="quick-action-desc">Add new teacher with name, contact details, subjects taught, and additional information.</div>
+                </a>
+                
+                <!-- 6. Edit Student -->
+                <a href="<%= request.getContextPath() %>/select-student-to-edit.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">✏️</div>
+                    <div class="quick-action-title">Edit Student</div>
+                    <div class="quick-action-subtitle">विद्यार्थी संपादित करा</div>
+                    <div class="quick-action-desc">Modify existing student information. Select a student from the list and update their details.</div>
+                </a>
+                
+                <!-- 7. Manage Teachers -->
+                <a href="<%= request.getContextPath() %>/manage-teachers.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">👨‍🏫</div>
+                    <div class="quick-action-title">Manage Teachers</div>
+                    <div class="quick-action-subtitle">शिक्षक व्यवस्थापन</div>
+                    <div class="quick-action-desc">View, edit, and manage all teachers. Search by name, mobile, or subject. Update details and assignments.</div>
+                </a>
+                
+                <!-- 8. Assign Teacher to Class -->
+                <a href="<%= request.getContextPath() %>/assign-teacher.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📋</div>
+                    <div class="quick-action-title">Assign Teacher to Class</div>
+                    <div class="quick-action-subtitle">वर्ग शिक्षक नियुक्ती</div>
+                    <div class="quick-action-desc">Assign teachers to specific classes, sections and subjects. Manage teacher assignments and schedules.</div>
+                </a>
+                
+                <!-- 9. Student Comprehensive Report (School Coordinator) -->
+                <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
+                <a href="<%= request.getContextPath() %>/student-comprehensive-report-new.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-title">Generate Student Report</div>
+                    <div class="quick-action-subtitle">विद्यार्थी अहवाल तयार करा</div>
+                    <div class="quick-action-desc">Request comprehensive student reports with academic data, activities, and progress tracking. Submit for headmaster approval.</div>
+                </a>
+                
+               <%--  <!-- 10. My Report Requests -->
+                <a href="<%= request.getContextPath() %>/my-report-requests.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📋</div>
+                    <div class="quick-action-title">My Report Requests</div>
+                    <div class="quick-action-subtitle">माझ्या अहवालांची विनंती</div>
+                    <div class="quick-action-desc">Track all your report requests. View approval status and print approved reports.</div>
+                </a> --%>
+                <% } %>
+                <% } %>
+                
+                <!-- 11. Approve Reports (Headmaster Only) -->
+                <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
+                <a href="<%= request.getContextPath() %>/approve-student-reports.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">✅</div>
+                    <div class="quick-action-title">Approve Reports</div>
+                    <div class="quick-action-subtitle">अहवाल मंजूर करा</div>
+                    <div class="quick-action-desc">Review and approve pending student comprehensive reports. View student data and approve or reject requests.</div>
+                </a>
+                <% } %>
+                
+               
+                
             </div>
         </div>
         
@@ -1412,7 +2257,7 @@
             
             <div class="phase-reports">
                 <!-- Phase 1 -->
-                <div class="phase-card <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "not-started") %>">
+                <div class="phase-card clickable <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "not-started") %>" onclick="console.log('Phase 1 card clicked!'); showPhaseDetails(1, event);" style="position: relative;">
                     <div class="phase-header">
                         <div class="phase-title">चरण 1 (Phase 1)</div>
                         <div class="phase-icon"><%= phase1Complete ? "✅" : (phase1Completion > 0 ? "⏳" : "🔒") %></div>
@@ -1444,14 +2289,14 @@
                     <% } %>
                     
                     <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase1Complete && (phase1Approval == null || phase1Approval.isRejected())) { %>
-                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(1)">
+                        <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(1);">
                             📤 Submit for Approval
                         </button>
                     <% } %>
                 </div>
                 
                 <!-- Phase 2 -->
-                <div class="phase-card <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "not-started") %>">
+                <div class="phase-card clickable <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "not-started") %>" onclick="showPhaseDetails(2, event)">
                     <div class="phase-header">
                         <div class="phase-title">चरण 2 (Phase 2)</div>
                         <div class="phase-icon"><%= phase2Complete ? "✅" : (phase2Completion > 0 ? "⏳" : "🔒") %></div>
@@ -1483,14 +2328,14 @@
                     <% } %>
                     
                     <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase2Complete && (phase2Approval == null || phase2Approval.isRejected())) { %>
-                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(2)">
+                        <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(2);">
                             📤 Submit for Approval
                         </button>
                     <% } %>
                 </div>
                 
                 <!-- Phase 3 -->
-                <div class="phase-card <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "not-started") %>">
+                <div class="phase-card clickable <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "not-started") %>" onclick="showPhaseDetails(3, event)">
                     <div class="phase-header">
                         <div class="phase-title">चरण 3 (Phase 3)</div>
                         <div class="phase-icon"><%= phase3Complete ? "✅" : (phase3Completion > 0 ? "⏳" : "🔒") %></div>
@@ -1522,14 +2367,14 @@
                     <% } %>
                     
                     <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase3Complete && (phase3Approval == null || phase3Approval.isRejected())) { %>
-                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(3)">
+                        <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(3);">
                             📤 Submit for Approval
                         </button>
                     <% } %>
                 </div>
                 
                 <!-- Phase 4 -->
-                <div class="phase-card <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "not-started") %>">
+                <div class="phase-card clickable <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "not-started") %>" onclick="showPhaseDetails(4, event)">
                     <div class="phase-header">
                         <div class="phase-title">चरण 4 (Phase 4)</div>
                         <div class="phase-icon"><%= phase4Complete ? "✅" : (phase4Completion > 0 ? "⏳" : "🔒") %></div>
@@ -1561,7 +2406,7 @@
                     <% } %>
                     
                     <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase4Complete && (phase4Approval == null || phase4Approval.isRejected())) { %>
-                        <button class="btn-submit-phase" onclick="submitPhaseForApproval(4)">
+                        <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(4);">
                             📤 Submit for Approval
                         </button>
                     <% } %>
@@ -1583,6 +2428,218 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Phase Details Modal -->
+        <div id="phaseModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalPhaseTitle">Phase Student Data</h2>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="modalStudentList"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Teacher Modal -->
+        <div id="addTeacherModal" class="modal">
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h2>👨‍🏫 Add Teacher / शिक्षक जोडा</h2>
+                    <span class="close" onclick="closeAddTeacherModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="addTeacherForm" onsubmit="submitTeacher(event)">
+                        <div style="display: grid; gap: 20px;">
+                            <!-- Teacher Name -->
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                                    Teacher Name / शिक्षकाचे नाव <span style="color: red;">*</span>
+                                </label>
+                                <input type="text" id="teacherName" name="teacherName" required
+                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
+                                       placeholder="Enter teacher's full name">
+                            </div>
+                            
+                            <!-- Mobile Number -->
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                                    Mobile Number / मोबाईल नंबर <span style="color: red;">*</span>
+                                </label>
+                                <input type="tel" id="teacherMobile" name="teacherMobile" required
+                                       pattern="[0-9]{10}" maxlength="10"
+                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
+                                       placeholder="10-digit mobile number">
+                            </div>
+                            
+                            <!-- Subjects -->
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #333;">
+                                    Subjects Taught / विषय <span style="color: red;">*</span>
+                                </label>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" name="subjects" value="Marathi" class="subject-checkbox"
+                                               style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span>मराठी (Marathi)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" name="subjects" value="Hindi" class="subject-checkbox"
+                                               style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span>हिंदी (Hindi)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" name="subjects" value="English" class="subject-checkbox"
+                                               style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span>English</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" name="subjects" value="Mathematics" class="subject-checkbox"
+                                               style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span>गणित (Mathematics)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" name="subjects" value="Science" class="subject-checkbox"
+                                               style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span>विज्ञान (Science)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" name="subjects" value="History" class="subject-checkbox"
+                                               style="width: 18px; height: 18px; cursor: pointer;">
+                                        <span>इतिहास (History)</span>
+                                    </label>
+                                </div>
+                                <span id="subjectError" style="color: red; font-size: 12px; display: none; margin-top: 5px;">Please select at least one subject</span>
+                            </div>
+                            
+                            <!-- Description -->
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">
+                                    Description / वर्णन
+                                </label>
+                                <textarea id="teacherDescription" name="teacherDescription" rows="4"
+                                          style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; resize: vertical;"
+                                          placeholder="Additional information about the teacher (qualifications, experience, etc.)"></textarea>
+                            </div>
+                            
+                            <!-- Buttons -->
+                            <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 10px;">
+                                <button type="button" onclick="closeAddTeacherModal()"
+                                        style="padding: 12px 30px; border: 2px solid #e0e0e0; background: white; color: #666; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                        style="padding: 12px 30px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                    👨‍🏫 Add Teacher
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test button for debugging -->
+        
+        <script>
+            // Prepare student data for each phase
+            <% 
+            // Phase 1 Students
+            List<Student> phase1List = phaseCompletedStudents.get(1);
+            %>
+        window.phase1Students = [
+            <% 
+            for (int i = 0; i < phase1List.size(); i++) {
+                Student s = phase1List.get(i);
+                if (i > 0) out.print(",");
+            %>
+            {
+                pen: '<%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %>',
+                name: '<%= s.getFullName().replace("'", "\\'") %>',
+                class: '<%= s.getStudentClass() %>',
+                section: '<%= s.getSection() %>',
+                gender: '<%= s.getGender() %>',
+                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
+                mathLevel: <%= s.getMathAksharaLevel() %>,
+                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                phaseDate: '<%= s.getPhase1Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase1Date()) : "" %>'
+            }
+            <% } %>
+        ];
+        
+        <% 
+        // Phase 2 Students
+        List<Student> phase2List = phaseCompletedStudents.get(2);
+        %>
+        window.phase2Students = [
+            <% 
+            for (int i = 0; i < phase2List.size(); i++) {
+                Student s = phase2List.get(i);
+                if (i > 0) out.print(",");
+            %>
+            {
+                pen: '<%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %>',
+                name: '<%= s.getFullName().replace("'", "\\'") %>',
+                class: '<%= s.getStudentClass() %>',
+                section: '<%= s.getSection() %>',
+                gender: '<%= s.getGender() %>',
+                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
+                mathLevel: <%= s.getMathAksharaLevel() %>,
+                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                phaseDate: '<%= s.getPhase2Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase2Date()) : "" %>'
+            }
+            <% } %>
+        ];
+        
+        <% 
+        // Phase 3 Students
+        List<Student> phase3List = phaseCompletedStudents.get(3);
+        %>
+        window.phase3Students = [
+            <% 
+            for (int i = 0; i < phase3List.size(); i++) {
+                Student s = phase3List.get(i);
+                if (i > 0) out.print(",");
+            %>
+            {
+                pen: '<%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %>',
+                name: '<%= s.getFullName().replace("'", "\\'") %>',
+                class: '<%= s.getStudentClass() %>',
+                section: '<%= s.getSection() %>',
+                gender: '<%= s.getGender() %>',
+                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
+                mathLevel: <%= s.getMathAksharaLevel() %>,
+                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                phaseDate: '<%= s.getPhase3Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase3Date()) : "" %>'
+            }
+            <% } %>
+        ];
+        
+        <% 
+        // Phase 4 Students
+        List<Student> phase4List = phaseCompletedStudents.get(4);
+        %>
+        window.phase4Students = [
+            <% 
+            for (int i = 0; i < phase4List.size(); i++) {
+                Student s = phase4List.get(i);
+                if (i > 0) out.print(",");
+            %>
+            {
+                pen: '<%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %>',
+                name: '<%= s.getFullName().replace("'", "\\'") %>',
+                class: '<%= s.getStudentClass() %>',
+                section: '<%= s.getSection() %>',
+                gender: '<%= s.getGender() %>',
+                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
+                mathLevel: <%= s.getMathAksharaLevel() %>,
+                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                phaseDate: '<%= s.getPhase4Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase4Date()) : "" %>'
+            }
+            <% } %>
+        ];
+        </script>
         <% } %>
         
 </body>

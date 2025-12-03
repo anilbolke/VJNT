@@ -166,22 +166,25 @@
         }
         
         .header {
+            background: #f0f2f5;
+            color: #000;
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
             border-bottom: 3px solid #667eea;
         }
         
         .header-left h1 {
-            color: #333;
+            color: #000;
             font-size: 28px;
             margin-bottom: 5px;
         }
         
         .header-left .subtitle {
-            color: #666;
+            color: #000;
             font-size: 14px;
         }
         

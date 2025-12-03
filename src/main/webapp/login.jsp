@@ -14,7 +14,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f0f2f5;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -23,10 +23,10 @@
         }
         
         .login-container {
-            background: white;
+            background: #e8eaf0;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 380px;
         }
@@ -34,18 +34,22 @@
         .login-header {
             text-align: center;
             margin-bottom: 25px;
+            background: #f0f2f5;
+            padding: 20px;
+            border-radius: 8px;
         }
         
         .login-header h1 {
-            color: #2d3748;
+            color: #000;
             font-size: 24px;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 5px;
         }
         
         .login-header p {
-            color: #718096;
+            color: #000;
             font-size: 13px;
+            font-weight: 600;
         }
         
         .form-group {
@@ -55,18 +59,20 @@
         .form-group label {
             display: block;
             margin-bottom: 6px;
-            color: #4a5568;
+            color: #000;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 700;
         }
         
         .form-group input {
             width: 100%;
             padding: 11px 14px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 14px;
             transition: all 0.2s;
+            background: #fff;
+            color: #000;
         }
         
         .form-group input:focus {
@@ -83,7 +89,7 @@
             border: none;
             border-radius: 6px;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
             margin-top: 5px;
@@ -98,7 +104,61 @@
         }
         
         .alert {
-            padding: 10px 14px;
+            padding: 12px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .alert-error {
+            background: #ffcdd2;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        
+        .alert-success {
+            background: #c8e6c9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #000;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .login-footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .remember-me input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .remember-me label {
+            margin: 0;
+            color: #000;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
             border-radius: 6px;
             margin-bottom: 18px;
             font-size: 13px;
@@ -210,13 +270,13 @@
         <form method="post" action="<%= request.getContextPath() %>/login">
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" 
+                <input type="text"  id="username" name="username" 
                        placeholder="Enter your username" required autofocus>
             </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" 
+                <input type="password"  id="password" name="password" 
                        placeholder="Enter your password" required>
             </div>
             

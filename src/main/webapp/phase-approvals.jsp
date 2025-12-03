@@ -55,19 +55,22 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
+            background: #f0f2f5;
+            color: #000;
             padding: 30px;
+            border-radius: 8px;
         }
         
         .header h1 {
             font-size: 28px;
             margin-bottom: 10px;
+            color: #000;
         }
         
         .header p {
-            opacity: 0.9;
+            opacity: 1;
             font-size: 14px;
+            color: #000;
         }
         
         .content {

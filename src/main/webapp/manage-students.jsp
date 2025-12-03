@@ -66,8 +66,8 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: white;
+            background: #f0f2f5;
+            color: #000;
             padding: 15px 25px;
             border-radius: 10px;
             margin-bottom: 15px;
@@ -79,11 +79,13 @@
         .header h1 {
             font-size: 24px;
             margin-bottom: 3px;
+            color: #000;
         }
         
         .header p {
-            opacity: 0.9;
+            opacity: 1;
             font-size: 13px;
+            color: #000;
         }
         
         .breadcrumb {
@@ -280,6 +282,73 @@
             background: #2196f3;
             color: white;
         }
+        
+        .filter-container {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .filter-group input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            transition: border-color 0.3s;
+        }
+        
+        .filter-group input:focus {
+            outline: none;
+            border-color: #43e97b;
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .filter-actions button {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        
+        .btn-filter-clear {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-filter-clear:hover {
+            background: #5a6268;
+        }
+        
+        .filter-results {
+            font-size: 12px;
+            color: #666;
+            padding: 10px 0;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -399,6 +468,33 @@
             </div>
             <% } else { %>
             
+            <!-- Filter Section -->
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label for="filterPEN">🔍 Filter by PEN:</label>
+                    <input type="text" id="filterPEN" placeholder="Enter PEN..." onkeyup="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label for="filterName">🔍 Filter by Name:</label>
+                    <input type="text" id="filterName" placeholder="Enter student name..." onkeyup="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label for="filterClass">🔍 Filter by Class:</label>
+                    <input type="text" id="filterClass" placeholder="Enter class..." onkeyup="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label for="filterSection">🔍 Filter by Section:</label>
+                    <input type="text" id="filterSection" placeholder="Enter section..." onkeyup="applyFilters()">
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter-clear" onclick="clearFilters()">🔄 Clear Filters</button>
+                </div>
+            </div>
+            
+            <div class="filter-results">
+                <span id="filterResultCount">Showing all <%= totalStudents %> students</span>
+            </div>
+            
             <p style="margin-bottom: 15px; color: #666; font-size: 14px;">
                 Showing <%= (currentPage - 1) * pageSize + 1 %> to <%= Math.min(currentPage * pageSize, totalStudents) %> of <%= totalStudents %> students
                 <% if (currentPhaseComplete) { %>
@@ -433,7 +529,7 @@
                             <!-- Marathi Levels -->
                             <td>
                                 <select name="marathi_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>निरांक</option>
+                                    <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
                                     <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
                                     <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
                                     <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>वाक्य स्तरावरील विद्यार्थी संख्या</option>
@@ -443,7 +539,7 @@
                             <!-- Math Levels -->
                             <td>
                                 <select name="math_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getMathAksharaLevel() == 0 ? "selected" : "" %>>निरांक</option>
+                                    <option value="0" <%= s.getMathAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
                                     <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभीक स्तरावरील विद्यार्थी संख्या</option>
                                     <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक स्तरावरील विद्यार्थी संख्या</option>
                                     <option value="3" <%= s.getMathAksharaLevel() == 3 ? "selected" : "" %>>संख्या वाचन स्तरावरील विद्यार्थी संख्या</option>
@@ -456,7 +552,7 @@
                             <!-- English Levels -->
                             <td>
                                 <select name="english_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>NA</option>
+                                    <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
                                     <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>BEGINER LEVEL</option>
                                     <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>ALPHABET LEVEL Reading and Writing</option>
                                     <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>WORD LEVEL Reading and Writing</option>
@@ -521,6 +617,64 @@
         function changePhase() {
             var phase = document.getElementById('phaseSelector').value;
             window.location.href = '?phase=' + phase;
+        }
+        
+        function applyFilters() {
+            var filterPEN = document.getElementById('filterPEN').value.toLowerCase();
+            var filterName = document.getElementById('filterName').value.toLowerCase();
+            var filterClass = document.getElementById('filterClass').value.toLowerCase();
+            var filterSection = document.getElementById('filterSection').value.toLowerCase();
+            
+            var table = document.querySelector('table tbody');
+            var rows = table.getElementsByTagName('tr');
+            var visibleCount = 0;
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var pen = row.cells[0].textContent.toLowerCase();
+                var name = row.cells[1].textContent.toLowerCase();
+                var studentClass = row.cells[2].textContent.toLowerCase();
+                var section = row.cells[3].textContent.toLowerCase();
+                
+                // Check if row matches all filters
+                var penMatch = pen.includes(filterPEN) || filterPEN === '';
+                var nameMatch = name.includes(filterName) || filterName === '';
+                var classMatch = studentClass.includes(filterClass) || filterClass === '';
+                var sectionMatch = section.includes(filterSection) || filterSection === '';
+                
+                if (penMatch && nameMatch && classMatch && sectionMatch) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+            
+            // Update filter results count
+            var resultText = '';
+            if (filterPEN === '' && filterName === '' && filterClass === '' && filterSection === '') {
+                resultText = 'Showing all <%= totalStudents %> students';
+            } else {
+                resultText = 'Showing ' + visibleCount + ' student' + (visibleCount !== 1 ? 's' : '') + ' (filtered)';
+            }
+            document.getElementById('filterResultCount').textContent = resultText;
+        }
+        
+        function clearFilters() {
+            document.getElementById('filterPEN').value = '';
+            document.getElementById('filterName').value = '';
+            document.getElementById('filterClass').value = '';
+            document.getElementById('filterSection').value = '';
+            
+            // Show all rows
+            var table = document.querySelector('table tbody');
+            var rows = table.getElementsByTagName('tr');
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].style.display = '';
+            }
+            
+            // Reset filter results count
+            document.getElementById('filterResultCount').textContent = 'Showing all <%= totalStudents %> students';
         }
         
         function saveStudent(studentId) {

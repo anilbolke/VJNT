@@ -63,8 +63,8 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
-            color: white;
+            background: #f0f2f5;
+            color: #000;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -76,11 +76,13 @@
         .header h1 {
             font-size: 26px;
             margin-bottom: 5px;
+            color: #000;
         }
         
         .header-subtitle {
             font-size: 14px;
-            opacity: 0.9;
+            opacity: 1;
+            color: #000;
         }
         
         .btn {
@@ -482,19 +484,42 @@
                             <div class="card-info">
                                 <span class="photo-label">📷 फोटो (Photos):</span>
                                 <div class="photos-container">
-                                    <% if (melava.getPhoto1Path() != null) { %>
-                                    <img src="<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>" 
+                                    <% 
+                                        String photo1Path = melava.getPhoto1Path();
+                                        String photo2Path = melava.getPhoto2Path();
+                                        System.out.println("DEBUG: Melava ID=" + melava.getMelavaId() + 
+                                                         ", Photo1Path=" + photo1Path + 
+                                                         ", Photo2Path=" + photo2Path);
+                                    %>
+                                    <% if (photo1Path != null && !photo1Path.trim().isEmpty()) { %>
+                                    <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=1" 
                                          class="photo-thumbnail" alt="Photo 1" 
-                                         onclick="viewPhoto('<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>')"
+                                         data-melava-id="<%= melava.getMelavaId() %>"
+                                         data-photo-num="1"
+                                         data-file-path="<%= java.net.URLEncoder.encode(photo1Path, "UTF-8") %>"
+                                         onclick="viewPhoto('<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=1')"
                                          title="फोटो १ - Click to view full size"
-                                         onerror="this.style.display='none';">
+                                         onerror="loadPhotoFallback(this);"
+                                         onload="console.log('Photo 1 loaded successfully from database');">
+                                    <% } else { %>
+                                    <div style="padding: 20px; background: #f0f0f0; border-radius: 5px; text-align: center; color: #999; min-width: 150px;">
+                                        📷 Photo 1 not available
+                                    </div>
                                     <% } %>
-                                    <% if (melava.getPhoto2Path() != null) { %>
-                                    <img src="<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>" 
+                                    <% if (photo2Path != null && !photo2Path.trim().isEmpty()) { %>
+                                    <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=2" 
                                          class="photo-thumbnail" alt="Photo 2"
-                                         onclick="viewPhoto('<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>')"
+                                         data-melava-id="<%= melava.getMelavaId() %>"
+                                         data-photo-num="2"
+                                         data-file-path="<%= java.net.URLEncoder.encode(photo2Path, "UTF-8") %>"
+                                         onclick="viewPhoto('<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=2')"
                                          title="फोटो २ - Click to view full size"
-                                         onerror="this.style.display='none';">
+                                         onerror="loadPhotoFallback(this);"
+                                         onload="console.log('Photo 2 loaded successfully from database');">
+                                    <% } else { %>
+                                    <div style="padding: 20px; background: #f0f0f0; border-radius: 5px; text-align: center; color: #999; min-width: 150px;">
+                                        📷 Photo 2 not available
+                                    </div>
                                     <% } %>
                                 </div>
                             </div>
@@ -558,18 +583,24 @@
                                 <span class="photo-label">📷 फोटो:</span>
                                 <div class="photos-container">
                                     <% if (melava.getPhoto1Path() != null) { %>
-                                    <img src="<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>" 
+                                    <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=1" 
                                          class="photo-thumbnail" alt="Photo 1" 
-                                         onclick="viewPhoto('<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>')"
+                                         data-melava-id="<%= melava.getMelavaId() %>"
+                                         data-photo-num="1"
+                                         data-file-path="<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>"
+                                         onclick="viewPhoto('<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=1')"
                                          title="Click to view full size"
-                                         onerror="this.style.display='none';">
+                                         onerror="loadPhotoFallback(this);">
                                     <% } %>
                                     <% if (melava.getPhoto2Path() != null) { %>
-                                    <img src="<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>" 
+                                    <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=2" 
                                          class="photo-thumbnail" alt="Photo 2"
-                                         onclick="viewPhoto('<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>')"
+                                         data-melava-id="<%= melava.getMelavaId() %>"
+                                         data-photo-num="2"
+                                         data-file-path="<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>"
+                                         onclick="viewPhoto('<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=2')"
                                          title="Click to view full size"
-                                         onerror="this.style.display='none';">
+                                         onerror="loadPhotoFallback(this);">
                                     <% } %>
                                 </div>
                             </div>
@@ -624,18 +655,24 @@
                                 <span class="photo-label">📷 फोटो:</span>
                                 <div class="photos-container">
                                     <% if (melava.getPhoto1Path() != null) { %>
-                                    <img src="<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>" 
+                                    <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=1" 
                                          class="photo-thumbnail" alt="Photo 1" 
-                                         onclick="viewPhoto('<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>')"
+                                         data-melava-id="<%= melava.getMelavaId() %>"
+                                         data-photo-num="1"
+                                         data-file-path="<%= java.net.URLEncoder.encode(melava.getPhoto1Path(), "UTF-8") %>"
+                                         onclick="viewPhoto('<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=1')"
                                          title="Click to view full size"
-                                         onerror="this.style.display='none';">
+                                         onerror="loadPhotoFallback(this);">
                                     <% } %>
                                     <% if (melava.getPhoto2Path() != null) { %>
-                                    <img src="<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>" 
+                                    <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=2" 
                                          class="photo-thumbnail" alt="Photo 2"
-                                         onclick="viewPhoto('<%= request.getContextPath() %>/secure-image?path=<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>')"
+                                         data-melava-id="<%= melava.getMelavaId() %>"
+                                         data-photo-num="2"
+                                         data-file-path="<%= java.net.URLEncoder.encode(melava.getPhoto2Path(), "UTF-8") %>"
+                                         onclick="viewPhoto('<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=2')"
                                          title="Click to view full size"
-                                         onerror="this.style.display='none';">
+                                         onerror="loadPhotoFallback(this);">
                                     <% } %>
                                 </div>
                             </div>
@@ -717,9 +754,117 @@
     </div>
     
     <script>
+        function loadPhotoFallback(imgElement) {
+            const melavaId = imgElement.dataset.melavaId;
+            const photoNum = imgElement.dataset.photoNum;
+            const filePath = imgElement.dataset.filePath;
+            
+            console.log('Database image failed, trying file system fallback for melava:', melavaId, 'photo:', photoNum);
+            
+            if (filePath) {
+                // Try file system as fallback
+                const fileUrl = '<%= request.getContextPath() %>/palak-melava-image?path=' + filePath;
+                
+                imgElement.onerror = function() {
+                    console.error('Both database and file system failed for photo:', photoNum);
+                    this.style.display = 'none';
+                    if (this.parentElement) {
+                        this.parentElement.innerHTML = '<div style="padding: 20px; background: #f0f0f0; border-radius: 5px; text-align: center; color: #999;">📷 Photo ' + photoNum + ' N/A</div>';
+                    }
+                };
+                
+                imgElement.src = fileUrl;
+            } else {
+                console.error('No fallback available');
+                imgElement.style.display = 'none';
+            }
+        }
+        
+        function loadPhotoFromDB(imgElement) {
+            const melavaId = imgElement.dataset.melavaId;
+            const photoNum = imgElement.dataset.photoNum;
+            
+            if (!melavaId || !photoNum) {
+                console.error('Missing melava ID or photo number');
+                imgElement.style.display = 'none';
+                return;
+            }
+            
+            console.log('File system failed, attempting database fallback for melava:', melavaId, 'photo:', photoNum);
+            
+            // Try loading from database
+            const dbUrl = '<%= request.getContextPath() %>/palak-melava-image-db?id=' + melavaId + '&photo=' + photoNum;
+            
+            imgElement.onerror = function() {
+                console.error('Database fallback also failed:', dbUrl);
+                this.style.display = 'none';
+                this.parentElement.innerHTML = '<div style="padding: 20px; background: #f0f0f0; border-radius: 5px; text-align: center; color: #999;">📷 Photo ' + photoNum + ' N/A</div>';
+            };
+            
+            imgElement.onload = function() {
+                console.log('Photo ' + photoNum + ' loaded successfully from database');
+            };
+            
+            imgElement.src = dbUrl;
+        }
+        
         function viewPhoto(photoUrl) {
-            document.getElementById('modalPhoto').src = photoUrl;
-            document.getElementById('photoModal').style.display = 'block';
+            console.log('Opening photo modal with URL:', photoUrl);
+            const modalImg = document.getElementById('modalPhoto');
+            const photoModal = document.getElementById('photoModal');
+            
+            // Reset image state
+            modalImg.style.display = 'block';
+            modalImg.dataset.originalUrl = photoUrl;
+            modalImg.dataset.fallbackTried = 'false';
+            
+            // Remove previous error/load handlers
+            modalImg.onerror = null;
+            modalImg.onload = null;
+            
+            // Set up new error handler with fallback
+            modalImg.onerror = function() {
+                const fallbackTried = this.dataset.fallbackTried === 'true';
+                console.error('Failed to load photo from:', this.src);
+                
+                if (!fallbackTried) {
+                    console.log('Attempting fallback...');
+                    this.dataset.fallbackTried = 'true';
+                    
+                    // If it was a database URL, try file system
+                    if (photoUrl.includes('palak-melava-image-db')) {
+                        // Extract the photo number and try to find file path
+                        const photoNum = photoUrl.match(/photo=(\d+)/)?.[1];
+                        if (photoNum) {
+                            // Try to get file path from the clicked image element
+                            const clickedImg = document.querySelector('[data-photo-num="' + photoNum + '"]');
+                            if (clickedImg && clickedImg.dataset.filePath) {
+                                const fallbackUrl = '<%= request.getContextPath() %>/palak-melava-image?path=' + clickedImg.dataset.filePath;
+                                console.log('Trying fallback URL:', fallbackUrl);
+                                this.src = fallbackUrl;
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                // All fallbacks exhausted
+                console.error('Unable to load photo from any source');
+                this.style.display = 'none';
+                alert('Unable to load the full image. Photo may not be available.');
+            };
+            
+            // Set up load handler
+            modalImg.onload = function() {
+                console.log('✓ Photo loaded successfully in modal');
+                this.style.display = 'block';
+            };
+            
+            // Load the image
+            modalImg.src = photoUrl;
+            
+            // Show the modal
+            photoModal.style.display = 'block';
         }
         
         function closePhotoModal() {

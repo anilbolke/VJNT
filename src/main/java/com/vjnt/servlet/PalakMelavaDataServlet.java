@@ -54,6 +54,12 @@ public class PalakMelavaDataServlet extends HttpServlet {
                 melavaData.put("meetingDate", melava.getMeetingDate().toString());
                 melavaData.put("chiefAttendeeInfo", melava.getChiefAttendeeInfo());
                 melavaData.put("totalParentsAttended", melava.getTotalParentsAttended());
+                melavaData.put("photo1Path", melava.getPhoto1Path());
+                melavaData.put("photo2Path", melava.getPhoto2Path());
+                melavaData.put("approvalDate", melava.getApprovalDate() != null ? melava.getApprovalDate().toString() : "");
+                melavaData.put("approvedBy", melava.getApprovedBy() != null ? melava.getApprovedBy() : "");
+                melavaData.put("approvalRemarks", melava.getApprovalRemarks() != null ? melava.getApprovalRemarks() : "");
+                melavaData.put("status", melava.getStatus());
                 
                 result.put("melava", melavaData);
                 

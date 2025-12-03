@@ -1,0 +1,91 @@
+The servlet code looks complete. Here's what might be causing the issue:
+
+1. **Servlet Not Compiled/Deployed**: The updated servlet may not have been compiled and deployed to Tomcat yet.
+2. **Missing Data**: The approvalId might not have corresponding data in the database.
+
+Let me create a step-by-step test guide:
+## PDF Servlet Troubleshooting Guide
+
+### Issue:
+After clicking "View & Print Approved Report", not getting modal window content and actual data.
+
+### Root Causes:
+1. Servlet not recompiled/redeployed
+2. Missing or invalid approval data
+3. Database connection issues
+
+### Solution Steps:
+
+#### Step 1: Restart Tomcat to Deploy Updated Servlet
+```
+1. Stop Tomcat server
+2. Delete work directory: C:\Program Files\Apache Software Foundation\Tomcat 10.1\work\Catalina\localhost\VJNT_Class_Managment
+3. Start Tomcat server
+4. Wait for deployment to complete
+```
+
+#### Step 2: Verify Database Has Approval Data
+Run this SQL query:
+```sql
+SELECT approval_id, pen_number, student_name, approval_status, 
+       udise_code, school_name, district, division,
+       approved_by, approval_date
+FROM report_approvals
+WHERE approval_status = 'APPROVED'
+ORDER BY approval_id DESC;
+```
+
+#### Step 3: Test the Servlet Directly
+1. Copy test-pdf-servlet.html to: C:\Program Files\Apache Software Foundation\Tomcat 10.1\webapps\VJNT_Class_Managment\
+2. Open browser: http://localhost:8080/VJNT_Class_Managment/test-pdf-servlet.html
+3. Enter a valid approval_id from Step 2
+4. Click "Generate PDF Report"
+5. Check if the modal-styled page opens
+
+#### Step 4: Check Tomcat Logs
+Location: C:\Program Files\Apache Software Foundation\Tomcat 10.1\logs\catalina.out
+Look for:
+- Compilation errors
+- SQL errors
+- NullPointerException
+- NumberFormatException
+
+#### Step 5: Alternative - Use Working Test
+If servlet isn't working, you can test with this direct URL:
+```
+http://localhost:8080/VJNT_Class_Managment/GenerateStudentReportPDFServlet?approvalId=1
+```
+(Replace 1 with actual approval ID)
+
+### Expected Behavior:
+
+When clicking "View & Print Approved Report":
+1. ✅ New tab opens
+2. ✅ Shows purple gradient header with student name
+3. ✅ Shows color-coded approval banner
+4. ✅ Shows assessment level boxes (English, Marathi, Math)
+5. ✅ Shows activities summary with statistics
+6. ✅ Shows grouped activities by language/week
+7. ✅ Shows Palak Melava meetings
+8. ✅ "Print / Save as PDF" button at top
+
+### Quick Fix Commands:
+
+**Windows - Restart Tomcat:**
+```
+net stop Tomcat10
+timeout /t 5
+rd /s /q "C:\Program Files\Apache Software Foundation\Tomcat 10.1\work\Catalina\localhost\VJNT_Class_Managment"
+net start Tomcat10
+```
+
+### If Still Not Working:
+
+The servlet code is correct. The issue is deployment. Please:
+1. **Restart Tomcat** (critical!)
+2. **Check database** has approved reports
+3. **Check Tomcat logs** for errors
+4. **Use test page** to verify servlet directly
+
+The servlet WILL show modal-styled content once deployed correctly!
+

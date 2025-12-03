@@ -91,7 +91,7 @@ public class ExcelUserLoader {
             return; // Already processed
         }
         
-        String username = PasswordUtil.generateUsername("div", division);
+        String username = PasswordUtil.generateUsername("DIV_HEAD", division);
         
         // Check if user already exists
         if (userDAO.usernameExists(username)) {
@@ -127,7 +127,7 @@ public class ExcelUserLoader {
         }
         
         // Create District Coordinator
-        String username1 = PasswordUtil.generateUsername("dist_coord", district);
+        String username1 = PasswordUtil.generateUsername("DC1", district);
         if (!userDAO.usernameExists(username1)) {
             User user1 = new User();
             user1.setUsername(username1);
@@ -147,7 +147,7 @@ public class ExcelUserLoader {
         }
         
         // Create 2nd District Coordinator
-        String username2 = PasswordUtil.generateUsername("dist_coord2", district);
+        String username2 = PasswordUtil.generateUsername("DC2", district);
         if (!userDAO.usernameExists(username2)) {
             User user2 = new User();
             user2.setUsername(username2);
@@ -178,7 +178,7 @@ public class ExcelUserLoader {
         }
         
         // Create School Coordinator
-        String username1 = PasswordUtil.generateUsername("school_coord", udiseNo);
+        String username1 = PasswordUtil.generateUsername("SR", udiseNo);
         if (!userDAO.usernameExists(username1)) {
             User user1 = new User();
             user1.setUsername(username1);
@@ -199,7 +199,7 @@ public class ExcelUserLoader {
         }
         
         // Create Head Master
-        String username2 = PasswordUtil.generateUsername("headmaster", udiseNo);
+        String username2 = PasswordUtil.generateUsername("HM", udiseNo);
         if (!userDAO.usernameExists(username2)) {
             User user2 = new User();
             user2.setUsername(username2);

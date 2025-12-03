@@ -58,6 +58,123 @@ public class StudentDAO {
     }
     
     /**
+     * FAST-TRACK: Batch create students (optimized for bulk imports)
+     * Process multiple students in a single batch operation for better performance
+     */
+    public int batchCreateStudents(List<Student> students) {
+        if (students == null || students.isEmpty()) {
+            return 0;
+        }
+        
+        String sql = "INSERT INTO students (division, district, udise_no, class, section, " +
+                     "class_category, student_name, gender, student_pen, marathi_level, " +
+                     "math_level, english_level, created_by) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        int totalInserted = 0;
+        long startTime = System.currentTimeMillis();
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            // Disable autocommit for batch operation
+            conn.setAutoCommit(false);
+            
+            for (Student student : students) {
+                pstmt.setString(1, student.getDivision());
+                pstmt.setString(2, student.getDistrict());
+                pstmt.setString(3, student.getUdiseNo());
+                pstmt.setString(4, student.getStudentClass());
+                pstmt.setString(5, student.getSection());
+                pstmt.setString(6, student.getClassCategory());
+                pstmt.setString(7, student.getStudentName());
+                pstmt.setString(8, student.getGender());
+                pstmt.setString(9, student.getStudentPen());
+                pstmt.setString(10, student.getMarathiLevel());
+                pstmt.setString(11, student.getMathLevel());
+                pstmt.setString(12, student.getEnglishLevel());
+                pstmt.setString(13, student.getCreatedBy());
+                
+                pstmt.addBatch();
+            }
+            
+            // Execute batch
+            int[] results = pstmt.executeBatch();
+            conn.commit();
+            
+            for (int result : results) {
+                if (result > 0) {
+                    totalInserted++;
+                }
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("✓ Batch insert completed: " + totalInserted + " students inserted in " + duration + "ms");
+            return totalInserted;
+            
+        } catch (SQLException e) {
+            System.err.println("Error in batch create students: " + e.getMessage());
+            e.printStackTrace();
+            return totalInserted;
+        }
+    }
+    
+    /**
+     * FAST-TRACK: Check multiple students by PEN in one query
+     * More efficient than checking individually - reduces DB queries significantly
+     */
+    public List<String> getExistingPens(List<String> pens) {
+        if (pens == null || pens.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        List<String> existingPens = new ArrayList<>();
+        
+        // Process in chunks of 1000 to avoid SQL query size limits
+        int chunkSize = 1000;
+        for (int i = 0; i < pens.size(); i += chunkSize) {
+            int end = Math.min(i + chunkSize, pens.size());
+            List<String> chunk = pens.subList(i, end);
+            existingPens.addAll(getExistingPensChunk(chunk));
+        }
+        
+        return existingPens;
+    }
+    
+    /**
+     * Helper method to check existing PENs in a chunk
+     */
+    private List<String> getExistingPensChunk(List<String> pens) {
+        List<String> existingPens = new ArrayList<>();
+        
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < pens.size(); i++) {
+            if (i > 0) placeholders.append(",");
+            placeholders.append("?");
+        }
+        
+        String sql = "SELECT student_pen FROM students WHERE student_pen IN (" + placeholders + ")";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            for (int i = 0; i < pens.size(); i++) {
+                pstmt.setString(i + 1, pens.get(i).trim());
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                existingPens.add(rs.getString("student_pen"));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking existing PENs: " + e.getMessage());
+        }
+        
+        return existingPens;
+    }
+    
+    /**
      * Check if student exists by PEN
      */
     public boolean studentExists(String studentPen) {
@@ -103,6 +220,56 @@ public class StudentDAO {
             e.printStackTrace();
         }
         return students;
+    }
+    
+    /**
+     * Get a single student by ID
+     */
+    public Student getStudentById(int studentId) {
+        String sql = "SELECT * FROM students WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return extractStudentFromResultSet(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting student by ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    /**
+     * Get a single student by PEN (Student Personal Educational Number)
+     */
+    public Student getStudentByPen(String studentPen) {
+        if (studentPen == null || studentPen.trim().isEmpty()) {
+            return null;
+        }
+        
+        String sql = "SELECT * FROM students WHERE student_pen = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, studentPen.trim());
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return extractStudentFromResultSet(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting student by PEN: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
     }
     
     /**
@@ -451,6 +618,45 @@ public class StudentDAO {
         } catch (SQLException e) {
             System.err.println("Error creating audit entry: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Update student basic information
+     */
+    public boolean updateStudent(Student student) {
+        String sql = "UPDATE students SET " +
+                     "division = ?, district = ?, udise_no = ?, class = ?, section = ?, " +
+                     "class_category = ?, student_name = ?, gender = ?, student_pen = ?, " +
+                     "marathi_level = ?, math_level = ?, english_level = ?, " +
+                     "updated_date = NOW(), updated_by = ? " +
+                     "WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, student.getDivision());
+            pstmt.setString(2, student.getDistrict());
+            pstmt.setString(3, student.getUdiseNo());
+            pstmt.setString(4, student.getStudentClass());
+            pstmt.setString(5, student.getSection());
+            pstmt.setString(6, student.getClassCategory());
+            pstmt.setString(7, student.getStudentName());
+            pstmt.setString(8, student.getGender());
+            pstmt.setString(9, student.getStudentPen());
+            pstmt.setString(10, student.getMarathiLevel());
+            pstmt.setString(11, student.getMathLevel());
+            pstmt.setString(12, student.getEnglishLevel());
+            pstmt.setString(13, student.getUpdatedBy());
+            pstmt.setInt(14, student.getStudentId());
+            
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating student: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     

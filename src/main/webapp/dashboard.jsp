@@ -26,10 +26,11 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #f0f2f5;
+            color: #000;
             padding: 20px 40px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
         
         .header-content {
@@ -42,6 +43,7 @@
         
         .header h1 {
             font-size: 24px;
+            color: #000;
         }
         
         .user-info {
@@ -51,6 +53,7 @@
         .user-info p {
             margin: 5px 0;
             font-size: 14px;
+            color: #000;
         }
         
         .logout-btn {

@@ -57,6 +57,65 @@ public class UserDAO {
     }
     
     /**
+     * FAST-TRACK: Batch create users (optimized for bulk imports)
+     * Process multiple users in a single batch operation for better performance
+     */
+    public int batchCreateUsers(List<User> users) {
+        if (users == null || users.isEmpty()) {
+            return 0;
+        }
+        
+        String sql = "INSERT INTO users (username, password, user_type, division_name, district_name, " +
+                    "udise_no, is_first_login, must_change_password, is_active, created_by, full_name) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        int totalInserted = 0;
+        long startTime = System.currentTimeMillis();
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            // Disable autocommit for batch operation
+            conn.setAutoCommit(false);
+            
+            for (User user : users) {
+                pstmt.setString(1, user.getUsername());
+                pstmt.setString(2, user.getPassword());
+                pstmt.setString(3, user.getUserType().name());
+                pstmt.setString(4, user.getDivisionName());
+                pstmt.setString(5, user.getDistrictName());
+                pstmt.setString(6, user.getUdiseNo());
+                pstmt.setBoolean(7, user.isFirstLogin());
+                pstmt.setBoolean(8, user.isMustChangePassword());
+                pstmt.setBoolean(9, user.isActive());
+                pstmt.setString(10, user.getCreatedBy());
+                pstmt.setString(11, user.getFullName());
+                
+                pstmt.addBatch();
+            }
+            
+            // Execute batch
+            int[] results = pstmt.executeBatch();
+            conn.commit();
+            
+            for (int result : results) {
+                if (result > 0) {
+                    totalInserted++;
+                }
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("✓ Batch user insert completed: " + totalInserted + " users inserted in " + duration + "ms");
+            return totalInserted;
+            
+        } catch (SQLException e) {
+            System.err.println("Error in batch create users: " + e.getMessage());
+            e.printStackTrace();
+            return totalInserted;
+        }
+    }
+    
+    /**
      * Find user by username
      */
     public User findByUsername(String username) {
@@ -189,6 +248,61 @@ public class UserDAO {
      */
     public boolean usernameExists(String username) {
         return findByUsername(username) != null;
+    }
+    
+    /**
+     * FAST-TRACK: Check multiple usernames at once
+     * More efficient than checking individually
+     */
+    public List<String> getExistingUsernames(List<String> usernames) {
+        if (usernames == null || usernames.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        List<String> existingUsernames = new ArrayList<>();
+        
+        // Process in chunks of 1000 to avoid SQL query size limits
+        int chunkSize = 1000;
+        for (int i = 0; i < usernames.size(); i += chunkSize) {
+            int end = Math.min(i + chunkSize, usernames.size());
+            List<String> chunk = usernames.subList(i, end);
+            existingUsernames.addAll(getExistingUsernamesChunk(chunk));
+        }
+        
+        return existingUsernames;
+    }
+    
+    /**
+     * Helper method to check existing usernames in a chunk
+     */
+    private List<String> getExistingUsernamesChunk(List<String> usernames) {
+        List<String> existingUsernames = new ArrayList<>();
+        
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < usernames.size(); i++) {
+            if (i > 0) placeholders.append(",");
+            placeholders.append("?");
+        }
+        
+        String sql = "SELECT username FROM users WHERE username IN (" + placeholders + ")";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            for (int i = 0; i < usernames.size(); i++) {
+                pstmt.setString(i + 1, usernames.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                existingUsernames.add(rs.getString("username"));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking existing usernames: " + e.getMessage());
+        }
+        
+        return existingUsernames;
     }
     
     /**

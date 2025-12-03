@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Report Servlets</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Report Servlets</h1>
+    
+    <div class="test-section">
+        <h3>1. Test Search Students Servlet</h3>
+        <p>Enter a UDISE number to search for students:</p>
+        <input type="text" id="udiseInput" placeholder="Enter UDISE Number" style="padding: 8px; width: 300px;">
+        <button onclick="testSearchServlet()">Test Search</button>
+        <div id="searchResult" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Test Get My Requests Servlet</h3>
+        <button onclick="testMyRequestsServlet()">Test My Requests</button>
+        <div id="myRequestsResult" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Test Get Pending Approvals Servlet</h3>
+        <button onclick="testPendingApprovalsServlet()">Test Pending Approvals</button>
+        <div id="pendingApprovalsResult" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Servlet URLs Being Tested:</h3>
+        <ul>
+            <li><code>/VJNT/SearchStudentsForReportServlet</code></li>
+            <li><code>/VJNT/GetMyReportRequestsServlet</code></li>
+            <li><code>/VJNT/GetPendingReportApprovalsServlet</code></li>
+            <li><code>/VJNT/RequestStudentReportServlet</code></li>
+            <li><code>/VJNT/ApproveReportServlet</code></li>
+            <li><code>/VJNT/GenerateStudentReportPDFServlet</code></li>
+        </ul>
+    </div>
+
+    <script>
+        function testSearchServlet() {
+            const udise = document.getElementById('udiseInput').value;
+            if (!udise) {
+                alert('Please enter a UDISE number');
+                return;
+            }
+            
+            const resultDiv = $('#searchResult');
+            resultDiv.show().html('<i>Testing...</i>');
+            
+            $.ajax({
+                url: 'SearchStudentsForReportServlet',
+                method: 'GET',
+                data: {
+                    pen: '',
+                    name: '',
+                    class: '',
+                    udise: udise
+                },
+                success: function(response) {
+                    resultDiv.html('<span class="success">✅ SUCCESS!</span><br><pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                },
+                error: function(xhr, status, error) {
+                    resultDiv.html('<span class="error">❌ ERROR!</span><br>Status: ' + xhr.status + '<br>Error: ' + error + '<br>Response: ' + xhr.responseText);
+                }
+            });
+        }
+        
+        function testMyRequestsServlet() {
+            const resultDiv = $('#myRequestsResult');
+            resultDiv.show().html('<i>Testing...</i>');
+            
+            $.ajax({
+                url: 'GetMyReportRequestsServlet',
+                method: 'GET',
+                success: function(response) {
+                    resultDiv.html('<span class="success">✅ SUCCESS!</span><br><pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                },
+                error: function(xhr, status, error) {
+                    resultDiv.html('<span class="error">❌ ERROR!</span><br>Status: ' + xhr.status + '<br>Error: ' + error + '<br>Response: ' + xhr.responseText);
+                }
+            });
+        }
+        
+        function testPendingApprovalsServlet() {
+            const resultDiv = $('#pendingApprovalsResult');
+            resultDiv.show().html('<i>Testing...</i>');
+            
+            $.ajax({
+                url: 'GetPendingReportApprovalsServlet',
+                method: 'GET',
+                success: function(response) {
+                    resultDiv.html('<span class="success">✅ SUCCESS!</span><br><pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                },
+                error: function(xhr, status, error) {
+                    resultDiv.html('<span class="error">❌ ERROR!</span><br>Status: ' + xhr.status + '<br>Error: ' + error + '<br>Response: ' + xhr.responseText);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

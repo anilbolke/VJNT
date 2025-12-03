@@ -48,17 +48,20 @@
         .header {
             text-align: center;
             margin-bottom: 20px;
+            background: #f0f2f5;
+            padding: 20px;
+            border-radius: 8px;
         }
         
         .header h1 {
-            color: #2d3748;
+            color: #000;
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 5px;
         }
         
         .header p {
-            color: #718096;
+            color: #000;
             font-size: 13px;
         }
         

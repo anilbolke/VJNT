@@ -1,0 +1,381 @@
+================================================================================
+   SQL COLUMN 'requested_by_name' NOT FOUND - FIXED ✅
+================================================================================
+
+ERROR: Column 'requested_by_name' not found
+TIME: December 3, 2024
+
+ISSUE:
+------
+SQLException when trying to view a report in Head Master modal.
+
+Error Message:
+"java.sql.SQLException: Column 'requested_by_name' not found."
+
+Location:
+at com.vjnt.dao.ReportApprovalDAO.mapResultSetToReportApproval(ReportApprovalDAO.java:265)
+at com.vjnt.dao.ReportApprovalDAO.getReportByApprovalId(ReportApprovalDAO.java:77)
+
+ROOT CAUSE:
+-----------
+The getReportByApprovalId() method was missing the 'requested_by_name' column
+in its SQL query, but mapResultSetToReportApproval() was trying to read it.
+
+SQL Query Missing Column:
+- Had: LEFT JOIN users u ON ra.approved_by = u.user_id
+- Missing: JOIN for requested_by to get requested_by_name
+
+mapResultSetToReportApproval() Expected:
+- requested_by_name column (line 267)
+- No try-catch block to handle missing column
+
+================================================================================
+   FIXES APPLIED
+================================================================================
+
+FIX 1: Updated getReportByApprovalId() SQL Query
+------------------------------------------------
+
+BEFORE (BROKEN):
+----------------
+String sql = "SELECT ra.*, u.username as approved_by_name FROM report_approvals ra " +
+            "LEFT JOIN users u ON ra.approved_by = u.user_id " +
+            "WHERE ra.approval_id = ?";
+
+Only joined with approved_by user, missing requested_by user.
+
+
+AFTER (FIXED):
+--------------
+String sql = "SELECT ra.*, u1.username as requested_by_name, u2.username as approved_by_name " +
+            "FROM report_approvals ra " +
+            "LEFT JOIN users u1 ON ra.requested_by = u1.user_id " +
+            "LEFT JOIN users u2 ON ra.approved_by = u2.user_id " +
+            "WHERE ra.approval_id = ?";
+
+Now joins with BOTH:
+- u1: requested_by user → requested_by_name
+- u2: approved_by user → approved_by_name
+
+
+FIX 2: Added Safety to mapResultSetToReportApproval()
+------------------------------------------------------
+
+BEFORE (UNSAFE):
+----------------
+report.setRequestedByName(rs.getString("requested_by_name"));  ← No error handling
+
+try {
+    report.setApprovedByName(rs.getString("approved_by_name"));
+} catch (SQLException e) {
+    // Column might not exist in all queries
+}
+
+
+AFTER (SAFE):
+-------------
+try {
+    report.setRequestedByName(rs.getString("requested_by_name"));
+} catch (SQLException e) {
+    // Column might not exist in all queries
+}
+
+try {
+    report.setApprovedByName(rs.getString("approved_by_name"));
+} catch (SQLException e) {
+    // Column might not exist in all queries
+}
+
+Now BOTH fields have error handling for missing columns.
+
+================================================================================
+   WHY MULTIPLE LEFT JOINS?
+================================================================================
+
+SCENARIO:
+---------
+A report_approvals record needs information from TWO different users:
+
+1. REQUESTED BY (School Coordinator who submitted the report)
+   - Field: requested_by (user_id)
+   - Want: requested_by_name (username)
+
+2. APPROVED BY (Head Master who approved/rejected)
+   - Field: approved_by (user_id)
+   - Want: approved_by_name (username)
+
+SOLUTION:
+---------
+Join the users table TWICE with different aliases:
+
+u1 → For requested_by user
+u2 → For approved_by user
+
+SQL EXPLANATION:
+----------------
+SELECT 
+    ra.*,                              ← All report_approvals columns
+    u1.username as requested_by_name,  ← From first user (requester)
+    u2.username as approved_by_name    ← From second user (approver)
+FROM report_approvals ra
+LEFT JOIN users u1 ON ra.requested_by = u1.user_id   ← Join for requester
+LEFT JOIN users u2 ON ra.approved_by = u2.user_id    ← Join for approver
+WHERE ra.approval_id = ?
+
+RESULT:
+-------
+One row with information from THREE tables:
+- report_approvals (main data)
+- users (as u1) - requester info
+- users (as u2) - approver info
+
+================================================================================
+   DATA FLOW EXAMPLE
+================================================================================
+
+DATABASE DATA:
+--------------
+report_approvals:
+  approval_id: 7
+  pen_number: "PEN12345"
+  student_name: "John Doe"
+  requested_by: 5      ← User ID of School Coordinator
+  approved_by: 3       ← User ID of Head Master
+  approval_status: "PENDING"
+
+users:
+  user_id: 5, username: "coordinator@school.com", user_type: "SCHOOL_COORDINATOR"
+  user_id: 3, username: "headmaster@school.com", user_type: "HEAD_MASTER"
+
+SQL QUERY RESULT:
+-----------------
+approval_id: 7
+pen_number: "PEN12345"
+student_name: "John Doe"
+requested_by: 5
+requested_by_name: "coordinator@school.com"  ← From u1.username
+approved_by: 3
+approved_by_name: "headmaster@school.com"     ← From u2.username
+approval_status: "PENDING"
+
+JAVA OBJECT:
+------------
+ReportApproval report = new ReportApproval();
+report.setApprovalId(7);
+report.setPenNumber("PEN12345");
+report.setStudentName("John Doe");
+report.setRequestedBy(5);
+report.setRequestedByName("coordinator@school.com");  ✅ Now available!
+report.setApprovedBy(3);
+report.setApprovedByName("headmaster@school.com");
+report.setApprovalStatus("PENDING");
+
+================================================================================
+   WHY TRY-CATCH FOR COLUMNS?
+================================================================================
+
+PROBLEM:
+--------
+Different methods use different SQL queries:
+- Some queries include requested_by_name (with JOIN)
+- Some queries don't include it (no JOIN)
+
+If mapResultSetToReportApproval() tries to read a column that doesn't exist
+in the ResultSet, it throws SQLException.
+
+SOLUTION:
+---------
+Wrap optional columns in try-catch blocks:
+
+try {
+    report.setRequestedByName(rs.getString("requested_by_name"));
+} catch (SQLException e) {
+    // Column not in this query - that's OK, leave as null
+}
+
+WHEN COLUMN IS PRESENT:
+-----------------------
+✅ Value is set successfully
+✅ No exception thrown
+
+WHEN COLUMN IS MISSING:
+------------------------
+✅ SQLException caught silently
+✅ Field remains null
+✅ Method continues without error
+
+BENEFIT:
+--------
+Same mapping method works with:
+- Queries that include user names (with JOINs)
+- Queries that don't include user names (no JOINs)
+
+================================================================================
+   FILES MODIFIED
+================================================================================
+
+File: ReportApprovalDAO.java
+Location: src/main/java/com/vjnt/dao/
+
+Changes:
+1. getReportByApprovalId() - Added LEFT JOIN for requested_by user
+2. mapResultSetToReportApproval() - Added try-catch for requested_by_name
+
+================================================================================
+   DEPLOYMENT
+================================================================================
+
+✅ ReportApprovalDAO.class - Recompiled
+✅ Deployed to: src/main/webapp/WEB-INF/classes/com/vjnt/dao/
+✅ Deployed to: WebContent/WEB-INF/classes/com/vjnt/dao/
+
+================================================================================
+   TESTING THE FIX
+================================================================================
+
+STEP 1: RESTART TOMCAT
+-----------------------
+CRITICAL: Restart Tomcat to reload the updated DAO class
+
+STEP 2: TEST HEAD MASTER MODAL
+-------------------------------
+1. Login as Head Master
+2. Go to "Approve Reports"
+3. Click "👁️ View Report" on any pending report
+4. Modal should open WITHOUT "Column 'requested_by_name' not found" error
+5. Student name should display in modal header
+6. Report data should load successfully
+
+STEP 3: CHECK BROWSER CONSOLE
+------------------------------
+Should NOT see:
+- SQLException errors
+- "Column not found" errors
+- JSON parse errors
+
+Should see:
+- Successful API calls
+- Report data displayed correctly
+
+STEP 4: CHECK TOMCAT LOGS
+--------------------------
+Should NOT see:
+- Column 'requested_by_name' not found
+- SQLException stack traces
+
+Should see:
+- Normal servlet operation
+- Successful database queries
+
+EXPECTED RESULTS:
+-----------------
+✅ No SQL exceptions
+✅ Modal opens successfully
+✅ Student name displays in header
+✅ Report data loads and displays
+✅ All sections visible (levels, activities, meetings)
+✅ Can close modal and open another report
+
+================================================================================
+   RELATED SQL PATTERNS
+================================================================================
+
+PATTERN 1: Multiple JOINs to Same Table
+----------------------------------------
+When you need different users (or any repeated table):
+
+SELECT 
+    order.*,
+    created_user.name as created_by_name,
+    approved_user.name as approved_by_name,
+    shipped_user.name as shipped_by_name
+FROM orders
+LEFT JOIN users created_user ON order.created_by = created_user.id
+LEFT JOIN users approved_user ON order.approved_by = approved_user.id
+LEFT JOIN users shipped_user ON order.shipped_by = shipped_user.id
+
+Each alias (created_user, approved_user, shipped_user) gives you a 
+different user's information.
+
+
+PATTERN 2: Safe Column Reading in Java
+---------------------------------------
+When SQL queries vary:
+
+try {
+    object.setOptionalField(rs.getString("optional_column"));
+} catch (SQLException e) {
+    // Column not in this query - OK
+}
+
+Required columns: Direct access (will fail if missing - as it should)
+Optional columns: Try-catch (gracefully handle missing)
+
+
+PATTERN 3: Defensive ResultSet Mapping
+---------------------------------------
+Make one mapping method work with multiple queries:
+
+private Object mapResultSet(ResultSet rs) throws SQLException {
+    Object obj = new Object();
+    
+    // Required fields (always present)
+    obj.setId(rs.getInt("id"));
+    obj.setName(rs.getString("name"));
+    
+    // Optional fields (may not be in all queries)
+    try { obj.setDetail1(rs.getString("detail1")); } catch (SQLException e) {}
+    try { obj.setDetail2(rs.getString("detail2")); } catch (SQLException e) {}
+    
+    return obj;
+}
+
+================================================================================
+   SUCCESS INDICATORS
+================================================================================
+
+System is working correctly if:
+
+✅ No "Column not found" errors
+✅ Head Master can view reports in modal
+✅ Student name appears in modal header
+✅ Report data loads completely
+✅ requested_by_name is populated (shows School Coordinator username)
+✅ approved_by_name is populated (shows Head Master username, if approved)
+✅ Can view multiple reports without errors
+
+================================================================================
+   TROUBLESHOOTING
+================================================================================
+
+IF STILL GETTING COLUMN ERRORS:
+--------------------------------
+1. Verify Tomcat was restarted
+   - Full stop and start required
+   - Clear Tomcat work directory if needed
+
+2. Verify DAO was deployed to WebContent
+   Test-Path "WebContent\WEB-INF\classes\com\vjnt\dao\ReportApprovalDAO.class"
+   Should return: True
+
+3. Check timestamps
+   Get-Item "WebContent\WEB-INF\classes\com\vjnt\dao\ReportApprovalDAO.class" | 
+   Select-Object LastWriteTime
+   Should be recent (after the fix)
+
+4. Check for other DAO methods
+   Search for other SQL queries that might need similar fixes
+
+5. Check database connection
+   Verify users table has the expected data
+
+================================================================================
+
+Date: December 3, 2024
+Status: ✅ FIXED AND DEPLOYED
+File: ReportApprovalDAO.class
+Location: WebContent/WEB-INF/classes/com/vjnt/dao/
+
+RESTART TOMCAT AND TEST! 🚀
+
+================================================================================

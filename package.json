@@ -1,0 +1,24 @@
+{
+  "name": "vjnt-class-management-e2e",
+  "version": "1.0.0",
+  "description": "E2E tests for VJNT Class Management System using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:8080/vjnt-class-management"
+  },
+  "keywords": [
+    "e2e",
+    "testing",
+    "playwright",
+    "automation"
+  ],
+  "author": "VJNT Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.1"
+  }
+}

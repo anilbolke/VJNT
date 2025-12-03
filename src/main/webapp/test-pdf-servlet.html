@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test PDF Servlet</title>
+</head>
+<body>
+    <h1>Test PDF Generation</h1>
+    <p>Enter an approval ID to test:</p>
+    
+    <form action="/VJNT_Class_Managment/GenerateStudentReportPDFServlet" method="GET" target="_blank">
+        <label>Approval ID:</label>
+        <input type="number" name="approvalId" value="1" required>
+        <button type="submit">Generate PDF Report</button>
+    </form>
+    
+    <hr>
+    
+    <h2>How to get Approval ID:</h2>
+    <ol>
+        <li>Go to student-comprehensive-report-new.jsp</li>
+        <li>Click "Generate Report" for any student</li>
+        <li>Click "Send to Head Master for Approval"</li>
+        <li>Login as Head Master and approve it</li>
+        <li>Note the approval ID from the database or from the approval request</li>
+        <li>Enter that ID above and click the button</li>
+    </ol>
+</body>
+</html>

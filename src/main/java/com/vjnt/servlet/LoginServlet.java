@@ -54,6 +54,7 @@ public class LoginServlet extends HttpServlet {
             session.setAttribute("userId", user.getUserId());
             session.setAttribute("username", user.getUsername());
             session.setAttribute("userType", user.getUserType().name());
+            session.setAttribute("udiseCode", user.getUdiseNo());
             session.setMaxInactiveInterval(30 * 60); // 30 minutes
             
             // Check if first login or must change password

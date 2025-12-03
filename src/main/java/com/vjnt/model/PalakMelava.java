@@ -20,6 +20,12 @@ public class PalakMelava {
     private String photo1Path;
     private String photo2Path;
     
+    // Image content stored in database (BLOB)
+    private byte[] photo1Content;
+    private byte[] photo2Content;
+    private String photo1FileName;
+    private String photo2FileName;
+    
     // Approval Workflow
     private String status; // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
     private String submittedBy;
@@ -104,6 +110,38 @@ public class PalakMelava {
     
     public void setPhoto2Path(String photo2Path) {
         this.photo2Path = photo2Path;
+    }
+    
+    public byte[] getPhoto1Content() {
+        return photo1Content;
+    }
+    
+    public void setPhoto1Content(byte[] photo1Content) {
+        this.photo1Content = photo1Content;
+    }
+    
+    public byte[] getPhoto2Content() {
+        return photo2Content;
+    }
+    
+    public void setPhoto2Content(byte[] photo2Content) {
+        this.photo2Content = photo2Content;
+    }
+    
+    public String getPhoto1FileName() {
+        return photo1FileName;
+    }
+    
+    public void setPhoto1FileName(String photo1FileName) {
+        this.photo1FileName = photo1FileName;
+    }
+    
+    public String getPhoto2FileName() {
+        return photo2FileName;
+    }
+    
+    public void setPhoto2FileName(String photo2FileName) {
+        this.photo2FileName = photo2FileName;
     }
     
     public String getStatus() {

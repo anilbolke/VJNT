@@ -1,0 +1,382 @@
+================================================================================
+   SERVLET 404 ERROR - COMPLETE TROUBLESHOOTING GUIDE
+================================================================================
+
+ERROR: GET http://localhost:8080/VJNT_Class_Managment/api/getReportDetails 404
+TIME: December 3, 2024
+
+ISSUE:
+------
+GetReportDetailsServlet returns 404 even though the class file exists.
+Browser shows: "Unexpected token '<', "<!doctype "..." indicating HTML error page.
+
+================================================================================
+   QUICK FIX (DO THIS FIRST)
+================================================================================
+
+OPTION 1: Run the Batch Script
+-------------------------------
+Double-click: RESTART_TOMCAT_PROPERLY.bat
+
+This will guide you through:
+1. Stopping Tomcat
+2. Clearing work directory
+3. Verifying deployment
+4. Starting Tomcat
+5. Testing the servlet
+
+OPTION 2: Manual Steps
+----------------------
+1. STOP Tomcat completely
+2. DELETE: apache-tomcat\work\Catalina\localhost\VJNT_Class_Managment
+3. START Tomcat
+4. WAIT for "Server startup in ... ms"
+5. TEST: http://localhost:8080/VJNT_Class_Managment/api/getReportDetails?approvalId=1
+
+================================================================================
+   WHY IS THIS HAPPENING?
+================================================================================
+
+POSSIBLE CAUSES:
+----------------
+
+1. TOMCAT NOT RESTARTED
+   - Old servlet classes still in memory
+   - New servlet not loaded
+   FIX: Full stop and start of Tomcat
+
+2. CACHED COMPILED FILES
+   - Tomcat work directory has old versions
+   - JSP compiler cache outdated
+   FIX: Delete work\Catalina\localhost\VJNT_Class_Managment
+
+3. DEPLOYMENT ISSUE
+   - Servlet not in correct location
+   - Missing in WebContent\WEB-INF\classes\
+   FIX: Run DEPLOY_ALL_UPDATES.bat
+
+4. SERVLET NOT REGISTERED
+   - Tomcat hasn't scanned for new servlets
+   - Annotation not processed
+   FIX: Restart with clean deployment
+
+5. CONTEXT PATH MISMATCH
+   - URL doesn't match deployment context
+   - Wrong application name
+   FIX: Verify context path
+
+================================================================================
+   DETAILED TROUBLESHOOTING
+================================================================================
+
+STEP 1: Verify File Exists
+---------------------------
+Command:
+Test-Path "WebContent\WEB-INF\classes\com\vjnt\servlet\GetReportDetailsServlet.class"
+
+Expected: True
+If False: Run DEPLOY_ALL_UPDATES.bat
+
+Check file size:
+Get-Item "WebContent\WEB-INF\classes\com\vjnt\servlet\GetReportDetailsServlet.class" | Select-Object Length
+
+Expected: > 2000 bytes (should be around 2665 bytes)
+If 0 or very small: Recompile and deploy
+
+
+STEP 2: Check Tomcat Status
+----------------------------
+Windows Service:
+- Open Services (services.msc)
+- Find "Apache Tomcat" service
+- Status should be "Running"
+- If "Stopped", click Start
+
+Startup.bat:
+- Look for Tomcat console window
+- Should show "Server startup in XXX ms"
+- If no window, Tomcat isn't running
+
+IDE (Eclipse/IntelliJ):
+- Check Servers view
+- Server status should be "Started"
+- If "Stopped", start it
+
+
+STEP 3: Clear Tomcat Work Directory
+------------------------------------
+Location:
+C:\Program Files\Apache Software Foundation\Tomcat 9.0\work\Catalina\localhost\VJNT_Class_Managment
+
+or wherever your Tomcat is installed.
+
+Steps:
+1. STOP Tomcat
+2. DELETE the entire VJNT_Class_Managment folder
+3. START Tomcat
+4. Tomcat will recreate it with fresh files
+
+
+STEP 4: Verify Servlet Deployment
+----------------------------------
+Check if Tomcat copied files to its deployment directory:
+
+Location 1 (Development):
+WebContent\WEB-INF\classes\com\vjnt\servlet\GetReportDetailsServlet.class
+
+Location 2 (Tomcat webapps - if deploying WAR):
+apache-tomcat\webapps\VJNT_Class_Managment\WEB-INF\classes\com\vjnt\servlet\GetReportDetailsServlet.class
+
+Both should exist and have same file size/date.
+
+
+STEP 5: Check Tomcat Logs
+--------------------------
+Logs location:
+apache-tomcat\logs\catalina.out (Linux/Mac)
+apache-tomcat\logs\catalina.YYYY-MM-DD.log (Windows)
+
+Look for:
+- "INFO: Deploying web application"
+- Servlet mapping messages
+- Any exceptions or errors
+
+Bad signs:
+- ClassNotFoundException
+- NoClassDefFoundError
+- Deployment failed messages
+- "Context [/VJNT_Class_Managment] startup failed"
+
+
+STEP 6: Test Servlet Directly
+------------------------------
+Open browser:
+http://localhost:8080/VJNT_Class_Managment/api/getReportDetails?approvalId=1
+
+GOOD Response (JSON):
+{
+  "approvalId": 1,
+  "studentName": "John Doe",
+  "penNumber": "PEN12345",
+  ...
+}
+
+BAD Response (HTML error page):
+<!DOCTYPE html>
+<html>
+<head><title>HTTP Status 404...</title></head>
+...
+
+If 404:
+- Servlet not loaded
+- Context path wrong
+- Tomcat needs restart
+
+
+STEP 7: Verify Context Path
+----------------------------
+Current URL pattern:
+http://localhost:8080/VJNT_Class_Managment/api/getReportDetails
+
+Context path: VJNT_Class_Managment
+Servlet path: /api/getReportDetails
+
+Verify in:
+1. server.xml (Tomcat config)
+   <Context path="/VJNT_Class_Managment" ...>
+
+2. Project properties (if using IDE)
+   Context root: VJNT_Class_Managment
+
+3. JavaScript code:
+   '<%= request.getContextPath() %>/api/getReportDetails'
+
+
+STEP 8: Check Servlet Annotation
+---------------------------------
+In GetReportDetailsServlet.java:
+
+@WebServlet("/api/getReportDetails")
+public class GetReportDetailsServlet extends HttpServlet {
+    ...
+}
+
+Must have:
+- @WebServlet annotation
+- Correct URL pattern
+- extends HttpServlet
+- doGet() or doPost() method
+
+================================================================================
+   COMMON MISTAKES AND SOLUTIONS
+================================================================================
+
+MISTAKE 1: "Reload" Instead of "Restart"
+-----------------------------------------
+Problem: Using IDE's "Reload" or "Redeploy" without full restart
+Solution: Do a FULL STOP and START
+
+MISTAKE 2: Not Clearing Work Directory
+---------------------------------------
+Problem: Old compiled JSPs and servlet cache
+Solution: Delete work\Catalina\localhost\VJNT_Class_Managment
+
+MISTAKE 3: Wrong Deployment Location
+-------------------------------------
+Problem: Servlet in src\ but not in WebContent\
+Solution: Run DEPLOY_ALL_UPDATES.bat
+
+MISTAKE 4: Multiple Tomcat Instances
+-------------------------------------
+Problem: Editing one Tomcat but running from another
+Solution: Verify which Tomcat is running (check port 8080)
+
+MISTAKE 5: Port Already in Use
+-------------------------------
+Problem: Another app using port 8080
+Solution: Change Tomcat port or stop other app
+
+================================================================================
+   VERIFICATION CHECKLIST
+================================================================================
+
+Before testing, verify:
+
+□ Tomcat is STOPPED
+□ WebContent\WEB-INF\classes\com\vjnt\servlet\GetReportDetailsServlet.class exists
+□ File size is > 2000 bytes
+□ File date is recent (today)
+□ Tomcat work directory cleared (or will be cleared on restart)
+□ All other servlets deployed too (run DEPLOY_ALL_UPDATES.bat)
+□ Tomcat is STARTED
+□ Waited for "Server startup" message
+□ No errors in Tomcat logs
+□ Test URL opens in browser
+□ Returns JSON (not HTML error)
+
+If all checked, servlet should work!
+
+================================================================================
+   NUCLEAR OPTION (LAST RESORT)
+================================================================================
+
+If nothing else works:
+
+1. STOP Tomcat completely
+2. BACKUP your WebContent directory
+3. DELETE entire Tomcat deployment:
+   - apache-tomcat\webapps\VJNT_Class_Managment
+   - apache-tomcat\work\Catalina\localhost\VJNT_Class_Managment
+   - apache-tomcat\conf\Catalina\localhost\VJNT_Class_Managment.xml
+4. REDEPLOY your WebContent as WAR or directory
+5. START Tomcat
+6. Let it deploy from scratch
+
+This forces a completely fresh deployment.
+
+================================================================================
+   TESTING THE FIX
+================================================================================
+
+Test 1: Direct Servlet Access
+------------------------------
+URL: http://localhost:8080/VJNT_Class_Managment/api/getReportDetails?approvalId=1
+
+Expected:
+- HTTP 200 OK
+- JSON response
+- Content-Type: application/json
+
+If works: Servlet is loaded ✅
+
+Test 2: Browser Console
+------------------------
+1. Open browser Developer Tools (F12)
+2. Go to Network tab
+3. Try to view report in Head Master modal
+4. Check the API call
+
+Expected:
+- Status: 200 (not 404)
+- Response: JSON data
+- Type: xhr
+
+If works: Integration working ✅
+
+Test 3: Full Workflow
+----------------------
+1. Login as Head Master
+2. Go to "Approve Reports"
+3. Click "👁️ View Report"
+4. Modal opens
+5. Student name shows in header
+6. Report data displays
+
+If works: Everything working ✅
+
+================================================================================
+   USEFUL COMMANDS
+================================================================================
+
+Check if Tomcat is running:
+---------------------------
+netstat -ano | findstr :8080
+
+Should show LISTENING on port 8080
+
+Check servlet file:
+-------------------
+Get-Item "WebContent\WEB-INF\classes\com\vjnt\servlet\GetReportDetailsServlet.class"
+
+List all servlets:
+------------------
+Get-ChildItem "WebContent\WEB-INF\classes\com\vjnt\servlet\*.class" | Select-Object Name, Length, LastWriteTime
+
+Deploy everything:
+------------------
+.\DEPLOY_ALL_UPDATES.bat
+
+Test servlet:
+-------------
+Invoke-WebRequest -Uri "http://localhost:8080/VJNT_Class_Managment/api/getReportDetails?approvalId=1"
+
+Should return JSON, not HTML
+
+================================================================================
+   WHAT TO CHECK IN LOGS
+================================================================================
+
+Tomcat startup logs should show:
+
+GOOD:
+"INFO: Deployment of web application directory ... has finished in ... ms"
+"INFO: Starting ProtocolHandler"
+"INFO: Server startup in ... ms"
+
+BAD:
+"SEVERE: Context [/VJNT_Class_Managment] startup failed"
+"ClassNotFoundException: com.vjnt.servlet.GetReportDetailsServlet"
+"NoClassDefFoundError"
+"Deployment failed"
+
+================================================================================
+   IF STILL NOT WORKING
+================================================================================
+
+Contact support with:
+1. Tomcat version
+2. Java version
+3. Contents of catalina.log (last 100 lines)
+4. Result of: Test-Path "WebContent\WEB-INF\classes\com\vjnt\servlet\GetReportDetailsServlet.class"
+5. Result of: netstat -ano | findstr :8080
+6. Browser console errors (screenshot)
+
+================================================================================
+
+Date: December 3, 2024
+Status: TROUBLESHOOTING GUIDE
+Next Action: RUN RESTART_TOMCAT_PROPERLY.BAT
+
+THE KEY IS: FULL STOP, CLEAR WORK DIR, FULL START 🚀
+
+================================================================================

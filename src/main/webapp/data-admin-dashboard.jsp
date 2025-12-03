@@ -29,7 +29,7 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f0f2f5;
             min-height: 100vh;
             padding: 20px;
         }
@@ -40,7 +40,7 @@
         }
         
         .header {
-            background: white;
+            background: #f0f2f5;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -50,8 +50,9 @@
         }
         
         .header h1 {
-            color: #333;
+            color: #000;
             font-size: 24px;
+            font-weight: 700;
         }
         
         .logout-btn {
@@ -70,34 +71,36 @@
         }
         
         .upload-section {
-            background: white;
+            background: #e8eaf0;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         
         .upload-section h2 {
-            color: #333;
+            color: #000;
             margin-bottom: 20px;
+            font-weight: 700;
         }
         
         .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
+            background: #d4d9e8;
+            border-left: 4px solid #667eea;
             padding: 15px;
             margin-bottom: 20px;
             border-radius: 5px;
         }
         
         .info-box h3 {
-            color: #1976d2;
+            color: #000;
             font-size: 16px;
             margin-bottom: 10px;
+            font-weight: 700;
         }
         
         .info-box ul {
             margin-left: 20px;
-            color: #555;
+            color: #000;
         }
         
         .info-box li {
