@@ -831,6 +831,7 @@
             
             // Assessment Levels Section
             if (data.assessmentLevels) {
+                const subjectTeachers = data.subjectTeachers || {};
                 html += `
                     <div class="report-section">
                         <h3><i class="fas fa-chart-line"></i> Assessment Levels</h3>
@@ -838,14 +839,17 @@
                             <div class="level-box ${'$'}{data.assessmentLevels.english !== 'Not Assessed' ? 'assessed' : ''}">
                                 <div class="level-label">ENGLISH</div>
                                 <div class="level-value">${'$'}{data.assessmentLevels.english}</div>
+                                ${'$'}{subjectTeachers.English ? '<div style="font-size: 11px; margin-top: 8px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> Subject Teacher: <span style="font-weight: bold;">' + subjectTeachers.English + '</span></div>' : ''}
                             </div>
                             <div class="level-box ${'$'}{data.assessmentLevels.marathi !== 'Not Assessed' ? 'assessed' : ''}">
                                 <div class="level-label">MARATHI</div>
                                 <div class="level-value">${'$'}{data.assessmentLevels.marathi}</div>
+                                ${'$'}{subjectTeachers.Marathi ? '<div style="font-size: 11px; margin-top: 8px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> Subject Teacher: <span style="font-weight: bold;">' + subjectTeachers.Marathi + '</span></div>' : ''}
                             </div>
                             <div class="level-box ${'$'}{data.assessmentLevels.math !== 'Not Assessed' ? 'assessed' : ''}">
                                 <div class="level-label">MATH</div>
                                 <div class="level-value">${'$'}{data.assessmentLevels.math}</div>
+                                ${'$'}{subjectTeachers.Mathematics ? '<div style="font-size: 11px; margin-top: 8px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> Subject Teacher: <span style="font-weight: bold;">' + subjectTeachers.Mathematics + '</span></div>' : ''}
                             </div>
                         </div>
                         <div style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-radius: 6px; text-align: center;">
@@ -862,7 +866,7 @@
                 const completedActivities = activities.filter(a => a.completed).length;
                 const completionRate = Math.round((completedActivities / totalActivities) * 100);
                 
-                html += `
+                /* html += `
                     <div class="report-section">
                         <h3><i class="fas fa-tasks"></i> Activities Summary</h3>
                         <div class="summary-stats">
@@ -879,7 +883,7 @@
                                 <div class="stat-label">Completion Rate</div>
                             </div>
                         </div>
-                `;
+                `; */
                 
                 // Group activities by language and week
                 const grouped = {};
@@ -896,16 +900,21 @@
                 });
                 
                 // Display grouped activities
+                const subjectTeachers = data.subjectTeachers || {};
                 let groupIndex = 0;
                 Object.keys(grouped).sort().forEach(key => {
                     const group = grouped[key];
                     const groupId = 'activityGroup' + groupIndex;
                     groupIndex++;
                     
+                    // Get teacher name for this subject
+                    const teacherName = subjectTeachers[group.language] || '';
+                    const teacherInfo = teacherName ? ` <span style="font-size: 13px; opacity: 0.95;"><i class="fas fa-chalkboard-teacher"></i> Teacher: <strong>${teacherName}</strong></span>` : '';
+                    
                     html += `
                         <div class="activity-group">
                             <div class="activity-group-header" onclick="toggleActivityGroup('${'$'}{groupId}')">
-                                <h4 class="activity-group-title">${'$'}{group.language} - Week ${'$'}{group.week}</h4>
+                                <h4 class="activity-group-title">${'$'}{group.language} - Week ${'$'}{group.week}${teacherInfo}</h4>
                                 <span id="${'$'}{groupId}Icon" class="toggle-icon">▼</span>
                             </div>
                             <div id="${'$'}{groupId}" class="activity-group-content">
@@ -1036,22 +1045,11 @@
                         `;
                     }
                     
-                    html += `
-                        <button class="print-btn" onclick="printReport()">
-                            <i class="fas fa-print"></i> Print Report
-                        </button>
-                    `;
+                   
                 }
             } else if (approvalData.status === 'REJECTED') {
                 // Rejected - allow resubmission and print button
-                html += `
-                    <button class="btn-submit-approval" onclick="submitForApproval('${'$'}{studentPen}', '${'$'}{studentName}')" style="background: #dc3545; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
-                        <i class="fas fa-redo"></i> Resubmit for Approval
-                    </button>
-                    <button class="print-btn" onclick="printReport()">
-                        <i class="fas fa-print"></i> Print Report
-                    </button>
-                `;
+               
             }
             
             html += '</div>';

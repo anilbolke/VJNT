@@ -19,6 +19,6 @@
   "author": "VJNT Team",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.40.1"
+    "@playwright/test": "^1.57.0"
   }
 }

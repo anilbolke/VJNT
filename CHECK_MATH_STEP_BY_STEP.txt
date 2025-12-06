@@ -1,0 +1,224 @@
+================================================================================
+              STEP-BY-STEP: CHECK WHY MATH TEACHER NOT SHOWING
+================================================================================
+
+Follow these steps EXACTLY and tell me what you find:
+
+================================================================================
+STEP 1: CHECK DATABASE (5 minutes)
+================================================================================
+
+1. Open SQL Developer
+2. Run the file: DEBUG_MATH_TEACHER_NOW.sql
+3. Look at Query 5 result:
+
+   If it says "SUCCESS - MATCH FOUND!":
+   → Good! Teacher exists. Go to Step 2.
+   
+   If it says "FAIL - NO MATCH":
+   → STOP! This is your problem!
+   → The UDISE/class/section don't match between student and teacher
+   → Fix this first before continuing
+
+4. Look at Query 3 result:
+
+   If it says "PERFECT!":
+   → Good! Format is correct. Go to Step 2.
+   
+   If it says anything else:
+   → STOP! Fix the format first:
+      UPDATE teacher_assignments
+      SET subjects_assigned = 'English,Marathi,Math'
+      WHERE is_active = 1;
+      COMMIT;
+
+================================================================================
+STEP 2: CHECK IF SERVLET IS DEPLOYED (2 minutes)
+================================================================================
+
+1. Is Tomcat running?
+   → Check if you can access: http://localhost:8080
+
+2. Did you rebuild the project?
+   → Eclipse → Project → Clean
+   → Eclipse → Project → Build Project
+   
+3. Did you deploy?
+   → Right-click project → Run on Server
+   OR
+   → Restart Tomcat
+
+4. Check when the servlet was compiled:
+   → Go to: [Tomcat]/webapps/[YourApp]/WEB-INF/classes/com/vjnt/servlet/
+   → Find: GetStudentComprehensiveDataServlet.class
+   → Check the Date Modified
+   → It should be TODAY
+
+   If it's OLD:
+   → Servlet wasn't redeployed!
+   → Clean, build, and deploy again
+
+================================================================================
+STEP 3: CHECK TOMCAT CONSOLE LOGS (3 minutes)
+================================================================================
+
+1. Open Tomcat Console in Eclipse (bottom panel)
+
+2. Clear the console:
+   → Right-click → Clear
+
+3. Generate a report for a student:
+   → Login as School Coordinator
+   → Student Comprehensive Report
+   → Click "Generate Report"
+
+4. IMMEDIATELY look at console. You should see:
+
+   === GetStudentComprehensiveDataServlet called for PEN: xxx ===
+   Student Info - UDISE: xxx, Class: xxx, Section: xxx
+   === DEBUG: getSubjectTeachers called ===
+   UDISE: xxx
+   Class: xxx
+   Section: xxx
+   Executing query: SELECT...
+   Found teacher: Mrs. Teacher, Subjects: English,Marathi,Math
+   Mapped: English -> Mrs. Teacher
+   Mapped: Marathi -> Mrs. Teacher
+   Mapped: Math -> Mrs. Teacher         ← LOOK FOR THIS!
+   Total teachers found: 1
+   Final subjectTeachers map: {English=Mrs. Teacher, Marathi=Mrs. Teacher, Math=Mrs. Teacher}
+   Adding subjectTeachers to response: {English=Mrs. Teacher, Marathi=Mrs. Teacher, Math=Mrs. Teacher}
+
+   What you find:
+   
+   A) If you see "Mapped: Math -> Mrs. Teacher":
+      → Servlet is working! Go to Step 4.
+   
+   B) If you see "Total teachers found: 0":
+      → Database query returned nothing!
+      → Go back to Step 1 and fix database
+   
+   C) If you see "Found teacher: xxx, Subjects: English,Marathi,Mathematics"
+      → Database has "Mathematics" not "Math"!
+      → Fix database format (see Step 1)
+   
+   D) If you see NO debug messages at all:
+      → Servlet not deployed or old version running
+      → Go back to Step 2
+
+================================================================================
+STEP 4: CHECK BROWSER API RESPONSE (2 minutes)
+================================================================================
+
+1. Open the report page in browser
+2. Press F12 (Developer Tools)
+3. Go to "Network" tab
+4. Clear network log
+5. Generate a report
+6. Find the request: "GetStudentComprehensiveDataServlet"
+7. Click on it
+8. Go to "Response" tab
+9. Look for "subjectTeachers"
+
+   You should see:
+   "subjectTeachers": {
+       "English": "Mrs. Teacher Name",
+       "Marathi": "Mrs. Teacher Name",
+       "Math": "Mrs. Teacher Name"        ← LOOK FOR THIS!
+   }
+
+   What you find:
+   
+   A) If "Math" is there with a teacher name:
+      → API is working! Go to Step 5.
+   
+   B) If "subjectTeachers" is {} (empty):
+      → Servlet isn't finding teachers
+      → Check Tomcat logs from Step 3
+   
+   C) If you see "Mathematics" instead of "Math":
+      → Database has wrong format
+      → Fix database (Step 1)
+
+================================================================================
+STEP 5: CHECK BROWSER DISPLAY (1 minute)
+================================================================================
+
+1. Clear browser cache:
+   → Ctrl + Shift + Delete
+   → Check "Cached images and files"
+   → Click Clear
+
+2. Hard refresh:
+   → Ctrl + F5
+
+3. Generate report again
+
+4. Look at the MATH level box:
+   Should show:
+   ┌─────────────────────────┐
+   │ MATH                    │
+   │ Level: xxx              │
+   │ 👨‍🏫 Subject Teacher:   │
+   │ Mrs. Teacher Name       │  ← THIS!
+   └─────────────────────────┘
+
+   If still not showing:
+   → Open browser Console (F12 → Console tab)
+   → Look for JavaScript errors (red text)
+   → Take screenshot and share
+
+================================================================================
+STEP 6: VERIFY JSP FILE (1 minute)
+================================================================================
+
+1. Open: student-comprehensive-report-new.jsp
+2. Search for: "subjectTeachers.Math"
+3. Should find this line (around line 852):
+
+   ${'$'}{subjectTeachers.Math ? '<div style="font-size: 11px...
+
+   If you see "Mathematics" instead of "Math":
+   → File wasn't saved or wasn't deployed
+   → Save the file
+   → Rebuild and redeploy
+
+================================================================================
+CHECKLIST SUMMARY:
+================================================================================
+
+Before asking for more help, verify:
+
+□ Step 1: Database Query 5 shows "SUCCESS - MATCH FOUND!"
+□ Step 1: Database Query 3 shows "PERFECT!"
+□ Step 2: Servlet file dated TODAY
+□ Step 3: Console shows "Mapped: Math -> Teacher"
+□ Step 4: API Response has "Math": "Teacher Name"
+□ Step 5: Browser cache cleared
+□ Step 6: JSP uses "subjectTeachers.Math" (not Mathematics)
+
+================================================================================
+SEND ME THIS INFO:
+================================================================================
+
+If still not working, send me:
+
+1. Screenshot of Query 5 result from DEBUG_MATH_TEACHER_NOW.sql
+2. Copy the Tomcat console output (the debug lines)
+3. Screenshot of Browser Network tab showing API response
+4. Screenshot of Browser Console showing any errors
+5. Tell me: 
+   - Did you rebuild? Yes/No
+   - Did you restart Tomcat? Yes/No
+   - Did you clear browser cache? Yes/No
+
+================================================================================
+MOST LIKELY CAUSES (in order):
+================================================================================
+
+1. Database: UDISE/class/section don't match (70% of cases)
+2. Database: subjects_assigned has "Mathematics" not "Math" (20% of cases)
+3. Not deployed: Still running old servlet code (8% of cases)
+4. Browser cache: Old JSP cached (2% of cases)
+
+================================================================================

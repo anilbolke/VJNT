@@ -673,8 +673,6 @@
                     fetchApprovalStatus(student.studentPen);
                 }
             });
-            
-            grid.innerHTML = html;
         }
         
         // Fetch approval status for a student
@@ -833,6 +831,7 @@
             
             // Assessment Levels Section
             if (data.assessmentLevels) {
+                const subjectTeachers = data.subjectTeachers || {};
                 html += `
                     <div class="report-section">
                         <h3><i class="fas fa-chart-line"></i> Assessment Levels</h3>
@@ -840,14 +839,17 @@
                             <div class="level-box ${'$'}{data.assessmentLevels.english !== 'Not Assessed' ? 'assessed' : ''}">
                                 <div class="level-label">ENGLISH</div>
                                 <div class="level-value">${'$'}{data.assessmentLevels.english}</div>
+                                ${'$'}{subjectTeachers.English ? '<div style="font-size: 11px; margin-top: 8px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> ' + subjectTeachers.English + '</div>' : ''}
                             </div>
                             <div class="level-box ${'$'}{data.assessmentLevels.marathi !== 'Not Assessed' ? 'assessed' : ''}">
                                 <div class="level-label">MARATHI</div>
                                 <div class="level-value">${'$'}{data.assessmentLevels.marathi}</div>
+                                ${'$'}{subjectTeachers.Marathi ? '<div style="font-size: 11px; margin-top: 8px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> ' + subjectTeachers.Marathi + '</div>' : ''}
                             </div>
                             <div class="level-box ${'$'}{data.assessmentLevels.math !== 'Not Assessed' ? 'assessed' : ''}">
                                 <div class="level-label">MATH</div>
                                 <div class="level-value">${'$'}{data.assessmentLevels.math}</div>
+                                ${'$'}{subjectTeachers.Math ? '<div style="font-size: 11px; margin-top: 8px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> ' + subjectTeachers.Math + '</div>' : ''}
                             </div>
                         </div>
                         <div style="margin-top: 15px; padding: 12px; background: #e7f3ff; border-radius: 6px; text-align: center;">
@@ -898,16 +900,21 @@
                 });
                 
                 // Display grouped activities
+                const subjectTeachers = data.subjectTeachers || {};
                 let groupIndex = 0;
                 Object.keys(grouped).sort().forEach(key => {
                     const group = grouped[key];
                     const groupId = 'activityGroup' + groupIndex;
                     groupIndex++;
                     
+                    // Get teacher name for this subject
+                    const teacherName = subjectTeachers[group.language] || '';
+                    const teacherInfo = teacherName ? ` <span style="font-size: 13px; font-weight: normal; opacity: 0.9;"><i class="fas fa-chalkboard-teacher"></i> ${teacherName}</span>` : '';
+                    
                     html += `
                         <div class="activity-group">
                             <div class="activity-group-header" onclick="toggleActivityGroup('${'$'}{groupId}')">
-                                <h4 class="activity-group-title">${'$'}{group.language} - Week ${'$'}{group.week}</h4>
+                                <h4 class="activity-group-title">${'$'}{group.language} - Week ${'$'}{group.week}${teacherInfo}</h4>
                                 <span id="${'$'}{groupId}Icon" class="toggle-icon">▼</span>
                             </div>
                             <div id="${'$'}{groupId}" class="activity-group-content">
@@ -998,9 +1005,7 @@
                     <button class="btn-submit-approval" onclick="submitForApproval('${'$'}{studentPen}', '${'$'}{studentName}')" style="background: #667eea; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
                         <i class="fas fa-paper-plane"></i> Send to Head Master for Approval
                     </button>
-                    <button class="print-btn" onclick="printReport()">
-                        <i class="fas fa-print"></i> Print Report
-                    </button>
+                   
                 `;
             } else if (approvalData.status === 'PENDING') {
                 // Pending - show waiting message and print button
@@ -1008,9 +1013,7 @@
                     <button style="background: #ffc107; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: not-allowed; margin-right: 10px;" disabled>
                         <i class="fas fa-clock"></i> Waiting for Approval
                     </button>
-                    <button class="print-btn" onclick="printReport()">
-                        <i class="fas fa-print"></i> Print Report
-                    </button>
+                   
                 `;
             } else if (approvalData.status === 'APPROVED') {
                 // Check if report was already generated/printed
@@ -1024,7 +1027,6 @@
                         <button class="btn-submit-approval" onclick="submitForApproval('${'$'}{studentPen}', '${'$'}{studentName}')" style="background: #667eea; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
                             <i class="fas fa-paper-plane"></i> Resubmit to Head Master for New Approval
                         </button>
-                        
                     `;
                 } else {
                     // Report not yet printed - show normal buttons
@@ -1043,6 +1045,10 @@
                         `;
                     }
                     
+                    html += `
+                        <button class="print-btn" onclick="printReport()">
+                            <i class="fas fa-print"></i> Print Report
+                        </button>
                     `;
                 }
             } else if (approvalData.status === 'REJECTED') {

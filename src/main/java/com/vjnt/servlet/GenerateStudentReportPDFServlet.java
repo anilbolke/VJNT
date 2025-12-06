@@ -121,11 +121,24 @@ public class GenerateStudentReportPDFServlet extends HttpServlet {
                 return;
             }
             
+            // Get student's class and section for teacher lookup
+            String studentClass = null;
+            String studentSection = null;
+            sql = "SELECT class, section FROM students WHERE student_pen = ?";
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, penNumber);
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                studentClass = rs.getString("class");
+                studentSection = rs.getString("section");
+            }
+            
             // Get comprehensive data
             Map<String, Object> data = new HashMap<>();
             data.put("assessmentLevels", getAssessmentLevels(conn, penNumber));
             data.put("allActivities", getAllActivities(conn, penNumber));
             data.put("palakMelavaData", getPalakMelava(udiseCode));
+            data.put("subjectTeachers", getSubjectTeachers(conn, udiseCode, studentClass, studentSection));
             
             // Generate HTML
             response.setContentType("text/html; charset=UTF-8");
@@ -182,82 +195,74 @@ public class GenerateStudentReportPDFServlet extends HttpServlet {
     
     private Map<String, String> getAssessmentLevels(Connection conn, String penNumber) throws SQLException {
         Map<String, String> levels = new HashMap<>();
-        String sql = "SELECT marathi_akshara_level, marathi_shabda_level, marathi_vakya_level, marathi_samajpurvak_level, " +
-                    "math_akshara_level, math_shabda_level, math_vakya_level, math_samajpurvak_level, " +
-                    "english_akshara_level, english_shabda_level, english_vakya_level, english_samajpurvak_level, " +
-                    "marathi_level, math_level, english_level " +
+        String sql = "SELECT marathi_akshara_level, math_akshara_level, english_akshara_level " +
                     "FROM students WHERE student_pen = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);
         stmt.setString(1, penNumber);
         ResultSet rs = stmt.executeQuery();
         
         if (rs.next()) {
-            // Get overall levels from database (these are already calculated)
-            String marathiLevel = rs.getString("marathi_level");
-            String mathLevel = rs.getString("math_level");
-            String englishLevel = rs.getString("english_level");
+            int marathiLevel = rs.getInt("marathi_akshara_level");
+            int mathLevel = rs.getInt("math_akshara_level");
+            int englishLevel = rs.getInt("english_akshara_level");
             
-            // If overall levels exist, use them, otherwise calculate from sub-levels
-            if (marathiLevel != null && !marathiLevel.isEmpty()) {
-                levels.put("marathi", marathiLevel);
-            } else {
-                int marathi = rs.getInt("marathi_akshara_level");
-                levels.put("marathi", getLevelName(marathi));
-            }
-            
-            if (mathLevel != null && !mathLevel.isEmpty()) {
-                levels.put("math", mathLevel);
-            } else {
-                int math = rs.getInt("math_akshara_level");
-                levels.put("math", getLevelName(math));
-            }
-            
-            if (englishLevel != null && !englishLevel.isEmpty()) {
-                levels.put("english", englishLevel);
-            } else {
-                int english = rs.getInt("english_akshara_level");
-                levels.put("english", getLevelName(english));
-            }
-            
-            // Store detailed levels for display
-            levels.put("marathi_akshara", getLevelName(rs.getInt("marathi_akshara_level")));
-            levels.put("marathi_shabda", getLevelName(rs.getInt("marathi_shabda_level")));
-            levels.put("marathi_vakya", getLevelName(rs.getInt("marathi_vakya_level")));
-            levels.put("marathi_samajpurvak", getLevelName(rs.getInt("marathi_samajpurvak_level")));
-            
-            levels.put("math_akshara", getLevelName(rs.getInt("math_akshara_level")));
-            levels.put("math_shabda", getLevelName(rs.getInt("math_shabda_level")));
-            levels.put("math_vakya", getLevelName(rs.getInt("math_vakya_level")));
-            levels.put("math_samajpurvak", getLevelName(rs.getInt("math_samajpurvak_level")));
-            
-            levels.put("english_akshara", getLevelName(rs.getInt("english_akshara_level")));
-            levels.put("english_shabda", getLevelName(rs.getInt("english_shabda_level")));
-            levels.put("english_vakya", getLevelName(rs.getInt("english_vakya_level")));
-            levels.put("english_samajpurvak", getLevelName(rs.getInt("english_samajpurvak_level")));
+            // Get level text based on number
+            levels.put("marathi", getMarathiLevelText(marathiLevel));
+            levels.put("math", getMathLevelText(mathLevel));
+            levels.put("english", getEnglishLevelText(englishLevel));
             
             // Calculate overall
             int count = 0;
-            if (marathiLevel != null && !marathiLevel.equals("Not Assessed")) count++;
-            if (mathLevel != null && !mathLevel.equals("Not Assessed")) count++;
-            if (englishLevel != null && !englishLevel.equals("Not Assessed")) count++;
+            if (marathiLevel > 0) count++;
+            if (mathLevel > 0) count++;
+            if (englishLevel > 0) count++;
             
             String overall = "Not Started";
-            if (count == 3) overall = "Excellent Progress";
-            else if (count == 2) overall = "Good Progress";
-            else if (count == 1) overall = "In Progress";
+            if (count == 3) overall = "All Subjects Assessed";
+            else if (count == 2) overall = "2 of 3 Assessed";
+            else if (count == 1) overall = "1 of 3 Assessed";
             levels.put("overall", overall);
         }
         return levels;
     }
     
-    private String getLevelName(int level) {
+    // Get Marathi level text based on level number
+    private String getMarathiLevelText(int level) {
         switch (level) {
-            case 0: return "Not Assessed";
-            case 1: return "अक्षर स्तरावरील (Akshara - Letter Level)";
-            case 2: return "शब्द स्तरावरील (Shabda - Word Level)";
-            case 3: return "वाक्य स्तरावरील (Vakya - Sentence Level)";
-            case 4: return "समजपूर्वक उतारा वाचन (Samajpurvak - Comprehension)";
-            default: return "Not Assessed";
+            case 1: return "अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)";
+            case 2: return "शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)";
+            case 3: return "वाक्य स्तरावरील विद्यार्थी संख्या";
+            case 4: return "समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या";
+            case 5: return "वाचन–लेखन FLN स्तर 100%पूर्ण.";
+            default: return "स्तर निश्चित केला नाही";
+        }
+    }
+    
+    // Get Math level text based on level number
+    private String getMathLevelText(int level) {
+        switch (level) {
+            case 1: return "प्रारंभीक स्तरावरील विद्यार्थी संख्या";
+            case 2: return "अंक स्तरावरील विद्यार्थी संख्या";
+            case 3: return "संख्या वाचन स्तरावरील विद्यार्थी संख्या";
+            case 4: return "बेरीज स्तरावरील विद्यार्थी संख्या";
+            case 5: return "वजाबाकी स्तरावरील विद्यार्थी संख्या";
+            case 6: return "गुणाकार स्तरावरील विद्यार्थी संख्या";
+            case 7: return "भागाकर स्तरावरील विद्यार्थी संख्या";
+            case 8: return "संख्या व मूलभूत क्रिया FLN स्तर 100%पूर्ण.";
+            default: return "स्तर निश्चित केला नाही";
+        }
+    }
+    
+    // Get English level text based on level number
+    private String getEnglishLevelText(int level) {
+        switch (level) {
+            case 1: return "BEGINER LEVEL";
+            case 2: return "ALPHABET LEVEL Reading and Writing";
+            case 3: return "WORD LEVEL Reading and Writing";
+            case 4: return "SENTENCE LEVEL";
+            case 5: return "Paragraph Reading with Understanding";
+            case 6: return "Reading and Writing FLN Level 100% Complete.";
+            default: return "स्तर निश्चित केला नाही";
         }
     }
     
@@ -321,12 +326,14 @@ public class GenerateStudentReportPDFServlet extends HttpServlet {
         out.println("</div></div>");
     }
     
-    @SuppressWarnings("unchecked")
     private void writeAssessmentLevels(PrintWriter out, Map<String, Object> data) {
         out.println("<div class='report-section'>");
         out.println("<h3><i class='fas fa-chart-line'></i> Assessment Levels</h3>");
         
         Map<String, String> levels = (Map<String, String>) data.get("assessmentLevels");
+        Map<String, String> teachers = (Map<String, String>) data.get("subjectTeachers");
+        if (teachers == null) teachers = new HashMap<>();
+        
         if (levels != null) {
             String eng = levels.get("english");
             String mar = levels.get("marathi");
@@ -335,15 +342,27 @@ public class GenerateStudentReportPDFServlet extends HttpServlet {
             out.println("<div class='levels-grid'>");
             out.println("<div class='level-box" + (eng != null && !eng.equals("Not Assessed") ? " assessed" : "") + "'>");
             out.println("<div class='level-label'>ENGLISH</div>");
-            out.println("<div class='level-value'>" + esc(eng) + "</div></div>");
+            out.println("<div class='level-value'>" + esc(eng) + "</div>");
+            if (teachers.containsKey("English")) {
+                out.println("<div style='font-size: 11px; margin-top: 8px; color: #495057;'><i class='fas fa-chalkboard-teacher'></i> Subject Teacher: <strong>" + esc(teachers.get("English")) + "</strong></div>");
+            }
+            out.println("</div>");
             
             out.println("<div class='level-box" + (mar != null && !mar.equals("Not Assessed") ? " assessed" : "") + "'>");
             out.println("<div class='level-label'>MARATHI</div>");
-            out.println("<div class='level-value'>" + esc(mar) + "</div></div>");
+            out.println("<div class='level-value'>" + esc(mar) + "</div>");
+            if (teachers.containsKey("Marathi")) {
+                out.println("<div style='font-size: 11px; margin-top: 8px; color: #495057;'><i class='fas fa-chalkboard-teacher'></i> Subject Teacher: <strong>" + esc(teachers.get("Marathi")) + "</strong></div>");
+            }
+            out.println("</div>");
             
             out.println("<div class='level-box" + (mat != null && !mat.equals("Not Assessed") ? " assessed" : "") + "'>");
-            out.println("<div class='level-label'>MATH</div>");
-            out.println("<div class='level-value'>" + esc(mat) + "</div></div>");
+            out.println("<div class='level-label'>Mathematics</div>");
+            out.println("<div class='level-value'>" + esc(mat) + "</div>");
+            if (teachers.containsKey("Mathematics")) {
+                out.println("<div style='font-size: 11px; margin-top: 8px; color: #495057;'><i class='fas fa-chalkboard-teacher'></i> Subject Teacher: <strong>" + esc(teachers.get("Mathematics")) + "</strong></div>");
+            }
+            out.println("</div>");
             out.println("</div>");
             
             out.println("<div class='overall-progress'><strong>Overall Progress:</strong> " + esc(levels.get("overall")) + "</div>");
@@ -396,10 +415,18 @@ public class GenerateStudentReportPDFServlet extends HttpServlet {
             out.println("<div class='stat-box completion'><div class='stat-value yellow'>" + rate + "%</div><div class='stat-label'>Completion Rate</div></div>");
             out.println("</div>");
             
+            Map<String, String> teachers = (Map<String, String>) data.get("subjectTeachers");
+            if (teachers == null) teachers = new HashMap<>();
+            
             for (Map.Entry<String, List<String>> entry : grouped.entrySet()) {
                 String[] parts = entry.getKey().split("-");
+                String subject = parts[0];
+                String teacherInfo = "";
+                if (teachers.containsKey(subject)) {
+                    teacherInfo = " <span style='font-size: 13px; opacity: 0.95;'><i class='fas fa-chalkboard-teacher'></i> Teacher: <strong>" + esc(teachers.get(subject)) + "</strong></span>";
+                }
                 out.println("<div class='activity-group'>");
-                out.println("<div class='activity-group-header'><h4 class='activity-group-title'>" + esc(parts[0]) + " - " + parts[1] + "</h4></div>");
+                out.println("<div class='activity-group-header'><h4 class='activity-group-title'>" + esc(parts[0]) + " - " + parts[1] + teacherInfo + "</h4></div>");
                 out.println("<div class='activity-group-content'>");
                 for (String html : entry.getValue()) out.println(html);
                 out.println("</div></div>");
@@ -448,5 +475,46 @@ public class GenerateStudentReportPDFServlet extends HttpServlet {
         if (text == null) return "";
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                    .replace("\"", "&quot;").replace("'", "&#39;");
+    }
+    
+    // Get subject teachers for a specific class and section
+    private Map<String, String> getSubjectTeachers(Connection conn, String udiseCode, String studentClass, String section) {
+        Map<String, String> subjectTeachers = new HashMap<>();
+        
+        if (udiseCode == null || studentClass == null || section == null) {
+            return subjectTeachers;
+        }
+        
+        String sql = "SELECT teacher_name, subjects_assigned FROM teacher_assignments " +
+                     "WHERE udise_code = ? AND class = ? AND section = ? AND is_active = 1";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, udiseCode);
+            stmt.setString(2, studentClass);
+            stmt.setString(3, section);
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String teacherName = rs.getString("teacher_name");
+                String subjects = rs.getString("subjects_assigned");
+                
+                if (teacherName != null && subjects != null) {
+                    // subjects_assigned is a comma-separated list like "Marathi,Math,English"
+                    String[] subjectArray = subjects.split(",");
+                    for (String subject : subjectArray) {
+                        subject = subject.trim();
+                        if (!subject.isEmpty()) {
+                            // Store the teacher name for each subject
+                            subjectTeachers.put(subject, teacherName);
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return subjectTeachers;
     }
 }

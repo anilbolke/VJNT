@@ -38,16 +38,32 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
         
         Map<String, Object> comprehensiveData = new HashMap<>();
         
+        System.out.println("=== GetStudentComprehensiveDataServlet called for PEN: " + penNumber + " ===");
+        
         try (Connection conn = DatabaseConnection.getConnection()) {
             
-            // Get student's UDISE number
-            String udiseNo = getStudentUdiseNo(conn, penNumber);
+            // Get student's UDISE number, class, and section
+            Map<String, String> studentInfo = getStudentInfo(conn, penNumber);
+            String udiseNo = studentInfo.get("udise_no");
+            String studentClass = studentInfo.get("class");
+            String section = studentInfo.get("section");
+            
+            System.out.println("Student Info - UDISE: " + udiseNo + ", Class: " + studentClass + ", Section: " + section);
             
             // Get Assessment Levels from student_weekly_activities
             comprehensiveData.put("assessmentLevels", getAssessmentLevelsFromActivities(conn, penNumber));
             
             // Get ALL Activities for the student
             comprehensiveData.put("allActivities", getAllStudentActivities(conn, penNumber));
+            
+            // Get subject teachers for this student's class/section
+            if (udiseNo != null && studentClass != null && section != null) {
+                Map<String, String> teachers = getSubjectTeachers(conn, udiseNo, studentClass, section);
+                comprehensiveData.put("subjectTeachers", teachers);
+                System.out.println("Adding subjectTeachers to response: " + teachers);
+            } else {
+                System.out.println("WARNING: Cannot fetch teachers - UDISE, class, or section is null!");
+            }
             
             // Get Palak Melava (Parent Meetings) data
             if (udiseNo != null) {
@@ -114,6 +130,7 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
             case 2: return "शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)";
             case 3: return "वाक्य स्तरावरील विद्यार्थी संख्या";
             case 4: return "समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या";
+            case 5: return "वाचन–लेखन FLN स्तर 100%पूर्ण.";
             default: return "स्तर निश्चित केला नाही";
         }
     }
@@ -128,6 +145,7 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
             case 5: return "वजाबाकी स्तरावरील विद्यार्थी संख्या";
             case 6: return "गुणाकार स्तरावरील विद्यार्थी संख्या";
             case 7: return "भागाकर स्तरावरील विद्यार्थी संख्या";
+            case 8: return "संख्या व मूलभूत क्रिया FLN स्तर 100%पूर्ण.";
             default: return "स्तर निश्चित केला नाही";
         }
     }
@@ -140,6 +158,7 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
             case 3: return "WORD LEVEL Reading and Writing";
             case 4: return "SENTENCE LEVEL";
             case 5: return "Paragraph Reading with Understanding";
+            case 6: return "Reading and Writing FLN Level 100% Complete.";
             default: return "स्तर निश्चित केला नाही";
         }
     }
@@ -177,19 +196,22 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
         return activities;
     }
     
-    // Get student's UDISE number
-    private String getStudentUdiseNo(Connection conn, String penNumber) throws SQLException {
-        String sql = "SELECT udise_no FROM students WHERE student_pen = ?";
+    // Get student's UDISE number, class, and section
+    private Map<String, String> getStudentInfo(Connection conn, String penNumber) throws SQLException {
+        Map<String, String> info = new HashMap<>();
+        String sql = "SELECT udise_no, class, section FROM students WHERE student_pen = ?";
         
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, penNumber);
             ResultSet rs = stmt.executeQuery();
             
             if (rs.next()) {
-                return rs.getString("udise_no");
+                info.put("udise_no", rs.getString("udise_no"));
+                info.put("class", rs.getString("class"));
+                info.put("section", rs.getString("section"));
             }
         }
-        return null;
+        return info;
     }
     
     // Get Palak Melava data for the school
@@ -214,5 +236,63 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
         }
         
         return palakMelavaList;
+    }
+    
+    // Get subject teachers for a specific class and section
+    private Map<String, String> getSubjectTeachers(Connection conn, String udiseCode, String studentClass, String section) {
+        Map<String, String> subjectTeachers = new HashMap<>();
+        
+        System.out.println("=== DEBUG: getSubjectTeachers called ===");
+        System.out.println("UDISE: " + udiseCode);
+        System.out.println("Class: " + studentClass);
+        System.out.println("Section: " + section);
+        
+        if (udiseCode == null || studentClass == null || section == null) {
+            System.out.println("ERROR: One or more parameters is null!");
+            return subjectTeachers;
+        }
+        
+        String sql = "SELECT teacher_name, subjects_assigned FROM teacher_assignments " +
+                     "WHERE udise_code = ? AND class = ? AND section = ? AND is_active = 1";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, udiseCode);
+            stmt.setString(2, studentClass);
+            stmt.setString(3, section);
+            
+            System.out.println("Executing query: " + sql);
+            ResultSet rs = stmt.executeQuery();
+            
+            int rowCount = 0;
+            while (rs.next()) {
+                rowCount++;
+                String teacherName = rs.getString("teacher_name");
+                String subjects = rs.getString("subjects_assigned");
+                
+                System.out.println("Found teacher: " + teacherName + ", Subjects: " + subjects);
+                
+                if (teacherName != null && subjects != null) {
+                    // subjects_assigned is a comma-separated list like "Marathi,Math,English"
+                    String[] subjectArray = subjects.split(",");
+                    for (String subject : subjectArray) {
+                        subject = subject.trim();
+                        if (!subject.isEmpty()) {
+                            // Store the teacher name for each subject
+                            subjectTeachers.put(subject, teacherName);
+                            System.out.println("Mapped: " + subject + " -> " + teacherName);
+                        }
+                    }
+                }
+            }
+            
+            System.out.println("Total teachers found: " + rowCount);
+            System.out.println("Final subjectTeachers map: " + subjectTeachers);
+            
+        } catch (SQLException e) {
+            System.out.println("SQL ERROR: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return subjectTeachers;
     }
 }

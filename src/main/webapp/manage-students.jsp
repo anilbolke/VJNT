@@ -534,6 +534,7 @@
                                     <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
                                     <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>वाक्य स्तरावरील विद्यार्थी संख्या</option>
                                     <option value="4" <%= s.getMarathiAksharaLevel() == 4 ? "selected" : "" %>>समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="5" <%= s.getMarathiAksharaLevel() == 5 ? "selected" : "" %>>वाचन–लेखन FLN स्तर 100%पूर्ण.</option>
                                 </select>
                             </td>
                             <!-- Math Levels -->
@@ -547,6 +548,7 @@
                                     <option value="5" <%= s.getMathAksharaLevel() == 5 ? "selected" : "" %>>वजाबाकी स्तरावरील विद्यार्थी संख्या</option>
                                     <option value="6" <%= s.getMathAksharaLevel() == 6 ? "selected" : "" %>>गुणाकार स्तरावरील विद्यार्थी संख्या</option>
                                     <option value="7" <%= s.getMathAksharaLevel() == 7 ? "selected" : "" %>>भागाकर स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="8" <%= s.getMathAksharaLevel() == 8 ? "selected" : "" %>>संख्या व मूलभूत क्रिया FLN स्तर 100%पूर्ण.</option>
                                 </select>
                             </td>
                             <!-- English Levels -->
@@ -558,6 +560,7 @@
                                     <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>WORD LEVEL Reading and Writing</option>
                                     <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>SENTENCE LEVEL</option>
                                     <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
+                                    <option value="6" <%= s.getEnglishAksharaLevel() == 6 ? "selected" : "" %>>Reading and Writing FLN Level 100% Complete.</option>
                                 </select>
                             </td>
                             <td style="text-align: center;">

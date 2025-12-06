@@ -799,15 +799,29 @@
             const container = document.getElementById('reportViewContent');
             let html = '';
             
+            // Get subject teachers
+            const subjectTeachers = data.subjectTeachers || {};
+            
             // Assessment Levels Section
             if (data.assessmentLevels) {
                 html += '<div class="report-section">' +
                     '<h3><i class="fas fa-chart-line"></i> Assessment Levels</h3>' +
                     '<div class="info-grid">' +
-                    '<div class="info-item"><strong>Marathi Level:</strong> ' + (data.assessmentLevels.marathi || 'Not assessed') + '</div>' +
-                    '<div class="info-item"><strong>Math Level:</strong> ' + (data.assessmentLevels.math || 'Not assessed') + '</div>' +
-                    '<div class="info-item"><strong>English Level:</strong> ' + (data.assessmentLevels.english || 'Not assessed') + '</div>' +
-                    '<div class="info-item"><strong>Overall Progress:</strong> ' + (data.assessmentLevels.overallProgress || '0%') + '</div>' +
+                    '<div class="info-item"><strong>Marathi Level:</strong> ' + (data.assessmentLevels.marathi || 'Not assessed');
+                    if (subjectTeachers.Marathi) {
+                        html += '<br><span style="font-size: 12px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> Subject Teacher: <strong>' + subjectTeachers.Marathi + '</strong></span>';
+                    }
+                    html += '</div>' +
+                    '<div class="info-item"><strong>Math Level:</strong> ' + (data.assessmentLevels.math || 'Not assessed');
+                    if (subjectTeachers.Mathematics) {
+                        html += '<br><span style="font-size: 12px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> Subject Teacher: <strong>' + subjectTeachers.Mathematics + '</strong></span>';
+                    }
+                    html += '</div>' +
+                    '<div class="info-item"><strong>English Level:</strong> ' + (data.assessmentLevels.english || 'Not assessed');
+                    if (subjectTeachers.English) {
+                        html += '<br><span style="font-size: 12px; color: #495057;"><i class="fas fa-chalkboard-teacher"></i> Subject Teacher: <strong>' + subjectTeachers.English + '</strong></span>';
+                    }
+                    html += '</div>' +
                     '</div></div>';
             }
             
@@ -853,11 +867,15 @@
                 Object.keys(grouped).sort().forEach(key => {
                     const group = grouped[key];
                     
+                    // Get teacher name for this subject
+                    const teacherName = subjectTeachers[group.language] || '';
+                    const teacherInfo = teacherName ? ' <span style="font-size: 13px; color: #495057; opacity: 0.95;"><i class="fas fa-chalkboard-teacher"></i> Teacher: <strong>' + teacherName + '</strong></span>' : '';
+                    
                     html += '<div style="margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">' +
                         '<div style="background: #f8f9fa; padding: 12px; border-bottom: 2px solid #667eea; cursor: pointer;" ' +
                         'onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === \'none\' ? \'block\' : \'none\'">' +
                         '<h4 style="margin: 0; color: #667eea; display: flex; justify-content: space-between; align-items: center;">' +
-                        '<span>' + group.language + ' - Week ' + group.week + '</span>' +
+                        '<span>' + group.language + ' - Week ' + group.week + teacherInfo + '</span>' +
                         '<span style="font-size: 18px;">▼</span>' +
                         '</h4>' +
                         '</div>' +
