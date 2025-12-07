@@ -238,6 +238,59 @@ public class VideoDAO {
     }
     
     /**
+     * Get video count by district
+     */
+    public int getVideoCountByDistrict(String districtName) {
+        String sql = "SELECT COUNT(DISTINCT v.video_id) as video_count " +
+                    "FROM videos v " +
+                    "INNER JOIN students s ON v.uploaded_by = s.student_id " +
+                    "WHERE s.district = ? AND v.status = 'active'";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, districtName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("video_count");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting video count by district: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
+    }
+    
+    /**
+     * Get videos by district
+     */
+    public List<Video> getVideosByDistrict(String districtName) {
+        List<Video> videos = new ArrayList<>();
+        String sql = "SELECT v.* FROM videos v " +
+                    "INNER JOIN students s ON v.uploaded_by = s.student_id " +
+                    "WHERE s.district = ? AND v.status = 'active' " +
+                    "ORDER BY v.upload_date DESC";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, districtName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                videos.add(extractVideoFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting videos by district: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return videos;
+    }
+    
+    /**
      * Extract Video object from ResultSet
      */
     private Video extractVideoFromResultSet(ResultSet rs) throws SQLException {

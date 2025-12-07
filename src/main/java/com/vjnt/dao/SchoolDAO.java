@@ -157,6 +157,31 @@ public class SchoolDAO {
     }
     
     /**
+     * Get schools by division
+     */
+    public List<School> getSchoolsByDivision(String divisionName) {
+        List<School> schools = new ArrayList<>();
+        String sql = "SELECT * FROM schools WHERE division_name = ? ORDER BY district_name, school_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, divisionName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                schools.add(extractSchoolFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting schools by division: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return schools;
+    }
+    
+    /**
      * Get school count
      */
     public int getSchoolCount() {

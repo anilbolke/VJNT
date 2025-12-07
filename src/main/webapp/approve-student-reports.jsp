@@ -832,22 +832,15 @@
                 const completedActivities = activities.filter(a => a.completed).length;
                 const completionRate = Math.round((completedActivities / totalActivities) * 100);
                 
-                html += '<div class="report-section">' +
+                /* html += '<div class="report-section">' +
                     '<h3><i class="fas fa-tasks"></i> Activities Summary</h3>' +
                     '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">' +
                     '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">' +
                     '<div style="font-size: 32px; font-weight: bold; margin-bottom: 5px;">' + totalActivities + '</div>' +
                     '<div style="font-size: 14px; opacity: 0.9;">Total Activities</div>' +
                     '</div>' +
-                    '<div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">' +
-                    '<div style="font-size: 32px; font-weight: bold; margin-bottom: 5px;">' + completedActivities + '</div>' +
-                    '<div style="font-size: 14px; opacity: 0.9;">Completed</div>' +
                     '</div>' +
-                    '<div style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">' +
-                    '<div style="font-size: 32px; font-weight: bold; margin-bottom: 5px;">' + completionRate + '%</div>' +
-                    '<div style="font-size: 14px; opacity: 0.9;">Completion Rate</div>' +
-                    '</div>' +
-                    '</div>';
+                    '</div>'; */
                 
                 // Group by language and week
                 const grouped = {};

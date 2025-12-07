@@ -46,7 +46,11 @@ public class User {
     // Contact Information
     private String email;
     private String mobile;
+    private String whatsappNumber;
     private String fullName;
+    
+    // Additional Information
+    private String remarks;
     
     // Audit Fields
     private Timestamp updatedDate;
@@ -221,12 +225,28 @@ public class User {
         this.mobile = mobile;
     }
     
+    public String getWhatsappNumber() {
+        return whatsappNumber;
+    }
+    
+    public void setWhatsappNumber(String whatsappNumber) {
+        this.whatsappNumber = whatsappNumber;
+    }
+    
     public String getFullName() {
         return fullName;
     }
     
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+    
+    public String getRemarks() {
+        return remarks;
+    }
+    
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
     }
     
     public Timestamp getUpdatedDate() {

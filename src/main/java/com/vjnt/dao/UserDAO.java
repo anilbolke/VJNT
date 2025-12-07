@@ -455,6 +455,136 @@ public class UserDAO {
         user.setFullName(rs.getString("full_name"));
         user.setUpdatedDate(rs.getTimestamp("updated_date"));
         user.setUpdatedBy(rs.getString("updated_by"));
+        
+        // New fields
+        try {
+            user.setWhatsappNumber(rs.getString("whatsapp_number"));
+            user.setRemarks(rs.getString("remarks"));
+        } catch (SQLException e) {
+            // Fields might not exist in older schema versions
+        }
+        
         return user;
+    }
+    
+    /**
+     * Get school users (School Coordinators and Head Masters) by district
+     */
+    public List<User> getSchoolUsersByDistrict(String districtName) {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE district_name = ? AND user_type IN ('SCHOOL_COORDINATOR', 'HEAD_MASTER') ORDER BY udise_no, user_type";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, districtName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting school users by district: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return users;
+    }
+    
+    /**
+     * Get user by ID
+     */
+    public User getUserById(int userId) {
+        String sql = "SELECT * FROM users WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return extractUserFromResultSet(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting user by ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    /**
+     * Get user by username
+     */
+    public User getUserByUsername(String username) {
+        return findByUsername(username);
+    }
+    
+    /**
+     * Update user
+     */
+    public boolean updateUser(User user) {
+        String sql = "UPDATE users SET username = ?, user_type = ?, division_name = ?, district_name = ?, " +
+                    "udise_no = ?, full_name = ?, email = ?, mobile = ?, whatsapp_number = ?, remarks = ?, " +
+                    "is_active = ?, updated_by = ?, updated_date = NOW() " +
+                    "WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, user.getUsername());
+            pstmt.setString(2, user.getUserType().name());
+            pstmt.setString(3, user.getDivisionName());
+            pstmt.setString(4, user.getDistrictName());
+            pstmt.setString(5, user.getUdiseNo());
+            pstmt.setString(6, user.getFullName());
+            pstmt.setString(7, user.getEmail());
+            pstmt.setString(8, user.getMobile());
+            pstmt.setString(9, user.getWhatsappNumber());
+            pstmt.setString(10, user.getRemarks());
+            pstmt.setBoolean(11, user.isActive());
+            pstmt.setString(12, user.getUpdatedBy());
+            pstmt.setInt(13, user.getUserId());
+            
+            int rowsAffected = pstmt.executeUpdate();
+            
+            // Update password if provided
+            if (user.getPassword() != null && !user.getPassword().trim().isEmpty()) {
+                String passwordSql = "UPDATE users SET password = ? WHERE user_id = ?";
+                try (PreparedStatement psPwd = conn.prepareStatement(passwordSql)) {
+                    psPwd.setString(1, PasswordUtil.hashPassword(user.getPassword()));
+                    psPwd.setInt(2, user.getUserId());
+                    psPwd.executeUpdate();
+                }
+            }
+            
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating user: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Delete user
+     */
+    public boolean deleteUser(int userId) {
+        String sql = "DELETE FROM users WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, userId);
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error deleting user: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 }

@@ -65,15 +65,42 @@ public class YouTubeUploader {
         
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
         
+        // Create credentials folder if it doesn't exist
+        File credentialsFolder = new File(CREDENTIALS_FOLDER);
+        if (!credentialsFolder.exists()) {
+            credentialsFolder.mkdirs();
+            System.out.println("Created credentials folder at: " + credentialsFolder.getAbsolutePath());
+        }
+        
         // Build flow and trigger user authorization request
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 httpTransport, JSON_FACTORY, clientSecrets, SCOPES)
-                .setDataStoreFactory(new FileDataStoreFactory(new File(CREDENTIALS_FOLDER)))
+                .setDataStoreFactory(new FileDataStoreFactory(credentialsFolder))
                 .setAccessType("offline")
+                .setApprovalPrompt("force") // Force re-authorization if needed
                 .build();
         
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
         return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+    }
+    
+    /**
+     * Clear expired credentials to force re-authorization
+     */
+    public static void clearCredentials() {
+        File credentialsFolder = new File(CREDENTIALS_FOLDER);
+        if (credentialsFolder.exists() && credentialsFolder.isDirectory()) {
+            File[] files = credentialsFolder.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        boolean deleted = file.delete();
+                        System.out.println("Deleted credential file: " + file.getName() + " - " + deleted);
+                    }
+                }
+            }
+            System.out.println("Cleared all stored credentials");
+        }
     }
     
     /**

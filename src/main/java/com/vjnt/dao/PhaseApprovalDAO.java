@@ -273,6 +273,144 @@ public class PhaseApprovalDAO {
     }
     
     /**
+     * Get Phase status by district with school details
+     * Returns list of all schools with their Phase completion status for all 4 phases
+     * Checks both phase_approvals table and actual student phase completion dates
+     */
+    public List<java.util.Map<String, Object>> getPhaseStatusByDistrict(String districtName) {
+        List<java.util.Map<String, Object>> statusList = new ArrayList<>();
+        
+        String sql = "SELECT " +
+                     "s.udise_no, " +
+                     "s.school_name, " +
+                     "sc_hm.full_name as headmaster_name, " +
+                     "sc_hm.mobile as headmaster_mobile, " +
+                     "sc_hm.whatsapp_number as headmaster_whatsapp, " +
+                     "COUNT(DISTINCT st.student_id) as total_students, " +
+                     // Phase 1 - Check both approval status and actual student completion
+                     "MAX(CASE WHEN pa.phase_number = 1 THEN pa.approval_status END) as phase1_approval_status, " +
+                     "COUNT(DISTINCT CASE WHEN st.phase1_date IS NOT NULL THEN st.student_id END) as phase1_completed, " +
+                     "MAX(CASE WHEN pa.phase_number = 1 THEN pa.pending_students END) as phase1_pending, " +
+                     "MAX(CASE WHEN pa.phase_number = 1 THEN pa.completed_date END) as phase1_date, " +
+                     // Phase 2
+                     "MAX(CASE WHEN pa.phase_number = 2 THEN pa.approval_status END) as phase2_approval_status, " +
+                     "COUNT(DISTINCT CASE WHEN st.phase2_date IS NOT NULL THEN st.student_id END) as phase2_completed, " +
+                     "MAX(CASE WHEN pa.phase_number = 2 THEN pa.pending_students END) as phase2_pending, " +
+                     "MAX(CASE WHEN pa.phase_number = 2 THEN pa.completed_date END) as phase2_date, " +
+                     // Phase 3
+                     "MAX(CASE WHEN pa.phase_number = 3 THEN pa.approval_status END) as phase3_approval_status, " +
+                     "COUNT(DISTINCT CASE WHEN st.phase3_date IS NOT NULL THEN st.student_id END) as phase3_completed, " +
+                     "MAX(CASE WHEN pa.phase_number = 3 THEN pa.pending_students END) as phase3_pending, " +
+                     "MAX(CASE WHEN pa.phase_number = 3 THEN pa.completed_date END) as phase3_date, " +
+                     // Phase 4
+                     "MAX(CASE WHEN pa.phase_number = 4 THEN pa.approval_status END) as phase4_approval_status, " +
+                     "COUNT(DISTINCT CASE WHEN st.phase4_date IS NOT NULL THEN st.student_id END) as phase4_completed, " +
+                     "MAX(CASE WHEN pa.phase_number = 4 THEN pa.pending_students END) as phase4_pending, " +
+                     "MAX(CASE WHEN pa.phase_number = 4 THEN pa.completed_date END) as phase4_date " +
+                     "FROM schools s " +
+                     "LEFT JOIN school_contacts sc_hm ON s.udise_no COLLATE utf8mb4_unicode_ci = sc_hm.udise_no COLLATE utf8mb4_unicode_ci AND sc_hm.contact_type = 'Head Master' " +
+                     "LEFT JOIN phase_approvals pa ON s.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci " +
+                     "LEFT JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
+                     "WHERE s.district_name COLLATE utf8mb4_unicode_ci = ? COLLATE utf8mb4_unicode_ci " +
+                     "GROUP BY s.udise_no, s.school_name, sc_hm.full_name, sc_hm.mobile, sc_hm.whatsapp_number " +
+                     "ORDER BY s.school_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, districtName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                java.util.Map<String, Object> schoolStatus = new java.util.HashMap<>();
+                schoolStatus.put("udiseNo", rs.getString("udise_no"));
+                schoolStatus.put("schoolName", rs.getString("school_name"));
+                schoolStatus.put("headmasterName", rs.getString("headmaster_name"));
+                schoolStatus.put("headmasterMobile", rs.getString("headmaster_mobile"));
+                schoolStatus.put("headmasterWhatsapp", rs.getString("headmaster_whatsapp"));
+                
+                int totalStudents = rs.getInt("total_students");
+                schoolStatus.put("totalStudents", totalStudents);
+                
+                // Process each phase - determine status based on approval status AND actual student completions
+                int phasesApproved = 0;
+                int phasesDone = 0; // Completed but not submitted
+                int phasesPending = 0;
+                int phasesNotStarted = 0;
+                
+                for (int phaseNum = 1; phaseNum <= 4; phaseNum++) {
+                    String approvalStatus = rs.getString("phase" + phaseNum + "_approval_status");
+                    int completedCount = rs.getInt("phase" + phaseNum + "_completed");
+                    int pendingCount = rs.getInt("phase" + phaseNum + "_pending");
+                    java.sql.Date completedDate = rs.getDate("phase" + phaseNum + "_date");
+                    
+                    // Determine actual phase status
+                    String phaseStatus;
+                    if ("APPROVED".equals(approvalStatus)) {
+                        // Phase is officially approved
+                        phaseStatus = "APPROVED";
+                        phasesApproved++;
+                    } else if ("PENDING".equals(approvalStatus)) {
+                        // Phase submitted but waiting for approval
+                        phaseStatus = "PENDING";
+                        phasesPending++;
+                    } else if (completedCount > 0) {
+                        // Students have completed phase but not submitted for approval yet
+                        phaseStatus = "COMPLETED_NOT_SUBMITTED";
+                        phasesDone++;
+                    } else {
+                        // Phase not started
+                        phaseStatus = "NOT_STARTED";
+                        phasesNotStarted++;
+                    }
+                    
+                    // Store phase data
+                    schoolStatus.put("phase" + phaseNum + "Status", phaseStatus);
+                    schoolStatus.put("phase" + phaseNum + "Completed", completedCount);
+                    schoolStatus.put("phase" + phaseNum + "Pending", pendingCount);
+                    schoolStatus.put("phase" + phaseNum + "Date", completedDate);
+                    
+                    // Calculate percentage for display
+                    int percentage = (totalStudents > 0) ? (completedCount * 100 / totalStudents) : 0;
+                    schoolStatus.put("phase" + phaseNum + "Percentage", percentage);
+                }
+                
+                // Total phases that have some completion (approved, done, or pending)
+                int phasesCompleted = phasesApproved + phasesDone + phasesPending;
+                
+                schoolStatus.put("phasesCompleted", phasesCompleted);
+                schoolStatus.put("phasesPending", phasesPending);
+                schoolStatus.put("phasesNotStarted", phasesNotStarted);
+                
+                // Overall status - prioritize based on actual state
+                String overallStatus;
+                if (phasesApproved == 4) {
+                    // All 4 phases are officially APPROVED
+                    overallStatus = "ALL_COMPLETED";
+                } else if (phasesPending > 0) {
+                    // Has some pending approvals
+                    overallStatus = "PENDING_APPROVAL";
+                } else if (phasesDone > 0 || phasesApproved > 0) {
+                    // Has some completed or approved phases but not all 4 approved
+                    overallStatus = "IN_PROGRESS";
+                } else {
+                    // Nothing started at all
+                    overallStatus = "NOT_STARTED";
+                }
+                schoolStatus.put("overallStatus", overallStatus);
+                
+                statusList.add(schoolStatus);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting phase status by district: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return statusList;
+    }
+    
+    /**
      * Extract PhaseApproval from ResultSet
      */
     private PhaseApproval extractPhaseApproval(ResultSet rs) throws SQLException {

@@ -411,8 +411,6 @@ public class GenerateStudentReportPDFServlet extends HttpServlet {
             
             out.println("<div class='summary-stats'>");
             out.println("<div class='stat-box total'><div class='stat-value blue'>" + total + "</div><div class='stat-label'>Total Activities</div></div>");
-            out.println("<div class='stat-box completed'><div class='stat-value green'>" + completed + "</div><div class='stat-label'>Completed</div></div>");
-            out.println("<div class='stat-box completion'><div class='stat-value yellow'>" + rate + "%</div><div class='stat-label'>Completion Rate</div></div>");
             out.println("</div>");
             
             Map<String, String> teachers = (Map<String, String>) data.get("subjectTeachers");

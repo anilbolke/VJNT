@@ -143,6 +143,20 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                 
                 System.out.println("Video uploaded to YouTube: " + youtubeVideoId);
                 
+            } catch (com.google.api.client.auth.oauth2.TokenResponseException e) {
+                // Token has expired or been revoked
+                System.err.println("YouTube OAuth token error: " + e.getMessage());
+                e.printStackTrace();
+                
+                // Clear expired credentials to force re-authorization
+                YouTubeUploader.clearCredentials();
+                
+                result.put("success", false);
+                result.put("message", "YouTube authorization has expired. Please try uploading again - a new browser window will open for re-authorization.");
+                result.put("errorType", "AUTH_EXPIRED");
+                response.getWriter().write(gson.toJson(result));
+                return;
+                
             } catch (Exception e) {
                 e.printStackTrace();
                 result.put("success", false);
@@ -151,7 +165,9 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                 return;
             } finally {
                 // Delete temp file
-                tempFile.delete();
+                if (tempFile.exists()) {
+                    tempFile.delete();
+                }
             }
             
             // Save video info to database

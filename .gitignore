@@ -22,3 +22,8 @@
 *.bak
 
 src/main/resources/client_secret.json
+
+# OAuth credentials - do not commit
+client_secret.json
+src/main/resources/client_secret.json
+**/client_secret*.json

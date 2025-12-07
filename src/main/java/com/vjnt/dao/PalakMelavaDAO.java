@@ -281,6 +281,106 @@ public class PalakMelavaDAO {
     }
     
     /**
+     * Get Palak Melava status by district with school details
+     * Returns list of all schools with their Palak Melava status, head master info, and meeting details
+     */
+    public List<java.util.Map<String, Object>> getPalakMelavaStatusByDistrict(String districtName) {
+        List<java.util.Map<String, Object>> statusList = new ArrayList<>();
+        
+        String sql = "SELECT " +
+                     "s.udise_no, " +
+                     "s.school_name, " +
+                     "sc_hm.full_name as headmaster_name, " +
+                     "sc_hm.mobile as headmaster_mobile, " +
+                     "sc_hm.whatsapp_number as headmaster_whatsapp, " +
+                     "COUNT(DISTINCT pm.melava_id) as total_meetings, " +
+                     "COUNT(DISTINCT CASE WHEN pm.status = 'APPROVED' THEN pm.melava_id END) as approved_meetings, " +
+                     "COUNT(DISTINCT CASE WHEN pm.status = 'PENDING_APPROVAL' THEN pm.melava_id END) as pending_meetings, " +
+                     "COUNT(DISTINCT CASE WHEN pm.status = 'REJECTED' THEN pm.melava_id END) as rejected_meetings, " +
+                     "COUNT(DISTINCT CASE WHEN pm.status = 'DRAFT' THEN pm.melava_id END) as draft_meetings, " +
+                     "MAX(pm.meeting_date) as last_meeting_date, " +
+                     "SUM(CAST(pm.total_parents_attended AS UNSIGNED)) as total_parents_attended, " +
+                     "COUNT(DISTINCT st.student_id) as total_students " +
+                     "FROM schools s " +
+                     "LEFT JOIN school_contacts sc_hm ON s.udise_no = sc_hm.udise_no AND sc_hm.contact_type = 'Head Master' " +
+                     "LEFT JOIN palak_melava pm ON s.udise_no = pm.udise_no " +
+                     "LEFT JOIN students st ON s.udise_no = st.udise_no " +
+                     "WHERE s.district_name = ? " +
+                     "GROUP BY s.udise_no, s.school_name, sc_hm.full_name, sc_hm.mobile, sc_hm.whatsapp_number " +
+                     "ORDER BY s.school_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, districtName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                java.util.Map<String, Object> schoolStatus = new java.util.HashMap<>();
+                schoolStatus.put("udiseNo", rs.getString("udise_no"));
+                schoolStatus.put("schoolName", rs.getString("school_name"));
+                schoolStatus.put("headmasterName", rs.getString("headmaster_name"));
+                schoolStatus.put("headmasterMobile", rs.getString("headmaster_mobile"));
+                schoolStatus.put("headmasterWhatsapp", rs.getString("headmaster_whatsapp"));
+                schoolStatus.put("totalMeetings", rs.getInt("total_meetings"));
+                schoolStatus.put("approvedMeetings", rs.getInt("approved_meetings"));
+                schoolStatus.put("pendingMeetings", rs.getInt("pending_meetings"));
+                schoolStatus.put("rejectedMeetings", rs.getInt("rejected_meetings"));
+                schoolStatus.put("draftMeetings", rs.getInt("draft_meetings"));
+                schoolStatus.put("lastMeetingDate", rs.getDate("last_meeting_date"));
+                schoolStatus.put("totalParentsAttended", rs.getInt("total_parents_attended"));
+                schoolStatus.put("totalStudents", rs.getInt("total_students"));
+                
+                // Determine status
+                int totalMeetings = rs.getInt("total_meetings");
+                int pendingMeetings = rs.getInt("pending_meetings");
+                
+                String status;
+                if (totalMeetings == 0) {
+                    status = "NO_MEETING";
+                } else if (pendingMeetings > 0) {
+                    status = "PENDING_APPROVAL";
+                } else {
+                    status = "COMPLETED";
+                }
+                schoolStatus.put("status", status);
+                
+                statusList.add(schoolStatus);
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return statusList;
+    }
+    
+    /**
+     * Get all Palak Melava records by district
+     */
+    public List<PalakMelava> getByDistrict(String districtName) {
+        List<PalakMelava> list = new ArrayList<>();
+        String sql = "SELECT pm.* FROM palak_melava pm " +
+                     "INNER JOIN schools s ON pm.udise_no = s.udise_no " +
+                     "WHERE s.district_name = ? " +
+                     "ORDER BY pm.meeting_date DESC";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, districtName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                list.add(extractFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+    
+    /**
      * Extract PalakMelava from ResultSet
      */
     private PalakMelava extractFromResultSet(ResultSet rs) throws SQLException {
