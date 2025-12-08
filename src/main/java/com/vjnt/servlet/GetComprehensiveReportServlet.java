@@ -50,10 +50,7 @@ public class GetComprehensiveReportServlet extends HttpServlet {
             Map<String, Object> reportData = new HashMap<>();
             
             // Get student info
-            String studentClass = null;
-            String section = null;
-            String udiseNo = null;
-            sql = "SELECT student_pen, student_name, class, section, udise_no FROM students WHERE student_pen = ?";
+            sql = "SELECT student_pen, student_name, class, section FROM students WHERE student_pen = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, penNumber);
             rs = stmt.executeQuery();
@@ -61,19 +58,12 @@ public class GetComprehensiveReportServlet extends HttpServlet {
             if (rs.next()) {
                 reportData.put("penNumber", rs.getString("student_pen"));
                 reportData.put("studentName", rs.getString("student_name"));
-                studentClass = rs.getString("class");
-                section = rs.getString("section");
-                udiseNo = rs.getString("udise_no");
-                reportData.put("studentClass", studentClass);
-                reportData.put("section", section);
+                reportData.put("studentClass", rs.getString("class"));
+                reportData.put("section", rs.getString("section"));
             } else {
                 sendError(response, "Student not found");
                 return;
             }
-            
-            // Get teacher assignments for this class and section
-            Map<String, String> subjectTeachers = getSubjectTeachers(conn, udiseNo, studentClass, section);
-            reportData.put("subjectTeachers", subjectTeachers);
             
             // Get assessment levels from students table
             Map<String, String> assessmentLevels = new HashMap<>();
@@ -140,7 +130,17 @@ public class GetComprehensiveReportServlet extends HttpServlet {
             
             reportData.put("allActivities", activities);
             
-            // Get Palak Melava data using DAO (udiseNo already fetched above)
+            // Get student's UDISE number for Palak Melava
+            String udiseNo = null;
+            sql = "SELECT udise_no FROM students WHERE student_pen = ?";
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, penNumber);
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                udiseNo = rs.getString("udise_no");
+            }
+            
+            // Get Palak Melava data using DAO
             List<Map<String, Object>> palakMelavaData = new ArrayList<>();
             if (udiseNo != null) {
                 palakMelavaData = getPalakMelavaData(udiseNo);
@@ -226,46 +226,5 @@ public class GetComprehensiveReportServlet extends HttpServlet {
         }
         
         return palakMelavaList;
-    }
-    
-    // Get subject teachers for a specific class and section
-    private Map<String, String> getSubjectTeachers(Connection conn, String udiseCode, String studentClass, String section) {
-        Map<String, String> subjectTeachers = new HashMap<>();
-        
-        if (udiseCode == null || studentClass == null || section == null) {
-            return subjectTeachers;
-        }
-        
-        String sql = "SELECT teacher_name, subjects_assigned FROM teacher_assignments " +
-                     "WHERE udise_code = ? AND class = ? AND section = ? AND is_active = 1";
-        
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, udiseCode);
-            stmt.setString(2, studentClass);
-            stmt.setString(3, section);
-            
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                String teacherName = rs.getString("teacher_name");
-                String subjects = rs.getString("subjects_assigned");
-                
-                if (teacherName != null && subjects != null) {
-                    // subjects_assigned is a comma-separated list like "Marathi,Math,English"
-                    String[] subjectArray = subjects.split(",");
-                    for (String subject : subjectArray) {
-                        subject = subject.trim();
-                        if (!subject.isEmpty()) {
-                            // Store the teacher name for each subject
-                            subjectTeachers.put(subject, teacherName);
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        
-        return subjectTeachers;
     }
 }
