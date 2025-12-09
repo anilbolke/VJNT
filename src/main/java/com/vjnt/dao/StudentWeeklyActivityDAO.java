@@ -220,7 +220,7 @@ public class StudentWeeklyActivityDAO {
      */
     public List<Student> getStudentsByClassSection(String udiseNo, String studentClass, String section) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND class = ? AND section = ? ORDER BY student_name";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND class = ? AND section = ? AND is_active = 1 ORDER BY student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {

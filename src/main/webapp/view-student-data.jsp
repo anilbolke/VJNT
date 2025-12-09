@@ -1833,14 +1833,23 @@
                 },
                 body: 'studentId=' + studentId + '&subject=' + subject + '&week=' + week
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server returned ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     displayActivityCount(data.counts);
+                } else {
+                    console.warn('Activity count not available:', data ? data.message : 'No data');
+                    document.getElementById('activityCountSection').style.display = 'none';
                 }
             })
             .catch(error => {
                 console.error('Error loading activity count:', error);
+                document.getElementById('activityCountSection').style.display = 'none';
             });
         }
         
@@ -2108,7 +2117,7 @@
                         if (xhr.status === 200) {
                             try {
                                 const response = JSON.parse(xhr.responseText);
-                                if (response.success) {
+                                if (response && response.success) {
                                     progressBar.style.width = '100%';
                                     progressBar.textContent = '100%';
                                     statusText.textContent = 'Upload complete!';
@@ -2124,21 +2133,36 @@
                                     
                                     resolve(response.youtubeUrl);
                                 } else {
-                                    statusText.textContent = 'Upload failed: ' + response.message;
-                                    reject(new Error(response.message));
+                                    const errorMsg = response && response.message ? response.message : 'Unknown error';
+                                    statusText.textContent = 'Upload failed: ' + errorMsg;
+                                    progressBar.style.backgroundColor = '#dc3545';
+                                    reject(new Error(errorMsg));
                                 }
                             } catch (e) {
-                                statusText.textContent = 'Upload failed: Invalid response';
+                                console.error('JSON parse error:', e);
+                                statusText.textContent = 'Upload failed: Invalid response from server';
+                                progressBar.style.backgroundColor = '#dc3545';
                                 reject(e);
                             }
                         } else {
-                            statusText.textContent = 'Upload failed: Server error';
-                            reject(new Error('Server error: ' + xhr.status));
+                            // Try to parse error response
+                            try {
+                                const errorResponse = JSON.parse(xhr.responseText);
+                                const errorMsg = errorResponse.message || 'Server error: ' + xhr.status;
+                                statusText.textContent = 'Upload failed: ' + errorMsg;
+                                progressBar.style.backgroundColor = '#dc3545';
+                                reject(new Error(errorMsg));
+                            } catch (e) {
+                                statusText.textContent = 'Upload failed: Server error (' + xhr.status + ')';
+                                progressBar.style.backgroundColor = '#dc3545';
+                                reject(new Error('Server error: ' + xhr.status));
+                            }
                         }
                     };
                     
                     xhr.onerror = function() {
                         statusText.textContent = 'Upload failed: Network error';
+                        progressBar.style.backgroundColor = '#dc3545';
                         reject(new Error('Network error'));
                     };
                     

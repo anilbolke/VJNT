@@ -35,6 +35,10 @@
     
     // Get paginated students
     List<com.vjnt.model.Student> students = studentDAO.getStudentsByUdiseWithPagination(udiseNo, currentPage, pageSize);
+    
+    // Declare phase variables at top level so they're accessible throughout the JSP
+    int selectedPhase = 1;
+    boolean currentPhaseComplete = false;
 %>
 <!DOCTYPE html>
 <html>
@@ -349,6 +353,51 @@
             padding: 10px 0;
             margin-bottom: 10px;
         }
+        
+        /* Save Indicator Styles */
+        .save-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 4px;
+            animation: fadeIn 0.3s;
+        }
+        
+        .save-timestamp {
+            font-size: 9px;
+            color: #666;
+            margin-top: 2px;
+            font-style: italic;
+        }
+        
+        .row-saved {
+            background: #e8f5e9 !important;
+            border-left: 3px solid #28a745;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .save-checkmark {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: #28a745;
+            border-radius: 50%;
+            color: white;
+            text-align: center;
+            line-height: 16px;
+            font-size: 10px;
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
@@ -395,7 +444,6 @@
             
             // Get current selected phase from request parameter (default to Phase 1)
             String selectedPhaseStr = request.getParameter("phase");
-            int selectedPhase = 1;
             if (selectedPhaseStr != null) {
                 try {
                     selectedPhase = Integer.parseInt(selectedPhaseStr);
@@ -405,7 +453,6 @@
             }
             
             // Check if current selected phase is complete
-            boolean currentPhaseComplete = false;
             switch(selectedPhase) {
                 case 1: currentPhaseComplete = phase1Complete; break;
                 case 2: currentPhaseComplete = phase2Complete; break;
@@ -493,6 +540,9 @@
             
             <div class="filter-results">
                 <span id="filterResultCount">Showing all <%= totalStudents %> students</span>
+                <span id="savedCounter" style="margin-left: 20px; padding: 4px 10px; background: #28a745; color: white; border-radius: 12px; font-size: 11px; font-weight: 600; display: none;">
+                    <span id="savedCount">0</span> student(s) saved in this session
+                </span>
             </div>
             
             <p style="margin-bottom: 15px; color: #666; font-size: 14px;">
@@ -529,35 +579,39 @@
                             <!-- Marathi Levels -->
                             <td>
                                 <select name="marathi_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
-                                    <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
-                                    <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)</option>
-                                    <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>वाक्य स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="4" <%= s.getMarathiAksharaLevel() == 4 ? "selected" : "" %>>समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>स्थर निश्चित केला नाही</option>
+                                    <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
+                                    <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>अक्षर स्तर</option>
+                                    <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>शब्द स्तर</option>
+                                    <option value="4" <%= s.getMarathiAksharaLevel() == 4 ? "selected" : "" %>>वाक्य स्तर</option>
+                                    <option value="5" <%= s.getMarathiAksharaLevel() == 5 ? "selected" : "" %>>समजपूर्वक उतारा वाचन स्तर</option>
+                                    <option value="6" <%= s.getMarathiAksharaLevel() == 6 ? "selected" : "" %>>मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>
                                 </select>
                             </td>
                             <!-- Math Levels -->
                             <td>
                                 <select name="math_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
                                     <option value="0" <%= s.getMathAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
-                                    <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभीक स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="3" <%= s.getMathAksharaLevel() == 3 ? "selected" : "" %>>संख्या वाचन स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="4" <%= s.getMathAksharaLevel() == 4 ? "selected" : "" %>>बेरीज स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="5" <%= s.getMathAksharaLevel() == 5 ? "selected" : "" %>>वजाबाकी स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="6" <%= s.getMathAksharaLevel() == 6 ? "selected" : "" %>>गुणाकार स्तरावरील विद्यार्थी संख्या</option>
-                                    <option value="7" <%= s.getMathAksharaLevel() == 7 ? "selected" : "" %>>भागाकर स्तरावरील विद्यार्थी संख्या</option>
+                                    <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
+                                    <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक ज्ञान स्तर</option>
+                                    <option value="3" <%= s.getMathAksharaLevel() == 3 ? "selected" : "" %>>संख्याज्ञान स्तर</option>
+                                    <option value="4" <%= s.getMathAksharaLevel() == 4 ? "selected" : "" %>>बेरीज स्तर</option>
+                                    <option value="5" <%= s.getMathAksharaLevel() == 5 ? "selected" : "" %>>वजाबाकी स्तर</option>
+                                    <option value="6" <%= s.getMathAksharaLevel() == 6 ? "selected" : "" %>>गुणाकार स्तर</option>
+                                    <option value="7" <%= s.getMathAksharaLevel() == 7 ? "selected" : "" %>>भागाकार स्तर</option>
+                                    <option value="8" <%= s.getMathAksharaLevel() == 8 ? "selected" : "" %>>गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>
                                 </select>
                             </td>
                             <!-- English Levels -->
                             <td>
                                 <select name="english_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
                                     <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
-                                    <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>BEGINER LEVEL</option>
-                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>ALPHABET LEVEL Reading and Writing</option>
-                                    <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>WORD LEVEL Reading and Writing</option>
-                                    <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>SENTENCE LEVEL</option>
-                                    <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
+                                    <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>Beginner level</option>
+                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>Letter level</option>
+                                    <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>Word level</option>
+                                    <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>Sentence level</option>
+                                    <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Reading comprehension and dictation level</option>
+                                    <option value="6" <%= s.getEnglishAksharaLevel() == 6 ? "selected" : "" %>>English reading and writing FLN level 100% complete</option>
                                 </select>
                             </td>
                             <td style="text-align: center;">
@@ -614,6 +668,80 @@
     </div>
     
     <script>
+        // Restore save indicators on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            restoreSaveIndicators();
+            updateSavedCounter();
+        });
+        
+        function restoreSaveIndicators() {
+            // Check session storage for saved students
+            var rows = document.querySelectorAll('table tbody tr');
+            rows.forEach(function(row) {
+                var studentId = row.id.replace('row-', '');
+                var savedTime = sessionStorage.getItem('saved-' + studentId);
+                
+                if (savedTime) {
+                    // Restore the save indicator
+                    var msgDiv = document.getElementById('msg-' + studentId);
+                    if (msgDiv) {
+                        msgDiv.innerHTML = 
+                            '<div class="save-indicator">' +
+                                '<span>✓</span>' +
+                                '<span>Saved</span>' +
+                            '</div>' +
+                            '<div class="save-timestamp">Last saved: ' + savedTime + '</div>';
+                        
+                        // Add persistent row highlighting
+                        row.classList.add('row-saved');
+                    }
+                }
+            });
+        }
+        
+        function updateSavedCounter() {
+            // Count how many students have been saved in this session
+            var savedCount = 0;
+            for (var i = 0; i < sessionStorage.length; i++) {
+                var key = sessionStorage.key(i);
+                if (key && key.startsWith('saved-')) {
+                    savedCount++;
+                }
+            }
+            
+            // Update counter display
+            var counterElement = document.getElementById('savedCounter');
+            var countElement = document.getElementById('savedCount');
+            
+            if (savedCount > 0) {
+                countElement.textContent = savedCount;
+                counterElement.style.display = 'inline-block';
+            } else {
+                counterElement.style.display = 'none';
+            }
+        }
+        
+        // Load all students data into JavaScript for filtering
+        var allStudentsData = [
+            <% 
+            for (int i = 0; i < allStudents.size(); i++) {
+                com.vjnt.model.Student s = allStudents.get(i);
+            %>
+            {
+                id: <%= s.getStudentId() %>,
+                pen: '<%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %>',
+                name: '<%= s.getStudentName().replace("'", "\\'") %>',
+                studentClass: '<%= s.getStudentClass() %>',
+                section: '<%= s.getSection() != null ? s.getSection() : "" %>',
+                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
+                mathLevel: <%= s.getMathAksharaLevel() %>,
+                englishLevel: <%= s.getEnglishAksharaLevel() %>
+            }<%= i < allStudents.size() - 1 ? "," : "" %>
+            <% } %>
+        ];
+        
+        var isFiltering = false;
+        
         function changePhase() {
             var phase = document.getElementById('phaseSelector').value;
             window.location.href = '?phase=' + phase;
@@ -625,39 +753,116 @@
             var filterClass = document.getElementById('filterClass').value.toLowerCase();
             var filterSection = document.getElementById('filterSection').value.toLowerCase();
             
-            var table = document.querySelector('table tbody');
-            var rows = table.getElementsByTagName('tr');
-            var visibleCount = 0;
+            // Check if any filter is active
+            var hasFilter = filterPEN !== '' || filterName !== '' || filterClass !== '' || filterSection !== '';
             
-            for (var i = 0; i < rows.length; i++) {
-                var row = rows[i];
-                var pen = row.cells[0].textContent.toLowerCase();
-                var name = row.cells[1].textContent.toLowerCase();
-                var studentClass = row.cells[2].textContent.toLowerCase();
-                var section = row.cells[3].textContent.toLowerCase();
-                
-                // Check if row matches all filters
-                var penMatch = pen.includes(filterPEN) || filterPEN === '';
-                var nameMatch = name.includes(filterName) || filterName === '';
-                var classMatch = studentClass.includes(filterClass) || filterClass === '';
-                var sectionMatch = section.includes(filterSection) || filterSection === '';
-                
-                if (penMatch && nameMatch && classMatch && sectionMatch) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
+            if (!hasFilter) {
+                // No filters - reload page to show pagination
+                if (isFiltering) {
+                    window.location.href = '?phase=<%= selectedPhase %>';
                 }
+                return;
+            }
+            
+            isFiltering = true;
+            
+            // Filter all students data
+            var filteredStudents = allStudentsData.filter(function(student) {
+                var penMatch = student.pen.toLowerCase().includes(filterPEN) || filterPEN === '';
+                var nameMatch = student.name.toLowerCase().includes(filterName) || filterName === '';
+                var classMatch = student.studentClass.toLowerCase().includes(filterClass) || filterClass === '';
+                var sectionMatch = student.section.toLowerCase().includes(filterSection) || filterSection === '';
+                
+                return penMatch && nameMatch && classMatch && sectionMatch;
+            });
+            
+            // Rebuild table with filtered results
+            var tbody = document.querySelector('table tbody');
+            tbody.innerHTML = '';
+            
+            var currentPhaseComplete = <%= currentPhaseComplete %>;
+            
+            filteredStudents.forEach(function(student) {
+                var row = document.createElement('tr');
+                row.id = 'row-' + student.id;
+                
+                row.innerHTML = 
+                    '<td>' + student.pen + '</td>' +
+                    '<td><strong>' + student.name + '</strong></td>' +
+                    '<td>' + student.studentClass + '</td>' +
+                    '<td>' + student.section + '</td>' +
+                    '<td>' +
+                        '<select name="marathi_akshara" class="level-select" ' + (currentPhaseComplete ? 'disabled' : '') + '>' +
+                            '<option value="0" ' + (student.marathiLevel == 0 ? 'selected' : '') + '>स्थर निश्चित केला नाही</option>' +
+                            '<option value="1" ' + (student.marathiLevel == 1 ? 'selected' : '') + '>प्रारंभिक स्तर</option>' +
+                            '<option value="2" ' + (student.marathiLevel == 2 ? 'selected' : '') + '>अक्षर स्तर</option>' +
+                            '<option value="3" ' + (student.marathiLevel == 3 ? 'selected' : '') + '>शब्द स्तर</option>' +
+                            '<option value="4" ' + (student.marathiLevel == 4 ? 'selected' : '') + '>वाक्य स्तर</option>' +
+                            '<option value="5" ' + (student.marathiLevel == 5 ? 'selected' : '') + '>समजपूर्वक उतारा वाचन स्तर</option>' +
+                            '<option value="6" ' + (student.marathiLevel == 6 ? 'selected' : '') + '>मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>' +
+                        '</select>' +
+                    '</td>' +
+                    '<td>' +
+                        '<select name="math_akshara" class="level-select" ' + (currentPhaseComplete ? 'disabled' : '') + '>' +
+                            '<option value="0" ' + (student.mathLevel == 0 ? 'selected' : '') + '>स्तर निश्चित केला नाही</option>' +
+                            '<option value="1" ' + (student.mathLevel == 1 ? 'selected' : '') + '>प्रारंभिक स्तर</option>' +
+                            '<option value="2" ' + (student.mathLevel == 2 ? 'selected' : '') + '>अंक ज्ञान स्तर</option>' +
+                            '<option value="3" ' + (student.mathLevel == 3 ? 'selected' : '') + '>संख्याज्ञान स्तर</option>' +
+                            '<option value="4" ' + (student.mathLevel == 4 ? 'selected' : '') + '>बेरीज स्तर</option>' +
+                            '<option value="5" ' + (student.mathLevel == 5 ? 'selected' : '') + '>वजाबाकी स्तर</option>' +
+                            '<option value="6" ' + (student.mathLevel == 6 ? 'selected' : '') + '>गुणाकार स्तर</option>' +
+                            '<option value="7" ' + (student.mathLevel == 7 ? 'selected' : '') + '>भागाकार स्तर</option>' +
+                            '<option value="8" ' + (student.mathLevel == 8 ? 'selected' : '') + '>गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>' +
+                        '</select>' +
+                    '</td>' +
+                    '<td>' +
+                        '<select name="english_akshara" class="level-select" ' + (currentPhaseComplete ? 'disabled' : '') + '>' +
+                            '<option value="0" ' + (student.englishLevel == 0 ? 'selected' : '') + '>स्तर निश्चित केला नाही</option>' +
+                            '<option value="1" ' + (student.englishLevel == 1 ? 'selected' : '') + '>Beginner level</option>' +
+                            '<option value="2" ' + (student.englishLevel == 2 ? 'selected' : '') + '>Letter level</option>' +
+                            '<option value="3" ' + (student.englishLevel == 3 ? 'selected' : '') + '>Word level</option>' +
+                            '<option value="4" ' + (student.englishLevel == 4 ? 'selected' : '') + '>Sentence level</option>' +
+                            '<option value="5" ' + (student.englishLevel == 5 ? 'selected' : '') + '>Reading comprehension and dictation level</option>' +
+                        '</select>' +
+                    '</td>' +
+                    '<td style="text-align: center;">' +
+                        (!currentPhaseComplete ? 
+                            '<button class="btn btn-save" onclick="saveStudent(' + student.id + ')">💾 Save</button>' +
+                            '<div id="msg-' + student.id + '" style="font-size: 11px; margin-top: 4px; font-weight: 600;"></div>' :
+                            '<span style="color: #28a745;">✓ Complete</span>'
+                        ) +
+                    '</td>';
+                
+                tbody.appendChild(row);
+            });
+            
+            // Restore save indicators after filtering
+            restoreSaveIndicators();
+            
+            // Hide pagination when filtering
+            var pagination = document.querySelector('.pagination');
+            if (pagination) {
+                pagination.style.display = 'none';
             }
             
             // Update filter results count
-            var resultText = '';
-            if (filterPEN === '' && filterName === '' && filterClass === '' && filterSection === '') {
-                resultText = 'Showing all <%= totalStudents %> students';
-            } else {
-                resultText = 'Showing ' + visibleCount + ' student' + (visibleCount !== 1 ? 's' : '') + ' (filtered)';
-            }
-            document.getElementById('filterResultCount').textContent = resultText;
+            document.getElementById('filterResultCount').textContent = 
+                'Showing ' + filteredStudents.length + ' student' + (filteredStudents.length !== 1 ? 's' : '') + ' (filtered from <%= totalStudents %> total)';
+        }
+        
+        function getMarathiLevelText(level) {
+            var levels = ['स्थर निश्चित केला नाही', 'प्रारंभिक स्तर', 'अक्षर स्तर', 'शब्द स्तर', 'वाक्य स्तर', 'समजपूर्वक उतारा वाचन स्तर', 'मराठी वाचन व लेखन FLN स्तर 100% पूर्ण'];
+            return levels[level] || levels[0];
+        }
+        
+        function getMathLevelText(level) {
+            var levels = ['स्तर निश्चित केला नाही', 'प्रारंभिक स्तर', 'अंक ज्ञान स्तर', 'संख्याज्ञान स्तर', 'बेरीज स्तर', 'वजाबाकी स्तर', 'गुणाकार स्तर', 'भागाकार स्तर', 'गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण'];
+            return levels[level] || levels[0];
+        }
+        
+        function getEnglishLevelText(level) {
+            var levels = ['स्तर निश्चित केला नाही', 'Beginner level', 'Letter level', 'Word level', 'Sentence level', 'Reading comprehension and dictation level'];
+            return levels[level] || levels[0];
         }
         
         function clearFilters() {
@@ -666,15 +871,8 @@
             document.getElementById('filterClass').value = '';
             document.getElementById('filterSection').value = '';
             
-            // Show all rows
-            var table = document.querySelector('table tbody');
-            var rows = table.getElementsByTagName('tr');
-            for (var i = 0; i < rows.length; i++) {
-                rows[i].style.display = '';
-            }
-            
-            // Reset filter results count
-            document.getElementById('filterResultCount').textContent = 'Showing all <%= totalStudents %> students';
+            // Reload page to restore pagination
+            window.location.href = '?phase=<%= selectedPhase %>';
         }
         
         function saveStudent(studentId) {
@@ -706,29 +904,54 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Show success state
+                    // Get current timestamp
+                    var now = new Date();
+                    var timeString = now.toLocaleTimeString('en-IN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    
+                    // Show success state with flash animation
                     saveBtn.style.background = '#28a745';
-                    msgDiv.textContent = '✓ Saved Successfully';
-                    msgDiv.style.color = '#28a745';
                     row.style.background = '#d4edda';
                     row.style.transition = 'background 0.3s';
                     
+                    // Create persistent save indicator
+                    msgDiv.innerHTML = 
+                        '<div class="save-indicator">' +
+                            '<span>✓</span>' +
+                            '<span>Saved</span>' +
+                        '</div>' +
+                        '<div class="save-timestamp">Last saved: ' + timeString + '</div>';
+                    
+                    // Add persistent row highlighting
+                    setTimeout(() => {
+                        row.classList.add('row-saved');
+                        row.style.background = '';
+                    }, 500);
+                    
+                    // Re-enable button after brief delay
                     setTimeout(() => { 
-                        row.style.background = ''; 
-                        msgDiv.textContent = '';
-                        saveBtn.style.background = '#28a745';
                         saveBtn.disabled = false;
-                    }, 3000);
+                    }, 1000);
+                    
+                    // Store saved state in session storage
+                    sessionStorage.setItem('saved-' + studentId, timeString);
+                    
+                    // Update the saved counter
+                    updateSavedCounter();
+                    
                 } else {
                     // Show error state
                     saveBtn.style.background = '#dc3545';
-                    msgDiv.textContent = '✗ ' + (data.message || 'Error saving');
-                    msgDiv.style.color = '#dc3545';
+                    msgDiv.innerHTML = '<div style="color: #dc3545; font-size: 11px; font-weight: 600;">✗ ' + 
+                        (data.message || 'Error saving') + '</div>';
                     row.style.background = '#f8d7da';
                     
                     setTimeout(() => { 
                         row.style.background = ''; 
-                        msgDiv.textContent = '';
+                        msgDiv.innerHTML = '';
                         saveBtn.style.background = '#28a745';
                         saveBtn.disabled = false;
                     }, 3000);
@@ -737,13 +960,12 @@
             .catch(error => {
                 // Show error state
                 saveBtn.style.background = '#dc3545';
-                msgDiv.textContent = '✗ Failed to save';
-                msgDiv.style.color = '#dc3545';
+                msgDiv.innerHTML = '<div style="color: #dc3545; font-size: 11px; font-weight: 600;">✗ Failed to save</div>';
                 row.style.background = '#f8d7da';
                 
                 setTimeout(() => { 
                     row.style.background = ''; 
-                    msgDiv.textContent = '';
+                    msgDiv.innerHTML = '';
                     saveBtn.style.background = '#28a745';
                     saveBtn.disabled = false;
                 }, 3000);

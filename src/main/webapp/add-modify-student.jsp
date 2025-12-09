@@ -67,7 +67,7 @@
             // Active/Inactive status (default to active if not specified)
             String isActiveParam = request.getParameter("isActive");
             boolean isActive = isActiveParam == null || "true".equals(isActiveParam);
-            // Note: Add isActive field to Student model if not already present
+            student.setActive(isActive);
             
             if (isEdit && editStudent != null) {
                 student.setCreatedDate(editStudent.getCreatedDate());
@@ -437,18 +437,18 @@
                             <label>Class <span class="required">*</span></label>
                             <select name="studentClass" required>
                                 <option value="">-- Select Class --</option>
-	                              <option value="I">I</option>
-	                            <option value="II">II</option>
-	                            <option value="III">III</option>
-	                            <option value="IV">IV</option>
-	                            <option value="V">V</option>
-	                            <option value="VI">VI</option>
-	                            <option value="VII">VII</option>
-	                            <option value="VIII">VIII</option>
-	                            <option value="IX">IX</option>
-	                            <option value="X">X</option>
-	                            <option value="XI">XI</option>
-	                            <option value="XII">XII</option>
+	                              <option value="I" <%= editStudent != null && "I".equals(editStudent.getStudentClass()) ? "selected" : "" %>>I</option>
+	                            <option value="II" <%= editStudent != null && "II".equals(editStudent.getStudentClass()) ? "selected" : "" %>>II</option>
+	                            <option value="III" <%= editStudent != null && "III".equals(editStudent.getStudentClass()) ? "selected" : "" %>>III</option>
+	                            <option value="IV" <%= editStudent != null && "IV".equals(editStudent.getStudentClass()) ? "selected" : "" %>>IV</option>
+	                            <option value="V" <%= editStudent != null && "V".equals(editStudent.getStudentClass()) ? "selected" : "" %>>V</option>
+	                            <option value="VI" <%= editStudent != null && "VI".equals(editStudent.getStudentClass()) ? "selected" : "" %>>VI</option>
+	                            <option value="VII" <%= editStudent != null && "VII".equals(editStudent.getStudentClass()) ? "selected" : "" %>>VII</option>
+	                            <option value="VIII" <%= editStudent != null && "VIII".equals(editStudent.getStudentClass()) ? "selected" : "" %>>VIII</option>
+	                            <option value="IX" <%= editStudent != null && "IX".equals(editStudent.getStudentClass()) ? "selected" : "" %>>IX</option>
+	                            <option value="X" <%= editStudent != null && "X".equals(editStudent.getStudentClass()) ? "selected" : "" %>>X</option>
+	                            <option value="XI" <%= editStudent != null && "XI".equals(editStudent.getStudentClass()) ? "selected" : "" %>>XI</option>
+	                            <option value="XII" <%= editStudent != null && "XII".equals(editStudent.getStudentClass()) ? "selected" : "" %>>XII</option>
                             </select>
                         </div>
                         
@@ -470,14 +470,15 @@
                                 <option value="Primary" <%= editStudent != null && "Primary".equals(editStudent.getClassCategory()) ? "selected" : "" %>>Primary</option>
                                 <option value="Higher Primary" <%= editStudent != null && "Higher Primary".equals(editStudent.getClassCategory()) ? "selected" : "" %>>Higher Primary</option>
                                 <option value="Secondary" <%= editStudent != null && "Secondary".equals(editStudent.getClassCategory()) ? "selected" : "" %>>Secondary</option>
+                           		<option value="Higher Secondary" <%= editStudent != null && "Higher Secondary".equals(editStudent.getClassCategory()) ? "selected" : "" %>>Higher Secondary</option>
                             </select>
                         </div>
                         
                         <div class="form-group">
                             <label>Status <span class="required">*</span></label>
                             <select name="isActive" required>
-                                <option value="true">Active (सक्रिय)</option>
-                                <option value="false">Inactive (निष्क्रिय)</option>
+                                <option value="true" <%= editStudent == null || editStudent.isActive() ? "selected" : "" %>>Active (सक्रिय)</option>
+                                <option value="false" <%= editStudent != null && !editStudent.isActive() ? "selected" : "" %>>Inactive (निष्क्रिय)</option>
                             </select>
                         </div>
                     </div>

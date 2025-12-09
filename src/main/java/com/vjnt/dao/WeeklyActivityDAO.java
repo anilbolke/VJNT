@@ -113,7 +113,7 @@ public class WeeklyActivityDAO {
     
     public List<String> getAvailableClasses(String udiseNo) {
         List<String> classes = new ArrayList<>();
-        String sql = "SELECT DISTINCT class FROM students WHERE udise_no = ? ORDER BY CAST(class AS UNSIGNED)";
+        String sql = "SELECT DISTINCT class FROM students WHERE udise_no = ? AND is_active = 1 ORDER BY CAST(class AS UNSIGNED)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -133,7 +133,7 @@ public class WeeklyActivityDAO {
     
     public List<String> getAvailableSections(String udiseNo, String studentClass) {
         List<String> sections = new ArrayList<>();
-        String sql = "SELECT DISTINCT section FROM students WHERE udise_no = ? AND class = ? ORDER BY section";
+        String sql = "SELECT DISTINCT section FROM students WHERE udise_no = ? AND class = ? AND is_active = 1 ORDER BY section";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {

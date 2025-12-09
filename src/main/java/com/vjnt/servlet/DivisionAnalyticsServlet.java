@@ -118,7 +118,7 @@ public class DivisionAnalyticsServlet extends HttpServlet {
             sql.append("COUNT(DISTINCT pm.udise_no) as schools_with_meetings ");
             sql.append("FROM palak_melava pm ");
             sql.append("INNER JOIN schools sch ON pm.udise_no = sch.udise_no ");
-            sql.append("WHERE pm.udise_no IN (SELECT DISTINCT udise_no FROM students WHERE division = ?) ");
+            sql.append("WHERE pm.udise_no IN (SELECT DISTINCT udise_no FROM students WHERE division = ? AND is_active = 1) ");
             
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 sql.append("AND pm.meeting_date BETWEEN ? AND ? ");

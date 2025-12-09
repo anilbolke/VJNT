@@ -66,6 +66,9 @@ public class Student {
     private Date updatedDate;
     private String updatedBy;
     
+    // Student status (active/inactive)
+    private boolean isActive = true; // Default to active
+    
     // Constructors
     public Student() {
     }
@@ -442,6 +445,15 @@ public class Student {
     
     public void setPhase4Date(Date phase4Date) {
         this.phase4Date = phase4Date;
+    }
+    
+    // Active status getter and setter
+    public boolean isActive() {
+        return isActive;
+    }
+    
+    public void setActive(boolean active) {
+        isActive = active;
     }
     
     @Override

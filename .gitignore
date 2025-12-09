@@ -21,9 +21,11 @@
 *.tmp
 *.bak
 
-src/main/resources/client_secret.json
+# NOTE: client_secret.json is needed in production WAR
+# Commented out to allow packaging. Be careful not to push to public repos!
+# src/main/resources/client_secret.json
 
-# OAuth credentials - do not commit
-client_secret.json
-src/main/resources/client_secret.json
-**/client_secret*.json
+# OAuth credentials - COMMENTED to allow WAR packaging
+# client_secret.json
+# src/main/resources/client_secret.json
+# **/client_secret*.json

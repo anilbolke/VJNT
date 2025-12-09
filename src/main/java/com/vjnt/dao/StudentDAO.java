@@ -19,8 +19,8 @@ public class StudentDAO {
     public boolean createStudent(Student student) {
         String sql = "INSERT INTO students (division, district, udise_no, class, section, " +
                      "class_category, student_name, gender, student_pen, marathi_level, " +
-                     "math_level, english_level, created_by) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "math_level, english_level, is_active, created_by) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -37,7 +37,8 @@ public class StudentDAO {
             pstmt.setString(10, student.getMarathiLevel());
             pstmt.setString(11, student.getMathLevel());
             pstmt.setString(12, student.getEnglishLevel());
-            pstmt.setString(13, student.getCreatedBy());
+            pstmt.setBoolean(13, student.isActive());
+            pstmt.setString(14, student.getCreatedBy());
             
             int rowsAffected = pstmt.executeUpdate();
             
@@ -153,7 +154,7 @@ public class StudentDAO {
             placeholders.append("?");
         }
         
-        String sql = "SELECT student_pen FROM students WHERE student_pen IN (" + placeholders + ")";
+        String sql = "SELECT student_pen FROM students WHERE student_pen IN (" + placeholders + ") AND is_active = 1";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -182,7 +183,7 @@ public class StudentDAO {
             return false;
         }
         
-        String sql = "SELECT COUNT(*) FROM students WHERE student_pen = ?";
+        String sql = "SELECT COUNT(*) FROM students WHERE student_pen = ? AND is_active = 1";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -205,7 +206,7 @@ public class StudentDAO {
      */
     public List<Student> getAllStudents() {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students ORDER BY division, district, udise_no, class, section, student_name";
+        String sql = "SELECT * FROM students WHERE is_active = 1 ORDER BY division, district, udise_no, class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -277,7 +278,7 @@ public class StudentDAO {
      */
     public List<Student> getStudentsByDivision(String division) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE division = ? ORDER BY district, udise_no, class, section, student_name";
+        String sql = "SELECT * FROM students WHERE division = ? AND is_active = 1 ORDER BY district, udise_no, class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -300,7 +301,7 @@ public class StudentDAO {
      */
     public List<Student> getStudentsByDistrict(String district) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE district = ? ORDER BY udise_no, class, section, student_name";
+        String sql = "SELECT * FROM students WHERE district = ? AND is_active = 1 ORDER BY udise_no, class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -408,6 +409,14 @@ public class StudentDAO {
         student.setCreatedBy(rs.getString("created_by"));
         student.setUpdatedDate(rs.getTimestamp("updated_date"));
         student.setUpdatedBy(rs.getString("updated_by"));
+        
+        // Load active status (default to true if column doesn't exist for backward compatibility)
+        try {
+            student.setActive(rs.getBoolean("is_active"));
+        } catch (SQLException e) {
+            student.setActive(true); // Default to active if column not found
+        }
+        
         return student;
     }
     
@@ -417,7 +426,7 @@ public class StudentDAO {
     public List<Student> getStudentsByUdiseWithPagination(String udiseNo, int page, int pageSize) {
         List<Student> students = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM students WHERE udise_no = ? ORDER BY class, section, student_name LIMIT ? OFFSET ?";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 ORDER BY class, section, student_name LIMIT ? OFFSET ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -441,7 +450,7 @@ public class StudentDAO {
      * Get total count of students by UDISE
      */
     public int getStudentCountByUdise(String udiseNo) {
-        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ?";
+        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ? AND is_active = 1";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -628,7 +637,7 @@ public class StudentDAO {
         String sql = "UPDATE students SET " +
                      "division = ?, district = ?, udise_no = ?, class = ?, section = ?, " +
                      "class_category = ?, student_name = ?, gender = ?, student_pen = ?, " +
-                     "marathi_level = ?, math_level = ?, english_level = ?, " +
+                     "marathi_level = ?, math_level = ?, english_level = ?, is_active = ?, " +
                      "updated_date = NOW(), updated_by = ? " +
                      "WHERE student_id = ?";
         
@@ -647,8 +656,9 @@ public class StudentDAO {
             pstmt.setString(10, student.getMarathiLevel());
             pstmt.setString(11, student.getMathLevel());
             pstmt.setString(12, student.getEnglishLevel());
-            pstmt.setString(13, student.getUpdatedBy());
-            pstmt.setInt(14, student.getStudentId());
+            pstmt.setBoolean(13, student.isActive());
+            pstmt.setString(14, student.getUpdatedBy());
+            pstmt.setInt(15, student.getStudentId());
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;

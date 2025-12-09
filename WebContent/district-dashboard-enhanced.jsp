@@ -273,6 +273,7 @@
             </div>
             <div>
                 <a href="<%= request.getContextPath() %>/district-dashboard.jsp" class="btn btn-logout">Basic View</a>
+                <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">📈 Activity Analysis</a>
                 <a href="<%= request.getContextPath() %>/logout" class="btn btn-logout">Logout</a>
             </div>
         </div>

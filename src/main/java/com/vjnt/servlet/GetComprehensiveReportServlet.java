@@ -50,7 +50,7 @@ public class GetComprehensiveReportServlet extends HttpServlet {
             Map<String, Object> reportData = new HashMap<>();
             
             // Get student info
-            sql = "SELECT student_pen, student_name, class, section FROM students WHERE student_pen = ?";
+            sql = "SELECT student_pen, student_name, class, section FROM students WHERE student_pen = ? AND is_active = 1";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, penNumber);
             rs = stmt.executeQuery();
@@ -132,7 +132,7 @@ public class GetComprehensiveReportServlet extends HttpServlet {
             
             // Get student's UDISE number for Palak Melava
             String udiseNo = null;
-            sql = "SELECT udise_no FROM students WHERE student_pen = ?";
+            sql = "SELECT udise_no FROM students WHERE student_pen = ? AND is_active = 1";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, penNumber);
             rs = stmt.executeQuery();
@@ -170,10 +170,13 @@ public class GetComprehensiveReportServlet extends HttpServlet {
     // Get Marathi level text based on level number
     private String getMarathiLevelText(int level) {
         switch (level) {
-            case 1: return "अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)";
-            case 2: return "शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)";
-            case 3: return "वाक्य स्तरावरील विद्यार्थी संख्या";
-            case 4: return "समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या";
+        	case 0: return "स्थर निश्चित केला नाही";
+        	case 1: return "प्रारंभिक स्तर";
+            case 2: return "अक्षर स्तर";
+            case 3: return "शब्द स्तर";
+            case 4: return "वाक्य स्तर";
+            case 5: return "समजपूर्वक उतारा वाचन स्तर";
+            case 6: return "मराठी वाचन व लेखन FLN स्तर 100% पूर्ण";
             default: return "स्तर निश्चित केला नाही";
         }
     }
@@ -181,13 +184,15 @@ public class GetComprehensiveReportServlet extends HttpServlet {
     // Get Math level text based on level number
     private String getMathLevelText(int level) {
         switch (level) {
-            case 1: return "प्रारंभीक स्तरावरील विद्यार्थी संख्या";
-            case 2: return "अंक स्तरावरील विद्यार्थी संख्या";
-            case 3: return "संख्या वाचन स्तरावरील विद्यार्थी संख्या";
-            case 4: return "बेरीज स्तरावरील विद्यार्थी संख्या";
-            case 5: return "वजाबाकी स्तरावरील विद्यार्थी संख्या";
-            case 6: return "गुणाकार स्तरावरील विद्यार्थी संख्या";
-            case 7: return "भागाकर स्तरावरील विद्यार्थी संख्या";
+        	case 0: return "स्थर निश्चित केला नाही";
+            case 1: return "प्रारंभिक स्तर";
+            case 2: return "अंक ज्ञान स्तर";
+            case 3: return "संख्याज्ञान स्तर";
+            case 4: return "बेरीज स्तर";
+            case 5: return "वजाबाकी स्तर";
+            case 6: return "गुणाकार स्तर";
+            case 7: return "भागाकार स्तर";
+            case 8: return "गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण";
             default: return "स्तर निश्चित केला नाही";
         }
     }
@@ -195,11 +200,13 @@ public class GetComprehensiveReportServlet extends HttpServlet {
     // Get English level text based on level number
     private String getEnglishLevelText(int level) {
         switch (level) {
-            case 1: return "BEGINER LEVEL";
-            case 2: return "ALPHABET LEVEL Reading and Writing";
-            case 3: return "WORD LEVEL Reading and Writing";
-            case 4: return "SENTENCE LEVEL";
-            case 5: return "Paragraph Reading with Understanding";
+        	case 0: return "स्थर निश्चित केला नाही";
+            case 1: return "Beginner level";
+            case 2: return "Letter level";
+            case 3: return "Word level";
+            case 4: return "Sentence level";
+            case 5: return "Reading comprehension and dictation level";
+            case 6: return "English reading and writing FLN level 100% complete";
             default: return "स्तर निश्चित केला नाही";
         }
     }

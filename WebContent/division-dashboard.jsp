@@ -498,6 +498,10 @@
                         <span>📊</span>
                         <span>Analytics</span>
                     </a>
+                    <a href="<%= request.getContextPath() %>/division-activity-analysis.jsp" class="btn btn-analytics" style="background: #FF9800;" title="View activity level analysis">
+                        <span>📈</span>
+                        <span>Activity Analysis</span>
+                    </a>
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password" title="Change your password">
                         <span>🔐</span>
                         <span>Change Password</span>
@@ -631,7 +635,8 @@
                     <tr>
                         <td><strong style="color: #667eea;"><%= district %></strong></td>
                         <td>
-                            <span class="badge badge-primary">
+                            <span class="badge badge-primary" style="cursor: pointer;" 
+                                  onclick="showDistrictStudentDetails('<%= district %>')">
                                 <%= totalCount %> students
                             </span>
                         </td>
@@ -673,5 +678,323 @@
         </div>
         
     </div>
+    
+    <!-- Student Details Modal -->
+    <div id="studentDetailsModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);">
+        <div style="background-color: #fefefe; margin: 2% auto; padding: 0; border-radius: 10px; width: 90%; max-width: 1400px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <!-- Modal Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0; font-size: 24px;">📊 All Students in <%= divisionName %> Division</h2>
+                <span onclick="closeStudentModal()" style="cursor: pointer; font-size: 28px; font-weight: bold;">&times;</span>
+            </div>
+            
+            <!-- Modal Body -->
+            <div style="padding: 25px; max-height: 75vh; overflow-y: auto;">
+                <!-- Search and Filter Bar -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                        <input type="text" id="studentSearch" placeholder="🔍 Search by name, PEN, class..." 
+                               style="flex: 1; min-width: 250px; padding: 10px 15px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px;"
+                               onkeyup="filterStudents()">
+                        <select id="genderFilter" style="padding: 10px 15px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px;" onchange="filterStudents()">
+                            <option value="">All Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                        <select id="classFilter" style="padding: 10px 15px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px;" onchange="filterStudents()">
+                            <option value="">All Classes</option>
+                        </select>
+                        <button onclick="clearFilters()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">Clear</button>
+                    </div>
+                </div>
+                
+                <div id="studentDetailsContent" style="min-height: 200px;">
+                    <div style="text-align: center; padding: 50px;">
+                        <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        <p style="margin-top: 15px; color: #666;">Loading student details...</p>
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                <div id="paginationContainer" style="display: none; margin-top: 20px; text-align: center;">
+                    <div style="display: inline-flex; gap: 5px; align-items: center;">
+                        <button onclick="changePage('prev')" id="prevBtn" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">← Previous</button>
+                        <span id="pageInfo" style="margin: 0 15px; font-weight: bold;">Page 1 of 1</span>
+                        <button onclick="changePage('next')" id="nextBtn" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Table Styles */
+        #studentDetailsContent table {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        #studentDetailsContent tbody tr:hover {
+            background: #f0f4ff !important;
+            transition: background 0.2s ease;
+        }
+    </style>
+    
+    <script>
+        let allStudents = [];
+        let filteredStudents = [];
+        let currentPage = 1;
+        const studentsPerPage = 50;
+        
+        function showDistrictStudentDetails(districtName) {
+            const modal = document.getElementById('studentDetailsModal');
+            const modalTitle = modal.querySelector('h2');
+            const content = document.getElementById('studentDetailsContent');
+            
+            // Update modal title
+            modalTitle.innerHTML = '📊 All Students in ' + escapeHtml(districtName) + ' District';
+            
+            // Show modal
+            modal.style.display = 'block';
+            
+            // Reset filters
+            document.getElementById('studentSearch').value = '';
+            document.getElementById('genderFilter').value = '';
+            document.getElementById('classFilter').value = '';
+            
+            // Show loading
+            content.innerHTML = '<div style="text-align: center; padding: 50px;">' +
+                '<div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>' +
+                '<p style="margin-top: 15px; color: #666;">Loading students from ' + escapeHtml(districtName) + ' District...</p>' +
+                '</div>';
+            
+            // Fetch students by district
+            fetch('GetDistrictStudentsServlet?district=' + encodeURIComponent(districtName))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.students && data.students.length > 0) {
+                        allStudents = data.students;
+                        filteredStudents = allStudents;
+                        populateClassFilter();
+                        currentPage = 1;
+                        displayStudents();
+                    } else {
+                        content.innerHTML = '<div style="text-align: center; padding: 30px; color: #999;">No students found in this district.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    content.innerHTML = '<div style="text-align: center; padding: 30px; color: #dc3545;">Error loading student details. Please try again.</div>';
+                });
+        }
+        
+        function populateClassFilter() {
+            const classFilter = document.getElementById('classFilter');
+            const classes = [...new Set(allStudents.map(s => s.studentClass).filter(c => c))].sort();
+            classFilter.innerHTML = '<option value="">All Classes</option>';
+            classes.forEach(cls => {
+                classFilter.innerHTML += '<option value="' + cls + '">' + cls + '</option>';
+            });
+        }
+        
+        function filterStudents() {
+            const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+            const genderFilter = document.getElementById('genderFilter').value;
+            const classFilter = document.getElementById('classFilter').value;
+            
+            filteredStudents = allStudents.filter(student => {
+                const matchSearch = !searchTerm || 
+                    (student.name && student.name.toLowerCase().includes(searchTerm)) ||
+                    (student.penNumber && student.penNumber.toLowerCase().includes(searchTerm)) ||
+                    (student.studentClass && student.studentClass.toLowerCase().includes(searchTerm)) ||
+                    (student.schoolName && student.schoolName.toLowerCase().includes(searchTerm));
+                
+                const matchGender = !genderFilter || student.gender === genderFilter || 
+                    (genderFilter === 'Male' && student.gender === 'पुरुष') ||
+                    (genderFilter === 'Female' && student.gender === 'स्त्री');
+                
+                const matchClass = !classFilter || student.studentClass === classFilter;
+                
+                return matchSearch && matchGender && matchClass;
+            });
+            
+            currentPage = 1;
+            displayStudents();
+        }
+        
+        function clearFilters() {
+            document.getElementById('studentSearch').value = '';
+            document.getElementById('genderFilter').value = '';
+            document.getElementById('classFilter').value = '';
+            filterStudents();
+        }
+        
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+            
+            if (direction === 'prev' && currentPage > 1) {
+                currentPage--;
+            } else if (direction === 'next' && currentPage < totalPages) {
+                currentPage++;
+            }
+            
+            displayStudents();
+        }
+        
+        function displayStudents() {
+            const content = document.getElementById('studentDetailsContent');
+            const paginationContainer = document.getElementById('paginationContainer');
+            let html = '';
+            
+            const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+            const startIndex = (currentPage - 1) * studentsPerPage;
+            const endIndex = Math.min(startIndex + studentsPerPage, filteredStudents.length);
+            const studentsToShow = filteredStudents.slice(startIndex, endIndex);
+            
+            // Summary info
+            html += '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-around; flex-wrap: wrap;">';
+            html += '<div style="text-align: center; margin: 10px;"><strong style="font-size: 24px; color: #667eea;">' + filteredStudents.length + '</strong><br><span style="color: #666;">Total Students</span></div>';
+            
+            let maleCount = filteredStudents.filter(s => s.gender === 'Male' || s.gender === 'पुरुष').length;
+            let femaleCount = filteredStudents.filter(s => s.gender === 'Female' || s.gender === 'स्त्री').length;
+            html += '<div style="text-align: center; margin: 10px;"><strong style="font-size: 24px; color: #2196F3;">' + maleCount + '</strong><br><span style="color: #666;">Male</span></div>';
+            html += '<div style="text-align: center; margin: 10px;"><strong style="font-size: 24px; color: #E91E63;">' + femaleCount + '</strong><br><span style="color: #666;">Female</span></div>';
+            
+            let uniqueSchools = [...new Set(filteredStudents.map(s => s.udiseNo).filter(u => u))];
+            html += '<div style="text-align: center; margin: 10px;"><strong style="font-size: 24px; color: #4CAF50;">' + uniqueSchools.length + '</strong><br><span style="color: #666;">Schools</span></div>';
+            html += '<div style="text-align: center; margin: 10px;"><strong style="font-size: 18px; color: #FF9800;">Showing ' + (startIndex + 1) + '-' + endIndex + '</strong><br><span style="color: #666;">of ' + filteredStudents.length + '</span></div>';
+            html += '</div>';
+            
+            // Create table
+            html += '<div style="overflow-x: auto;">';
+            html += '<table style="width: 100%; border-collapse: collapse; font-size: 12px;">';
+            html += '<thead>';
+            html += '<tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; position: sticky; top: 0; z-index: 10;">';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Sr No</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Student Name</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">PEN Number</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">School Name</th>';
+            html += '<th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Class</th>';
+            html += '<th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Gender</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Marathi</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Math</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd;">English</th>';
+            html += '<th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Phases</th>';
+            html += '</tr>';
+            html += '</thead>';
+            html += '<tbody>';
+            
+            studentsToShow.forEach((student, index) => {
+                const globalIndex = startIndex + index;
+                html += '<tr style="background: ' + (index % 2 === 0 ? '#f8f9fa' : '#ffffff') + ';">';
+                
+                // Sr No
+                html += '<td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">' + (globalIndex + 1) + '</td>';
+                
+                // Student Name
+                html += '<td style="padding: 8px; border: 1px solid #ddd; font-weight: 600; color: #333;">' + escapeHtml(student.name) + '</td>';
+                
+                // PEN Number
+                html += '<td style="padding: 8px; border: 1px solid #ddd; color: #666; font-size: 11px;">' + escapeHtml(student.penNumber || 'N/A') + '</td>';
+                
+                // School Name
+                html += '<td style="padding: 8px; border: 1px solid #ddd; font-size: 11px;">' + escapeHtml(student.schoolName || student.udiseNo || 'N/A') + '</td>';
+                
+                // Class
+                html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + escapeHtml(student.studentClass || 'N/A') + '</td>';
+                
+                // Gender
+                html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">' + (student.gender === 'Male' || student.gender === 'पुरुष' ? '👦' : '👧') + '</td>';
+                
+                // Marathi Levels - FULL DETAILS
+                html += '<td style="padding: 8px; border: 1px solid #ddd; font-size: 10px;">';
+                let marathiLevels = [];
+                if (student.marathiAksharaLevel && student.marathiAksharaLevel !== 'स्तर निश्चित केला नाही') 
+                    marathiLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #e3f2fd; color: #1976d2; border-radius: 3px; font-size: 9px;"><strong>अक्षर:</strong> ' + escapeHtml(student.marathiAksharaLevel) + '</div>');
+                if (student.marathiShabdaLevel && student.marathiShabdaLevel !== 'स्तर निश्चित केला नाही') 
+                    marathiLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #e3f2fd; color: #1976d2; border-radius: 3px; font-size: 9px;"><strong>शब्द:</strong> ' + escapeHtml(student.marathiShabdaLevel) + '</div>');
+                if (student.marathiVakyaLevel && student.marathiVakyaLevel !== 'स्तर निश्चित केला नाही') 
+                    marathiLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #e3f2fd; color: #1976d2; border-radius: 3px; font-size: 9px;"><strong>वाक्य:</strong> ' + escapeHtml(student.marathiVakyaLevel) + '</div>');
+                if (student.marathiSamajpurvakLevel && student.marathiSamajpurvakLevel !== 'स्तर निश्चित केला नाही') 
+                    marathiLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #e3f2fd; color: #1976d2; border-radius: 3px; font-size: 9px;"><strong>समजपूर्वक:</strong> ' + escapeHtml(student.marathiSamajpurvakLevel) + '</div>');
+                html += marathiLevels.length > 0 ? marathiLevels.join('') : '<span style="color: #999;">-</span>';
+                html += '</td>';
+                
+                // Math Levels - FULL DETAILS
+                html += '<td style="padding: 8px; border: 1px solid #ddd; font-size: 10px;">';
+                let mathLevels = [];
+                if (student.mathAksharaLevel && student.mathAksharaLevel !== 'स्तर निश्चित केला नाही') 
+                    mathLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px; font-size: 9px;"><strong>अक्षर:</strong> ' + escapeHtml(student.mathAksharaLevel) + '</div>');
+                if (student.mathShabdaLevel && student.mathShabdaLevel !== 'स्तर निश्चित केला नाही') 
+                    mathLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px; font-size: 9px;"><strong>शब्द:</strong> ' + escapeHtml(student.mathShabdaLevel) + '</div>');
+                if (student.mathVakyaLevel && student.mathVakyaLevel !== 'स्तर निश्चित केला नाही') 
+                    mathLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px; font-size: 9px;"><strong>वाक्य:</strong> ' + escapeHtml(student.mathVakyaLevel) + '</div>');
+                if (student.mathSamajpurvakLevel && student.mathSamajpurvakLevel !== 'स्तर निश्चित केला नाही') 
+                    mathLevels.push('<div style="margin: 2px 0; padding: 3px 5px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px; font-size: 9px;"><strong>समजपूर्वक:</strong> ' + escapeHtml(student.mathSamajpurvakLevel) + '</div>');
+                html += mathLevels.length > 0 ? mathLevels.join('') : '<span style="color: #999;">-</span>';
+                html += '</td>';
+                
+                // English Level - FULL DETAILS
+                html += '<td style="padding: 8px; border: 1px solid #ddd; font-size: 10px;">';
+                if (student.englishAksharaLevel && student.englishAksharaLevel !== 'स्तर निश्चित केला नाही') {
+                    html += '<div style="padding: 3px 5px; background: #e8f5e9; color: #2e7d32; border-radius: 3px; font-size: 9px;">' + escapeHtml(student.englishAksharaLevel) + '</div>';
+                } else {
+                    html += '<span style="color: #999;">-</span>';
+                }
+                html += '</td>';
+                
+                // Phases
+                html += '<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">';
+                let completedPhases = 0;
+                if (student.phase1Date) completedPhases++;
+                if (student.phase2Date) completedPhases++;
+                if (student.phase3Date) completedPhases++;
+                if (student.phase4Date) completedPhases++;
+                html += '<span style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; ' + 
+                    (completedPhases === 4 ? 'background: #4caf50; color: white;' : 
+                     completedPhases >= 2 ? 'background: #ff9800; color: white;' : 
+                     'background: #f44336; color: white;') + '">' + 
+                    completedPhases + '/4</span>';
+                html += '</td>';
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody>';
+            html += '</table>';
+            html += '</div>';
+            
+            content.innerHTML = html;
+            
+            // Update pagination
+            document.getElementById('pageInfo').textContent = 'Page ' + currentPage + ' of ' + totalPages;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            paginationContainer.style.display = totalPages > 1 ? 'block' : 'none';
+        }
+        
+        function closeStudentModal() {
+            document.getElementById('studentDetailsModal').style.display = 'none';
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('studentDetailsModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

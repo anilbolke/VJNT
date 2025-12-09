@@ -28,7 +28,7 @@
     if (district.isEmpty() || division.isEmpty()) {
         try {
             conn = DatabaseConnection.getConnection();
-            String sql = "SELECT district, division FROM students WHERE udise_code = ? LIMIT 1";
+            String sql = "SELECT district, division FROM students WHERE udise_code = ? AND is_active = 1 LIMIT 1";
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, udiseCode);
             rs = pstmt.executeQuery();

@@ -36,6 +36,14 @@ public class LoginServlet extends HttpServlet {
         String username = request.getParameter("username");
         String password = request.getParameter("password");
         
+        System.out.println("============================================");
+        System.out.println("LOGIN ATTEMPT");
+        System.out.println("============================================");
+        System.out.println("Username: " + username);
+        System.out.println("Password length: " + (password != null ? password.length() : 0));
+        System.out.println("Password provided: [" + password + "]");
+        System.out.println("============================================");
+        
         // Validate input
         if (username == null || username.trim().isEmpty() ||
             password == null || password.trim().isEmpty()) {
@@ -46,6 +54,12 @@ public class LoginServlet extends HttpServlet {
         
         // Authenticate user
         User user = userDAO.authenticateUser(username.trim(), password);
+        
+        System.out.println("Authentication result: " + (user != null ? "SUCCESS" : "FAILED"));
+        if (user != null) {
+            System.out.println("User found - Type: " + user.getUserType() + ", Active: " + user.isActive());
+        }
+        System.out.println("============================================");
         
         if (user != null) {
             // Create session
@@ -69,9 +83,13 @@ public class LoginServlet extends HttpServlet {
         } else {
             // Authentication failed
             User checkUser = userDAO.findByUsername(username.trim());
+            System.out.println("Failed login attempt for user: " + username);
             String errorMessage = "Invalid username or password";
             
-            if (checkUser != null && checkUser.isAccountLocked()) {
+            // Provide helpful hints for common mistakes
+            if ("admin".equalsIgnoreCase(username.trim())) {
+                errorMessage = "Invalid username. Did you mean 'dataadmin'? Valid usernames: dataadmin, division_aurangabad";
+            } else if (checkUser != null && checkUser.isAccountLocked()) {
                 errorMessage = "Your account has been locked due to multiple failed login attempts. Please contact administrator.";
             } else if (checkUser != null && !checkUser.isActive()) {
                 errorMessage = "Your account is inactive. Please contact administrator.";

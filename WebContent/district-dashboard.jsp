@@ -99,53 +99,74 @@
             max-width: 1400px;
             margin: 0 auto;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 15px;
         }
         
         .header h1 {
             font-size: 24px;
             color: #000;
+            margin-bottom: 5px;
         }
         
         .header-info {
-            text-align: right;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
         }
         
         .user-info {
-            font-size: 14px;
-            margin-bottom: 5px;
-            color: #000;
+            font-size: 13px;
+            color: #333;
+            padding: 5px;
+        }
+        
+        .user-info strong {
+            color: #667eea;
+            font-weight: 600;
         }
         
         .btn {
-            padding: 8px 16px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             text-decoration: none;
-            font-size: 14px;
-            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
             transition: all 0.3s;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         
         .btn-logout {
-            background: rgba(255,255,255,0.2);
+            background: #f44336;
             color: white;
-            margin-left: 10px;
         }
         
         .btn-logout:hover {
-            background: rgba(255,255,255,0.3);
+            background: #d32f2f;
         }
         
         .btn-change-password {
-            background: rgba(255,255,255,0.2);
+            background: #667eea;
             color: white;
         }
         
         .btn-change-password:hover {
-            background: rgba(255,255,255,0.3);
+            background: #5568d3;
         }
         
         .container {
@@ -373,14 +394,38 @@
             </div>
             <div class="header-info">
                 <div class="user-info">
-                    Welcome, <strong><%= user.getFullName() %></strong>
+                    👤 Welcome, <strong><%= user.getFullName() %></strong>
                 </div>
                 <div class="user-info">
-                    Role: <strong><%= user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) ? "District Coordinator" : "District 2nd Coordinator" %></strong>
+                    🎭 Role: <strong><%= user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) ? "District Coordinator" : "District 2nd Coordinator" %></strong>
                 </div>
-                <a href="<%= request.getContextPath() %>/district-dashboard-enhanced.jsp" class="btn btn-change-password">📊 Analytics Dashboard</a>
-                <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password">Change Password</a>
-                <a href="<%= request.getContextPath() %>/logout" class="btn btn-logout">Logout</a>
+                <div class="user-info">
+                    📧 Email: <strong><%= user.getEmail() != null ? user.getEmail() : "Not provided" %></strong>
+                </div>
+                <div class="user-info">
+                    📱 Mobile: <strong><%= user.getMobile() != null ? user.getMobile() : "Not provided" %></strong>
+                </div>
+                <div class="user-info">
+                    🏛️ Division: <strong><%= user.getDivisionName() != null ? user.getDivisionName() : "N/A" %></strong>
+                </div>
+                <div class="user-info">
+                    🏫 District: <strong><%= districtName %></strong>
+                </div>
+                <div class="user-info">
+                    👥 Total Students: <strong><%= students.size() %></strong>
+                </div>
+                <div class="user-info">
+                    🏫 Total Schools: <strong><%= udiseCount.size() %></strong>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 15px; justify-content: center;">
+                <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="btn btn-change-password" style="background: #9C27B0;">👪 Palak Melava</a>
+                <a href="<%= request.getContextPath() %>/phase-status.jsp" class="btn btn-change-password" style="background: #4CAF50;">📋 Phase Status</a>
+                <a href="<%= request.getContextPath() %>/school-contacts.jsp" class="btn btn-change-password" style="background: #FF5722;">📞 School Contacts</a>
+                <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-change-password" style="background: #FF9800;">📈 Analytics</a>
+                <a href="<%= request.getContextPath() %>/district-dashboard-enhanced.jsp" class="btn btn-change-password" style="background: #2196F3;">📊 Analytics Dashboard</a>
+                <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password" style="background: #607D8B;">🔐 Change Password</a>
+                <a href="<%= request.getContextPath() %>/logout" class="btn btn-logout" style="background: #f44336;">🚪 Logout</a>
             </div>
         </div>
     </div>
@@ -645,6 +690,40 @@
     </style>
     
     <script>
+        function showDistrictStudents() {
+            const modal = document.getElementById('studentDetailsModal');
+            const modalSchoolInfo = document.getElementById('modalSchoolInfo');
+            const content = document.getElementById('studentDetailsContent');
+            
+            // Show modal
+            modal.style.display = 'block';
+            
+            // Update header
+            modalSchoolInfo.innerHTML = '<h3 style="margin: 0 0 5px 0; color: #333;">📊 All Students in <%= districtName %> District</h3>' +
+                '<p style="margin: 0; color: #666;">Complete student list</p>';
+            
+            // Show loading
+            content.innerHTML = '<div style="text-align: center; padding: 50px;">' +
+                '<div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>' +
+                '<p style="margin-top: 15px; color: #666;">Loading all students...</p>' +
+                '</div>';
+            
+            // Fetch all students from district
+            fetch('GetDistrictStudentsServlet?district=<%= java.net.URLEncoder.encode(districtName, "UTF-8") %>')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.students && data.students.length > 0) {
+                        displayStudents(data.students);
+                    } else {
+                        content.innerHTML = '<div class="no-data">No students found in this district.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    content.innerHTML = '<div class="no-data" style="color: #dc3545;">Error loading student details. Please try again.</div>';
+                });
+        }
+        
         function showStudentDetails(udise, schoolName) {
             const modal = document.getElementById('studentDetailsModal');
             const modalSchoolInfo = document.getElementById('modalSchoolInfo');

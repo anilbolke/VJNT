@@ -127,6 +127,7 @@ public class UserDAO {
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
             
+            System.out.println(rs);
             if (rs.next()) {
                 return extractUserFromResultSet(rs);
             }
@@ -142,9 +143,38 @@ public class UserDAO {
      * Authenticate user
      */
     public User authenticateUser(String username, String password) {
+        System.out.println("[UserDAO] Authenticating user: " + username);
+        
+        // List all users in database for debugging
+        listAllDatabaseUsers();
+        
         User user = findByUsername(username);
         
-        if (user != null && PasswordUtil.verifyPassword(password, user.getPassword())) {
+        if (user == null) {
+            System.out.println("[UserDAO] User NOT found in database: " + username);
+            
+            // Helpful hints for common mistakes
+            if ("admin".equalsIgnoreCase(username)) {
+                System.out.println("[UserDAO] HINT: Did you mean 'dataadmin'? Try username: dataadmin");
+            }
+            if (username != null && username.contains(" ")) {
+                System.out.println("[UserDAO] HINT: Username contains spaces. Remove spaces and try again.");
+            }
+            
+            return null;
+        }
+        
+        System.out.println("[UserDAO] User found: " + username);
+        System.out.println("[UserDAO] - User Type: " + user.getUserType());
+        System.out.println("[UserDAO] - Is Active: " + user.isActive());
+        System.out.println("[UserDAO] - Is Locked: " + user.isAccountLocked());
+        System.out.println("[UserDAO] - DB Password: [" + user.getPassword() + "]");
+        System.out.println("[UserDAO] - Input Password: [" + password + "]");
+        
+        boolean passwordMatch = PasswordUtil.verifyPassword(password, user.getPassword());
+        System.out.println("[UserDAO] - Password Match: " + passwordMatch);
+        
+        if (user != null && passwordMatch) {
             if (user.isAccountLocked()) {
                 return null;
             }
@@ -161,6 +191,50 @@ public class UserDAO {
             }
             return null;
         }
+    }
+    
+    /**
+     * List all database users for debugging
+     */
+    public void listAllDatabaseUsers() {
+        System.out.println("\n============================================");
+        System.out.println("ALL USERS IN DATABASE:");
+        System.out.println("============================================");
+        
+        String sql = "SELECT user_id, username, user_type, is_active, account_locked, division_name, district_name, udise_no FROM users ORDER BY user_id";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            int count = 0;
+            while (rs.next()) {
+                count++;
+                System.out.println(count + ". User ID: " + rs.getInt("user_id"));
+                System.out.println("   Username: " + rs.getString("username"));
+                System.out.println("   User Type: " + rs.getString("user_type"));
+                System.out.println("   Active: " + rs.getBoolean("is_active"));
+                System.out.println("   Locked: " + rs.getBoolean("account_locked"));
+                System.out.println("   Division: " + rs.getString("division_name"));
+                System.out.println("   District: " + rs.getString("district_name"));
+                System.out.println("   UDISE: " + rs.getString("udise_no"));
+                System.out.println("   ---");
+            }
+            
+            if (count == 0) {
+                System.out.println("⚠ WARNING: No users found in database!");
+                System.out.println("Please run the SQL script to create users:");
+                System.out.println("INSERT_ADMIN_USERS.sql or EMERGENCY_CREATE_USER.sql");
+            } else {
+                System.out.println("Total users: " + count);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error listing users: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("============================================\n");
     }
     
     /**

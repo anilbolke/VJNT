@@ -46,6 +46,10 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
         
         Map<String, Object> result = new HashMap<>();
         
+        // Wrap entire method in try-catch to prevent 502 errors
+        try {
+            System.out.println("=== YouTube Upload Request Started ===");
+            
         try {
             // Get form parameters
             String title = request.getParameter("title");
@@ -254,6 +258,47 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
         }
         
         response.getWriter().write(gson.toJson(result));
+        
+        } catch (Throwable t) {
+            // Catch ALL errors including OutOfMemoryError, etc. to prevent 502
+            System.err.println("!!! CRITICAL ERROR in YouTube Upload Servlet !!!");
+            t.printStackTrace();
+            
+            result.clear();
+            result.put("success", false);
+            
+            // Provide specific error messages based on error type
+            String errorMessage = t.getMessage();
+            if (errorMessage == null) {
+                errorMessage = "Unknown error: " + t.getClass().getSimpleName();
+            }
+            
+            // Check for common issues
+            if (errorMessage.contains("client_secret.json")) {
+                result.put("message", "YouTube API not configured. Missing client_secret.json file. Please contact administrator.");
+                result.put("errorType", "CONFIG_MISSING");
+            } else if (errorMessage.contains("Address already in use")) {
+                result.put("message", "YouTube authentication server is busy. Please try again in a few moments.");
+                result.put("errorType", "PORT_CONFLICT");
+            } else if (errorMessage.contains("OutOfMemory")) {
+                result.put("message", "Video file is too large. Maximum size is 500MB. Please reduce file size and try again.");
+                result.put("errorType", "FILE_TOO_LARGE");
+            } else if (errorMessage.contains("Connection")) {
+                result.put("message", "Network connection error. Please check your internet connection and try again.");
+                result.put("errorType", "NETWORK_ERROR");
+            } else {
+                result.put("message", "Upload failed: " + errorMessage);
+                result.put("errorType", "UNKNOWN");
+            }
+            
+            try {
+                response.setStatus(HttpServletResponse.SC_OK); // Send 200 with error details instead of 502
+                response.getWriter().write(gson.toJson(result));
+            } catch (IOException ioe) {
+                // Last resort - at least log it
+                System.err.println("Failed to send error response: " + ioe.getMessage());
+            }
+        }
     }
     
     /**
