@@ -483,6 +483,84 @@
         .btn-download-details:hover {
             background: #45a049;
         }
+        
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            #printArea, #printArea * {
+                visibility: visible;
+            }
+            
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+            }
+            
+            /* Print modal content */
+            .view-details-modal-content, .view-details-modal-content * {
+                visibility: visible !important;
+            }
+            
+            .view-details-modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .modal {
+                position: static !important;
+                background: white !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .print-header {
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 3px solid #000;
+                padding-bottom: 10px;
+            }
+            
+            .print-content {
+                padding: 20px;
+            }
+            
+            .print-photo {
+                max-width: 400px;
+                max-height: 300px;
+                page-break-inside: avoid;
+            }
+            
+            .view-details-header {
+                background: white !important;
+                color: #000 !important;
+                border-bottom: 3px solid #000;
+            }
+            
+            .details-section {
+                page-break-inside: avoid;
+            }
+            
+            .photo-image {
+                max-height: 350px !important;
+            }
+        }
+        
+        .print-container {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -499,6 +577,9 @@
                 <a href="school-dashboard-enhanced.jsp" class="btn btn-secondary">🏠 Dashboard</a>
             </div>
         </div>
+        
+    <!-- Hidden Print Container -->
+    <div id="printArea" class="print-container"></div>
         
         <!-- Records Section -->
         <div class="section">
@@ -586,7 +667,10 @@
                     <div class="form-group">
                         <label for="chiefAttendeeInfo">प्रमुख उपस्थिती कोणाची होती त्यांचे नाव व माहिती *</label>
                         <textarea id="chiefAttendeeInfo" name="chiefAttendeeInfo" required
-                                  placeholder="उदा. श्री. रमेश पाटील (अध्यक्ष, ग्रामपंचायत)..."></textarea>
+                                  placeholder="उदा. श्री. रमेश पाटील (अध्यक्ष, ग्रामपंचायत)..."
+                                  accept-charset="UTF-8"
+                                  lang="mr"
+                                  style="font-family: 'Segoe UI', Tahoma, 'Noto Sans Devanagari', 'Mangal', sans-serif;"></textarea>
                     </div>
                     
                     <div class="form-group">
@@ -687,7 +771,8 @@
                 
                 <!-- Action Buttons -->
                 <div class="details-actions">
-                    <button class="btn-close-details" onclick="closeViewDetailsModal()">बंद करा (Close)</button>
+                    <button class="btn-download-details no-print" onclick="printModalContent()" style="background: #2196f3;">🖨️ प्रिंट (Print)</button>
+                    <button class="btn-close-details no-print" onclick="closeViewDetailsModal()">बंद करा (Close)</button>
                 </div>
             </div>
         </div>
@@ -931,6 +1016,140 @@
             document.getElementById('viewDetailsModal').style.display = 'none';
         }
         
+        // Print Modal Content Function
+        function printModalContent() {
+            console.log('Printing modal content...');
+            
+            // Get the school name and UDISE from the page
+            const schoolName = '<%= schoolName %>';
+            const udiseNo = '<%= udiseNo %>';
+            
+            // Get current date and time for print footer
+            const currentDate = new Date();
+            const printDateTime = currentDate.toLocaleDateString('en-IN', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            }) + ' ' + currentDate.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Get data from the modal
+            const meetingDate = document.getElementById('detailMeetingDate').textContent;
+            const totalParents = document.getElementById('detailTotalParents').textContent;
+            const chiefAttendee = document.getElementById('detailChiefAttendee').textContent;
+            const approvalDate = document.getElementById('detailApprovalDate').textContent;
+            const approvedBy = document.getElementById('detailApprovedBy').textContent;
+            const approvalRemarks = document.getElementById('detailApprovalRemarks').textContent;
+            
+            // Get photo URLs
+            const photo1Src = document.getElementById('detailPhoto1').src;
+            const photo2Src = document.getElementById('detailPhoto2').src;
+            
+            // Create print content
+            const printContent = `
+                <div style="padding: 30px; font-family: 'Segoe UI', Arial, sans-serif; max-width: 1000px; margin: 0 auto;">
+                    <!-- Header Section -->
+                    <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #000; padding-bottom: 15px;">
+                        <h1 style="margin: 0; font-size: 32px; color: #000; font-weight: bold;">पालक मेळावा नोंद</h1>
+                        <h2 style="margin: 5px 0; font-size: 24px; color: #333;">Palak Melava Record</h2>
+                        <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                            <p style="margin: 5px 0; font-size: 18px; color: #000; font-weight: bold;">${schoolName}</p>
+                            <p style="margin: 5px 0; font-size: 16px; color: #666;">UDISE Number: ${udiseNo}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Meeting Details Section -->
+                    <div style="margin-bottom: 30px; page-break-inside: avoid;">
+                        <h3 style="background: #4caf50; color: white; padding: 10px; margin-bottom: 15px; border-radius: 5px;">📅 मेळाव्याचे तपशील (Meeting Details)</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #ddd;">
+                            <tr>
+                                <td style="padding: 12px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold; width: 45%;">पालक मेळावा दिनांक<br/><span style="font-weight: normal; font-size: 12px;">(Meeting Date)</span></td>
+                                <td style="padding: 12px; border: 1px solid #ddd; font-size: 16px; font-weight: bold; color: #000;">${meetingDate}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold;">एकूण उपस्थित पालक<br/><span style="font-weight: normal; font-size: 12px;">(Total Parents Attended)</span></td>
+                                <td style="padding: 12px; border: 1px solid #ddd; font-size: 16px; font-weight: bold; color: #000;">${totalParents}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold;">प्रमुख उपस्थिती कोणाची होती<br/><span style="font-weight: normal; font-size: 12px;">(Chief Attendee Information)</span></td>
+                                <td style="padding: 12px; border: 1px solid #ddd; font-size: 14px;">${chiefAttendee}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Photos Section -->
+                    <div style="margin-bottom: 30px; page-break-inside: avoid;">
+                        <h3 style="background: #4caf50; color: white; padding: 10px; margin-bottom: 15px; border-radius: 5px;">📸 पालक मेळाव्याचे फोटो (Photos)</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                            <div style="text-align: center; border: 2px solid #ddd; padding: 10px; border-radius: 8px;">
+                                <p style="font-weight: bold; margin-bottom: 10px; font-size: 16px; color: #4caf50;">फोटो १ (Photo 1)</p>
+                                <img src="${photo1Src}" 
+                                     style="max-width: 100%; max-height: 350px; border: 2px solid #ccc; border-radius: 8px; display: block; margin: 0 auto;"
+                                     onerror="this.parentElement.innerHTML='<p style=color:red;>Photo not available</p>'">
+                            </div>
+                            <div style="text-align: center; border: 2px solid #ddd; padding: 10px; border-radius: 8px;">
+                                <p style="font-weight: bold; margin-bottom: 10px; font-size: 16px; color: #4caf50;">फोटो २ (Photo 2)</p>
+                                <img src="${photo2Src}" 
+                                     style="max-width: 100%; max-height: 350px; border: 2px solid #ccc; border-radius: 8px; display: block; margin: 0 auto;"
+                                     onerror="this.parentElement.innerHTML='<p style=color:red;>Photo not available</p>'">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Approval Information Section -->
+                    <div style="margin-bottom: 30px; background: #e8f5e9; padding: 20px; border-radius: 8px; border-left: 6px solid #4caf50; page-break-inside: avoid;">
+                        <h3 style="color: #2e7d32; margin-bottom: 15px; font-size: 20px; border-bottom: 2px solid #4caf50; padding-bottom: 8px;">✓ मंजुरी माहिती (Approval Information)</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <td style="padding: 10px; font-weight: bold; width: 40%; color: #2e7d32;">स्थिती (Status):</td>
+                                <td style="padding: 10px; color: #2e7d32; font-weight: bold; font-size: 16px;">✓ मंजूर (Approved)</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.5);">
+                                <td style="padding: 10px; font-weight: bold; color: #2e7d32;">मंजुरी तारीख (Approval Date):</td>
+                                <td style="padding: 10px; font-size: 14px;">${approvalDate}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; font-weight: bold; color: #2e7d32;">मंजूर करणारा (Approved By):</td>
+                                <td style="padding: 10px; font-size: 14px; font-weight: bold;">${approvedBy}</td>
+                            </tr>
+                            <tr style="background: rgba(255,255,255,0.5);">
+                                <td style="padding: 10px; font-weight: bold; color: #2e7d32; vertical-align: top;">शेरा (Remarks):</td>
+                                <td style="padding: 10px; font-size: 14px;">${approvalRemarks}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Footer Section -->
+                    <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 2px solid #ddd; padding-top: 15px; page-break-inside: avoid;">
+                        <p style="margin: 5px 0; font-weight: bold;">प्रिंट दिनांक आणि वेळ (Print Date & Time)</p>
+                        <p style="margin: 5px 0; font-size: 14px; color: #000;">${printDateTime}</p>
+                        <p style="margin: 15px 0 5px 0; font-weight: bold;">GATEE PORTAL </p>
+                        <p style="margin: 5px 0;">विजेएनटी वर्ग व्यवस्थापन प्रणाली</p>
+                    </div>
+                </div>
+            `;
+            
+            // Set print area content
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = printContent;
+            printArea.style.display = 'block';
+            
+            console.log('Print content prepared, opening print dialog...');
+            
+            // Wait for images to load before printing
+            setTimeout(() => {
+                window.print();
+                
+                // Hide print area after printing
+                setTimeout(() => {
+                    printArea.style.display = 'none';
+                    console.log('Print process completed');
+                }, 100);
+            }, 1000);
+        }
+        
         function viewPhotoFullScreen(photoUrl) {
             console.log('Opening full screen photo viewer with URL:', photoUrl);
             const modal = document.getElementById('photoViewerModal');
@@ -956,6 +1175,147 @@
                 closePhotoViewer();
             }
         });
+        
+        // Print Palak Melava Record
+        function printMelava(id) {
+            console.log('Print function called for Melava ID:', id);
+            
+            // Load melava data and prepare print view
+            fetch('<%= request.getContextPath() %>/palak-melava-data?id=' + id)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Received data:', data);
+                
+                if (data.success) {
+                    const melava = data.melava;
+                    console.log('Melava details:', melava);
+                    
+                    // Format dates properly
+                    const meetingDate = melava.meetingDate || 'N/A';
+                    const approvalDate = melava.approvalDate || 'N/A';
+                    const currentDate = new Date();
+                    const printDateTime = currentDate.toLocaleDateString('en-IN', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    }) + ' ' + currentDate.toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    // Create print content with all details
+                    const printContent = `
+                        <div style="padding: 30px; font-family: 'Segoe UI', Arial, sans-serif; max-width: 1000px; margin: 0 auto;">
+                            <!-- Header Section -->
+                            <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #000; padding-bottom: 15px;">
+                                <h1 style="margin: 0; font-size: 32px; color: #000; font-weight: bold;">पालक मेळावा नोंद</h1>
+                                <h2 style="margin: 5px 0; font-size: 24px; color: #333;">Palak Melava Record</h2>
+                                <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                                    <p style="margin: 5px 0; font-size: 18px; color: #000; font-weight: bold;"><%= schoolName %></p>
+                                    <p style="margin: 5px 0; font-size: 16px; color: #666;">UDISE Number: <%= udiseNo %></p>
+                                </div>
+                            </div>
+                            
+                            <!-- Meeting Details Section -->
+                            <div style="margin-bottom: 30px; page-break-inside: avoid;">
+                                <h3 style="background: #4caf50; color: white; padding: 10px; margin-bottom: 15px; border-radius: 5px;">📅 मेळाव्याचे तपशील (Meeting Details)</h3>
+                                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #ddd;">
+                                    <tr>
+                                        <td style="padding: 12px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold; width: 45%;">पालक मेळावा दिनांक<br/><span style="font-weight: normal; font-size: 12px;">(Meeting Date)</span></td>
+                                        <td style="padding: 12px; border: 1px solid #ddd; font-size: 16px; font-weight: bold; color: #000;">${meetingDate}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold;">एकूण उपस्थित पालक<br/><span style="font-weight: normal; font-size: 12px;">(Total Parents Attended)</span></td>
+                                        <td style="padding: 12px; border: 1px solid #ddd; font-size: 16px; font-weight: bold; color: #000;">${melava.totalParentsAttended || 'N/A'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold;">प्रमुख उपस्थिती कोणाची होती<br/><span style="font-weight: normal; font-size: 12px;">(Chief Attendee Information)</span></td>
+                                        <td style="padding: 12px; border: 1px solid #ddd; font-size: 14px;">${melava.chiefAttendeeInfo || 'N/A'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <!-- Photos Section -->
+                            <div style="margin-bottom: 30px; page-break-inside: avoid;">
+                                <h3 style="background: #4caf50; color: white; padding: 10px; margin-bottom: 15px; border-radius: 5px;">📸 पालक मेळाव्याचे फोटो (Photos)</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                                    <div style="text-align: center; border: 2px solid #ddd; padding: 10px; border-radius: 8px;">
+                                        <p style="font-weight: bold; margin-bottom: 10px; font-size: 16px; color: #4caf50;">फोटो १ (Photo 1)</p>
+                                        <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=${melava.melavaId}&photo=1" 
+                                             style="max-width: 100%; max-height: 350px; border: 2px solid #ccc; border-radius: 8px; display: block; margin: 0 auto;"
+                                             onerror="this.parentElement.innerHTML='<p style=color:red;>Photo not available</p>'">
+                                    </div>
+                                    <div style="text-align: center; border: 2px solid #ddd; padding: 10px; border-radius: 8px;">
+                                        <p style="font-weight: bold; margin-bottom: 10px; font-size: 16px; color: #4caf50;">फोटो २ (Photo 2)</p>
+                                        <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=${melava.melavaId}&photo=2" 
+                                             style="max-width: 100%; max-height: 350px; border: 2px solid #ccc; border-radius: 8px; display: block; margin: 0 auto;"
+                                             onerror="this.parentElement.innerHTML='<p style=color:red;>Photo not available</p>'">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Approval Information Section -->
+                            <div style="margin-bottom: 30px; background: #e8f5e9; padding: 20px; border-radius: 8px; border-left: 6px solid #4caf50; page-break-inside: avoid;">
+                                <h3 style="color: #2e7d32; margin-bottom: 15px; font-size: 20px; border-bottom: 2px solid #4caf50; padding-bottom: 8px;">✓ मंजुरी माहिती (Approval Information)</h3>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding: 10px; font-weight: bold; width: 40%; color: #2e7d32;">स्थिती (Status):</td>
+                                        <td style="padding: 10px; color: #2e7d32; font-weight: bold; font-size: 16px;">✓ मंजूर (Approved)</td>
+                                    </tr>
+                                    <tr style="background: rgba(255,255,255,0.5);">
+                                        <td style="padding: 10px; font-weight: bold; color: #2e7d32;">मंजुरी तारीख (Approval Date):</td>
+                                        <td style="padding: 10px; font-size: 14px;">${approvalDate}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 10px; font-weight: bold; color: #2e7d32;">मंजूर करणारा (Approved By):</td>
+                                        <td style="padding: 10px; font-size: 14px; font-weight: bold;">${melava.approvedBy || 'N/A'}</td>
+                                    </tr>
+                                    <tr style="background: rgba(255,255,255,0.5);">
+                                        <td style="padding: 10px; font-weight: bold; color: #2e7d32; vertical-align: top;">शेरा (Remarks):</td>
+                                        <td style="padding: 10px; font-size: 14px;">${melava.approvalRemarks || 'कोणतीही शेरा नाही (No remarks)'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <!-- Footer Section -->
+                            <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #666; border-top: 2px solid #ddd; padding-top: 15px; page-break-inside: avoid;">
+                                <p style="margin: 5px 0; font-weight: bold;">प्रिंट दिनांक आणि वेळ (Print Date & Time)</p>
+                                <p style="margin: 5px 0; font-size: 14px; color: #000;">${printDateTime}</p>
+                                <p style="margin: 15px 0 5px 0; font-weight: bold;">GATEE PORTAL </p>
+                                <p style="margin: 5px 0;">विजेएनटी वर्ग व्यवस्थापन प्रणाली</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Set print area content
+                    const printArea = document.getElementById('printArea');
+                    printArea.innerHTML = printContent;
+                    printArea.style.display = 'block';
+                    
+                    console.log('Print content prepared, waiting for images to load...');
+                    
+                    // Wait for images to load before printing
+                    setTimeout(() => {
+                        console.log('Opening print dialog...');
+                        window.print();
+                        
+                        // Hide print area after printing
+                        setTimeout(() => {
+                            printArea.style.display = 'none';
+                            console.log('Print process completed');
+                        }, 100);
+                    }, 1000); // Increased timeout to ensure images load
+                    
+                } else {
+                    console.error('Failed to load data:', data.message);
+                    alert('✗ त्रुटी: डेटा लोड करता आला नाही\nError: ' + (data.message || 'Failed to load data'));
+                }
+            })
+            .catch(error => {
+                console.error('Error in print function:', error);
+                alert('✗ त्रुटी: ' + error.message);
+            });
+        }
         
         // Close modals on outside click
         window.onclick = function(event) {

@@ -7,7 +7,9 @@ import com.vjnt.util.PasswordUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * User Data Access Object
@@ -59,26 +61,46 @@ public class UserDAO {
     /**
      * FAST-TRACK: Batch create users (optimized for bulk imports)
      * Process multiple users in a single batch operation for better performance
+     * Skips duplicate usernames and continues with the rest
      */
     public int batchCreateUsers(List<User> users) {
         if (users == null || users.isEmpty()) {
+            System.out.println("⚠ batchCreateUsers called with empty user list");
             return 0;
         }
+        
+        System.out.println("📝 batchCreateUsers called with " + users.size() + " users to process");
         
         String sql = "INSERT INTO users (username, password, user_type, division_name, district_name, " +
                     "udise_no, is_first_login, must_change_password, is_active, created_by, full_name) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         int totalInserted = 0;
+        int skippedDuplicates = 0;
+        int addedToBatch = 0;
         long startTime = System.currentTimeMillis();
         
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             PreparedStatement checkStmt = conn.prepareStatement("SELECT COUNT(*) FROM users WHERE username = ?")) {
             
             // Disable autocommit for batch operation
             conn.setAutoCommit(false);
             
             for (User user : users) {
+                // Check if username already exists
+                checkStmt.setString(1, user.getUsername());
+                ResultSet rs = checkStmt.executeQuery();
+                
+                if (rs.next() && rs.getInt(1) > 0) {
+                    // Username already exists, skip this user
+                    skippedDuplicates++;
+                    System.out.println("⚠ Skipping duplicate user: " + user.getUsername() + " (UDISE: " + user.getUdiseNo() + ")");
+                    continue;
+                }
+                
+                // Username doesn't exist, add to batch
+                System.out.println("✓ Adding to batch: " + user.getUsername() + " (Type: " + user.getUserType() + ", UDISE: " + user.getUdiseNo() + ")");
                 pstmt.setString(1, user.getUsername());
                 pstmt.setString(2, user.getPassword());
                 pstmt.setString(3, user.getUserType().name());
@@ -92,20 +114,30 @@ public class UserDAO {
                 pstmt.setString(11, user.getFullName());
                 
                 pstmt.addBatch();
+                addedToBatch++;
             }
             
-            // Execute batch
-            int[] results = pstmt.executeBatch();
-            conn.commit();
+            System.out.println("📊 Batch summary: " + addedToBatch + " users to insert, " + skippedDuplicates + " duplicates skipped");
             
-            for (int result : results) {
-                if (result > 0) {
-                    totalInserted++;
+            // Execute batch only if there are items to insert
+            if (addedToBatch > 0) {
+                int[] results = pstmt.executeBatch();
+                conn.commit();
+                
+                for (int result : results) {
+                    if (result > 0) {
+                        totalInserted++;
+                    }
                 }
+                System.out.println("✓ Batch executed successfully: " + totalInserted + " users inserted");
+            } else {
+                System.out.println("⚠ No users to insert - all were duplicates");
+                conn.commit();
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Batch user insert completed: " + totalInserted + " users inserted in " + duration + "ms");
+            System.out.println("✓ Batch user insert completed: " + totalInserted + " users inserted, " + 
+                             skippedDuplicates + " duplicates skipped in " + duration + "ms");
             return totalInserted;
             
         } catch (SQLException e) {
@@ -206,29 +238,6 @@ public class UserDAO {
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-            
-            int count = 0;
-            while (rs.next()) {
-                count++;
-                System.out.println(count + ". User ID: " + rs.getInt("user_id"));
-                System.out.println("   Username: " + rs.getString("username"));
-                System.out.println("   User Type: " + rs.getString("user_type"));
-                System.out.println("   Active: " + rs.getBoolean("is_active"));
-                System.out.println("   Locked: " + rs.getBoolean("account_locked"));
-                System.out.println("   Division: " + rs.getString("division_name"));
-                System.out.println("   District: " + rs.getString("district_name"));
-                System.out.println("   UDISE: " + rs.getString("udise_no"));
-                System.out.println("   ---");
-            }
-            
-            if (count == 0) {
-                System.out.println("⚠ WARNING: No users found in database!");
-                System.out.println("Please run the SQL script to create users:");
-                System.out.println("INSERT_ADMIN_USERS.sql or EMERGENCY_CREATE_USER.sql");
-            } else {
-                System.out.println("Total users: " + count);
-            }
-            
         } catch (SQLException e) {
             System.err.println("Error listing users: " + e.getMessage());
             e.printStackTrace();
@@ -325,6 +334,93 @@ public class UserDAO {
     }
     
     /**
+     * Check if users exist for a given UDISE number
+     * Returns true if any user (HM or SR) exists for this UDISE
+     */
+    public boolean udiseUsersExist(String udiseNo) {
+        if (udiseNo == null || udiseNo.trim().isEmpty()) {
+            return false;
+        }
+        
+        String sql = "SELECT COUNT(*) FROM users WHERE udise_no = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo.trim());
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking UDISE users existence: " + e.getMessage());
+        }
+        
+        return false;
+    }
+    
+    /**
+     * FAST-TRACK: Check multiple UDISE numbers at once for existing users
+     * Returns set of UDISE numbers that already have users in the database
+     */
+    public Set<String> getExistingUdiseNumbers(Set<String> udiseNumbers) {
+        Set<String> existingUdises = new HashSet<>();
+        
+        if (udiseNumbers == null || udiseNumbers.isEmpty()) {
+            System.out.println("⚠ No UDISE numbers to check");
+            return existingUdises;
+        }
+        
+        System.out.println("🔍 Checking " + udiseNumbers.size() + " UDISE numbers against database...");
+        
+        // Process in chunks of 1000 to avoid SQL query size limits
+        List<String> udiseList = new ArrayList<>(udiseNumbers);
+        int chunkSize = 1000;
+        
+        for (int i = 0; i < udiseList.size(); i += chunkSize) {
+            int end = Math.min(i + chunkSize, udiseList.size());
+            List<String> chunk = udiseList.subList(i, end);
+            
+            StringBuilder placeholders = new StringBuilder();
+            for (int j = 0; j < chunk.size(); j++) {
+                if (j > 0) placeholders.append(",");
+                placeholders.append("?");
+            }
+            
+            String sql = "SELECT DISTINCT udise_no FROM users WHERE udise_no IN (" + placeholders + ") AND udise_no IS NOT NULL";
+            
+            try (Connection conn = DatabaseConnection.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                
+                for (int j = 0; j < chunk.size(); j++) {
+                    pstmt.setString(j + 1, chunk.get(j).trim());
+                }
+                
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    String udiseNo = rs.getString("udise_no");
+                    if (udiseNo != null) {
+                        existingUdises.add(udiseNo.trim());
+                    }
+                }
+                
+            } catch (SQLException e) {
+                System.err.println("Error checking existing UDISE numbers: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        System.out.println("✓ Found " + existingUdises.size() + " UDISE numbers with existing users in database");
+        if (existingUdises.size() > 0 && existingUdises.size() <= 10) {
+            System.out.println("  Existing UDISE numbers: " + existingUdises);
+        }
+        
+        return existingUdises;
+    }
+    
+    /**
      * FAST-TRACK: Check multiple usernames at once
      * More efficient than checking individually
      */
@@ -403,6 +499,84 @@ public class UserDAO {
     }
     
     /**
+     * OPTIMIZED: Get paginated users by type
+     */
+    public List<User> getUsersByTypePaginated(UserType userType, int offset, int limit, String searchTerm) {
+        List<User> users = new ArrayList<>();
+        long startTime = System.currentTimeMillis();
+        
+        StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE user_type = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(userType.name());
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        sql.append(" ORDER BY username LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(offset);
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("✓ Fetched " + users.size() + " users by type (paginated) in " + duration + "ms");
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by type paginated: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get count of users by type
+     */
+    public int getUsersByTypeCount(UserType userType, String searchTerm) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) as total FROM users WHERE user_type = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(userType.name());
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by type count: " + e.getMessage());
+        }
+        return 0;
+    }
+    
+    /**
      * Get all users
      */
     public List<User> getAllUsers() {
@@ -421,6 +595,136 @@ public class UserDAO {
             System.err.println("Error getting all users: " + e.getMessage());
         }
         return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get paginated users with filters
+     * @param offset Starting position (0-based)
+     * @param limit Number of records to fetch
+     * @param userType Filter by user type (null for all)
+     * @param searchTerm Search in username, full_name, email (null for no search)
+     * @param divisionName Filter by division (null for all)
+     * @param districtName Filter by district (null for all)
+     * @return List of users for the requested page
+     */
+    public List<User> getUsersPaginated(int offset, int limit, UserType userType, 
+                                        String searchTerm, String divisionName, String districtName) {
+        List<User> users = new ArrayList<>();
+        long startTime = System.currentTimeMillis();
+        
+        StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        
+        // Apply filters
+        if (userType != null) {
+            sql.append(" AND user_type = ?");
+            params.add(userType.name());
+        }
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR mobile LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        if (divisionName != null && !divisionName.trim().isEmpty()) {
+            sql.append(" AND division_name = ?");
+            params.add(divisionName);
+        }
+        
+        if (districtName != null && !districtName.trim().isEmpty()) {
+            sql.append(" AND district_name = ?");
+            params.add(districtName);
+        }
+        
+        sql.append(" ORDER BY created_date DESC, user_type, username");
+        sql.append(" LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(offset);
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            // Set parameters
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("✓ Fetched " + users.size() + " users (paginated) in " + duration + "ms");
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting paginated users: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get total count of users with filters
+     * @param userType Filter by user type (null for all)
+     * @param searchTerm Search in username, full_name, email (null for no search)
+     * @param divisionName Filter by division (null for all)
+     * @param districtName Filter by district (null for all)
+     * @return Total count of users matching the filters
+     */
+    public int getUsersCount(UserType userType, String searchTerm, String divisionName, String districtName) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) as total FROM users WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        
+        // Apply filters (same as paginated query)
+        if (userType != null) {
+            sql.append(" AND user_type = ?");
+            params.add(userType.name());
+        }
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ? OR mobile LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        if (divisionName != null && !divisionName.trim().isEmpty()) {
+            sql.append(" AND division_name = ?");
+            params.add(divisionName);
+        }
+        
+        if (districtName != null && !districtName.trim().isEmpty()) {
+            sql.append(" AND district_name = ?");
+            params.add(districtName);
+        }
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            // Set parameters
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users count: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
     }
     
     /**
@@ -447,6 +751,84 @@ public class UserDAO {
     }
     
     /**
+     * OPTIMIZED: Get paginated users by division
+     */
+    public List<User> getUsersByDivisionPaginated(String divisionName, int offset, int limit, String searchTerm) {
+        List<User> users = new ArrayList<>();
+        long startTime = System.currentTimeMillis();
+        
+        StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE division_name = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(divisionName);
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        sql.append(" ORDER BY user_type, username LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(offset);
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("✓ Fetched " + users.size() + " users by division (paginated) in " + duration + "ms");
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by division paginated: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get count of users by division
+     */
+    public int getUsersByDivisionCount(String divisionName, String searchTerm) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) as total FROM users WHERE division_name = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(divisionName);
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by division count: " + e.getMessage());
+        }
+        return 0;
+    }
+    
+    /**
      * Get users by district
      */
     public List<User> getUsersByDistrict(String districtName) {
@@ -467,6 +849,84 @@ public class UserDAO {
             System.err.println("Error getting users by district: " + e.getMessage());
         }
         return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get paginated users by district
+     */
+    public List<User> getUsersByDistrictPaginated(String districtName, int offset, int limit, String searchTerm) {
+        List<User> users = new ArrayList<>();
+        long startTime = System.currentTimeMillis();
+        
+        StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE district_name = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(districtName);
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        sql.append(" ORDER BY user_type, username LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(offset);
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("✓ Fetched " + users.size() + " users by district (paginated) in " + duration + "ms");
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by district paginated: " + e.getMessage());
+        }
+        return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get count of users by district
+     */
+    public int getUsersByDistrictCount(String districtName, String searchTerm) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) as total FROM users WHERE district_name = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(districtName);
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR email LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting users by district count: " + e.getMessage());
+        }
+        return 0;
     }
     
     /**
@@ -563,6 +1023,90 @@ public class UserDAO {
             e.printStackTrace();
         }
         return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get paginated school users by district
+     */
+    public List<User> getSchoolUsersByDistrictPaginated(String districtName, int offset, int limit, String searchTerm) {
+        List<User> users = new ArrayList<>();
+        long startTime = System.currentTimeMillis();
+        
+        StringBuilder sql = new StringBuilder(
+            "SELECT * FROM users WHERE district_name = ? " +
+            "AND user_type IN ('SCHOOL_COORDINATOR', 'HEAD_MASTER')");
+        List<Object> params = new ArrayList<>();
+        params.add(districtName);
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR udise_no LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        sql.append(" ORDER BY udise_no, user_type LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(offset);
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("✓ Fetched " + users.size() + " school users by district (paginated) in " + duration + "ms");
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting school users by district paginated: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return users;
+    }
+    
+    /**
+     * OPTIMIZED: Get count of school users by district
+     */
+    public int getSchoolUsersByDistrictCount(String districtName, String searchTerm) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT COUNT(*) as total FROM users WHERE district_name = ? " +
+            "AND user_type IN ('SCHOOL_COORDINATOR', 'HEAD_MASTER')");
+        List<Object> params = new ArrayList<>();
+        params.add(districtName);
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            sql.append(" AND (username LIKE ? OR full_name LIKE ? OR udise_no LIKE ?)");
+            String searchPattern = "%" + searchTerm.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting school users by district count: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
     }
     
     /**

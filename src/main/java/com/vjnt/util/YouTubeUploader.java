@@ -302,6 +302,41 @@ public class YouTubeUploader {
         File credentialsFolder = findCredentialsFolder();
         System.out.println("Using credentials folder: " + credentialsFolder.getAbsolutePath());
         
+        // CRITICAL FIX: Extract packaged credentials from WAR BEFORE building flow
+        // This must happen FIRST on production servers before any credential checks
+        System.out.println("=== PRODUCTION FIX: Extracting packaged credentials from WAR ===");
+        boolean extractedFromWAR = false;
+        try {
+            InputStream credStream = YouTubeUploader.class.getClassLoader()
+                .getResourceAsStream("credentials/StoredCredential");
+            
+            if (credStream != null) {
+                System.out.println("✓ Found credentials/StoredCredential in WAR classpath!");
+                
+                // Ensure credentials folder exists
+                if (!credentialsFolder.exists()) {
+                    credentialsFolder.mkdirs();
+                    System.out.println("✓ Created credentials folder: " + credentialsFolder.getAbsolutePath());
+                }
+                
+                // Extract to credentials folder
+                File targetFile = new File(credentialsFolder, "StoredCredential");
+                java.nio.file.Files.copy(credStream, targetFile.toPath(), 
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                credStream.close();
+                
+                extractedFromWAR = true;
+                System.out.println("✓ EXTRACTED packaged credentials to: " + targetFile.getAbsolutePath());
+                System.out.println("✓ File size: " + targetFile.length() + " bytes");
+                System.out.println("✓ PRODUCTION SERVER: Credentials ready for use!");
+            } else {
+                System.out.println("✗ credentials/StoredCredential not found in WAR classpath");
+            }
+        } catch (Exception e) {
+            System.err.println("✗ Error extracting packaged credentials: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
         // Build flow and trigger user authorization request
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 httpTransport, JSON_FACTORY, clientSecrets, SCOPES)
@@ -314,22 +349,82 @@ public class YouTubeUploader {
         Credential credential = flow.loadCredential("user");
         
         if (credential != null && credential.getRefreshToken() != null) {
-            System.out.println("✓ SUCCESS: Using existing stored credentials");
+            System.out.println("✓ SUCCESS: Using stored credentials");
             System.out.println("  Refresh token found - will auto-refresh without browser");
             System.out.println("  Credentials location: " + credentialsFolder.getAbsolutePath());
+            if (extractedFromWAR) {
+                System.out.println("  Source: Extracted from packaged WAR file");
+            }
             return credential;
         }
         
-        // Try to load from packaged credentials (if exists in WAR)
+        // CRITICAL: Try loading from classpath BEFORE checking if headless
+        // This allows packaged credentials in WAR to work on production servers
+        System.out.println("=== ATTEMPTING TO LOAD PACKAGED CREDENTIALS ===");
+        System.out.println("Credentials folder: " + credentialsFolder.getAbsolutePath());
+        
+        // Method 1: Try loading from classpath resources (packaged in WAR)
+        System.out.println("Method 1: Checking classpath for credentials/StoredCredential...");
+        try {
+            InputStream credStream = YouTubeUploader.class.getClassLoader()
+                .getResourceAsStream("credentials/StoredCredential");
+            
+            if (credStream != null) {
+                System.out.println("✓ SUCCESS: Found credentials/StoredCredential in classpath!");
+                
+                // Ensure credentials folder exists
+                if (!credentialsFolder.exists()) {
+                    credentialsFolder.mkdirs();
+                    System.out.println("✓ Created credentials folder: " + credentialsFolder.getAbsolutePath());
+                }
+                
+                // Copy to credentials folder
+                File targetFile = new File(credentialsFolder, "StoredCredential");
+                java.nio.file.Files.copy(credStream, targetFile.toPath(), 
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                credStream.close();
+                
+                System.out.println("✓ Extracted packaged credentials to: " + targetFile.getAbsolutePath());
+                System.out.println("✓ File size: " + targetFile.length() + " bytes");
+                
+                // Reload credentials from extracted file
+                credential = flow.loadCredential("user");
+                if (credential != null) {
+                    System.out.println("✓ Loaded credential object");
+                    if (credential.getRefreshToken() != null) {
+                        System.out.println("✓ SUCCESS: Refresh token found - credentials are valid!");
+                        System.out.println("✓ Production server can now upload to YouTube!");
+                        return credential;
+                    } else {
+                        System.out.println("✗ Warning: Credential loaded but no refresh token");
+                    }
+                } else {
+                    System.out.println("✗ Failed to load credential from extracted file");
+                }
+            } else {
+                System.out.println("✗ credentials/StoredCredential not found in classpath");
+                System.out.println("   This means WAR file doesn't contain packaged credentials");
+            }
+        } catch (Exception e) {
+            System.err.println("✗ Error loading packaged credentials: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Method 2: Try loading from packaged credentials helper method
+        System.out.println("Method 2: Trying tryLoadPackagedCredentials()...");
         File packagedCredentials = tryLoadPackagedCredentials(credentialsFolder);
         if (packagedCredentials != null) {
-            System.out.println("✓ Loaded credentials from packaged WAR file");
+            System.out.println("✓ tryLoadPackagedCredentials() succeeded");
             credential = flow.loadCredential("user");
             if (credential != null && credential.getRefreshToken() != null) {
                 System.out.println("✓ SUCCESS: Using packaged credentials with refresh token");
                 return credential;
             }
+        } else {
+            System.out.println("✗ tryLoadPackagedCredentials() returned null");
         }
+        
+        System.out.println("=== ALL PACKAGED CREDENTIAL METHODS FAILED ===");
         
         // Check if we're on a headless server (no display)
         String displayEnv = System.getenv("DISPLAY");
@@ -345,16 +440,16 @@ public class YouTubeUploader {
             System.err.println("This is a PRODUCTION SERVER (headless environment).");
             System.err.println("YouTube OAuth requires browser-based authorization on first use.");
             System.err.println("");
-            System.err.println("SOLUTION:");
-            System.err.println("  1. Run the application once on your LOCAL development machine");
-            System.err.println("  2. Upload a test video to complete OAuth authorization");
-            System.err.println("  3. Copy the 'credentials' folder to production server");
-            System.err.println("  4. Place it in: " + credentialsFolder.getAbsolutePath());
+            System.err.println("Credentials searched in:");
+            System.err.println("  - " + credentialsFolder.getAbsolutePath());
+            System.err.println("  - Classpath: credentials/StoredCredential");
+            System.err.println("  - WAR file resources");
             System.err.println("");
-            System.err.println("OR use a Service Account (recommended for production):");
-            System.err.println("  - Create a Service Account in Google Cloud Console");
-            System.err.println("  - Download the service account JSON key");
-            System.err.println("  - Use service account authentication instead");
+            System.err.println("SOLUTION:");
+            System.err.println("  1. Verify StoredCredential is in src/main/resources/credentials/");
+            System.err.println("  2. Rebuild WAR file: Export -> WAR file in Eclipse");
+            System.err.println("  3. Redeploy WAR to production server");
+            System.err.println("  4. Credentials will be automatically loaded from WAR");
             System.err.println("");
             
             throw new IOException("YouTube upload requires initial OAuth authorization. " +

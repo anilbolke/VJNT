@@ -185,7 +185,7 @@
         .table th:nth-child(5), .table td:nth-child(5) { width: 21%; } /* Marathi */
         .table th:nth-child(6), .table td:nth-child(6) { width: 21%; } /* Math */
         .table th:nth-child(7), .table td:nth-child(7) { width: 16%; } /* English */
-        .table th:nth-child(8), .table td:nth-child(8) { width: 7%; text-align: center; } /* Action */
+        .table th:nth-child(8), .table td:nth-child(8) { width: 12%; text-align: center; } /* Action */
         
         .table tbody tr:hover {
             background: #f8f9fa;
@@ -359,26 +359,37 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 3px 8px;
-            background: #28a745;
+            padding: 4px 10px;
+            background: #0d6efd;
             color: white;
             border-radius: 12px;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
-            margin-top: 4px;
             animation: fadeIn 0.3s;
+            white-space: nowrap;
         }
         
         .save-timestamp {
             font-size: 9px;
             color: #666;
-            margin-top: 2px;
             font-style: italic;
+            white-space: nowrap;
         }
         
         .row-saved {
-            background: #e8f5e9 !important;
-            border-left: 3px solid #28a745;
+            background: linear-gradient(90deg, #e3f2fd 0%, #f0f8ff 100%) !important;
+            border-left: 6px solid #0d6efd !important;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(13, 110, 253, 0.15) !important;
+        }
+        
+        .row-saved:hover {
+            background: linear-gradient(90deg, #bbdefb 0%, #e3f2fd 100%) !important;
+            box-shadow: 0 3px 6px rgba(13, 110, 253, 0.25) !important;
+        }
+        
+        .row-saved td {
+            font-weight: 500;
         }
         
         @keyframes fadeIn {
@@ -527,7 +538,21 @@
                 </div>
                 <div class="filter-group">
                     <label for="filterClass">🔍 Filter by Class:</label>
-                    <input type="text" id="filterClass" placeholder="Enter class..." onkeyup="applyFilters()">
+                    <select id="filterClass" onchange="applyFilters()" style="padding: 8px 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 13px; transition: border-color 0.3s; width: 100%;">
+                        <option value="">All Classes</option>
+                        <option value="I">I</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+                        <option value="V">V</option>
+                        <option value="VI">VI</option>
+                        <option value="VII">VII</option>
+                        <option value="VIII">VIII</option>
+                        <option value="IX">IX</option>
+                        <option value="X">X</option>
+                        <option value="XI">XI</option>
+                        <option value="XII">XII</option>
+                    </select>
                 </div>
                 <div class="filter-group">
                     <label for="filterSection">🔍 Filter by Section:</label>
@@ -540,7 +565,7 @@
             
             <div class="filter-results">
                 <span id="filterResultCount">Showing all <%= totalStudents %> students</span>
-                <span id="savedCounter" style="margin-left: 20px; padding: 4px 10px; background: #28a745; color: white; border-radius: 12px; font-size: 11px; font-weight: 600; display: none;">
+                <span id="savedCounter" style="margin-left: 20px; padding: 4px 10px; background: #2196f3; color: white; border-radius: 12px; font-size: 11px; font-weight: 600; display: none;">
                     <span id="savedCount">0</span> student(s) saved in this session
                 </span>
             </div>
@@ -607,17 +632,19 @@
                                 <select name="english_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
                                     <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
                                     <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>Beginner level</option>
-                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>Letter level</option>
+                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>Alphabet level</option>
                                     <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>Word level</option>
                                     <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>Sentence level</option>
-                                    <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Reading comprehension and dictation level</option>
+                                    <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
                                     <option value="6" <%= s.getEnglishAksharaLevel() == 6 ? "selected" : "" %>>English reading and writing FLN level 100% complete</option>
                                 </select>
                             </td>
                             <td style="text-align: center;">
                                 <% if (!currentPhaseComplete) { %>
-                                <button class="btn btn-save" onclick="saveStudent(<%= s.getStudentId() %>)">💾 Save</button>
-                                <div id="msg-<%= s.getStudentId() %>" style="font-size: 11px; margin-top: 4px; font-weight: 600;"></div>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <button class="btn btn-save" onclick="saveStudent(<%= s.getStudentId() %>)">💾 Save</button>
+                                    <div id="msg-<%= s.getStudentId() %>" style="font-size: 11px; font-weight: 600; display: inline-block;"></div>
+                                </div>
                                 <% } else { %>
                                 <span style="color: #28a745;">✓ Complete</span>
                                 <% } %>
@@ -675,38 +702,57 @@
         });
         
         function restoreSaveIndicators() {
-            // Check session storage for saved students
-            var rows = document.querySelectorAll('table tbody tr');
-            rows.forEach(function(row) {
-                var studentId = row.id.replace('row-', '');
-                var savedTime = sessionStorage.getItem('saved-' + studentId);
+            // Check localStorage for saved students (persists across sessions)
+            var phase = <%= selectedPhase %>;
+            var udise = '<%= udiseNo %>';
+            var storageKey = 'saved-phase' + phase + '-udise-' + udise;
+            var savedData = localStorage.getItem(storageKey);
+            
+            if (savedData) {
+                var savedStudents = JSON.parse(savedData);
                 
-                if (savedTime) {
-                    // Restore the save indicator
-                    var msgDiv = document.getElementById('msg-' + studentId);
-                    if (msgDiv) {
-                        msgDiv.innerHTML = 
-                            '<div class="save-indicator">' +
-                                '<span>✓</span>' +
-                                '<span>Saved</span>' +
-                            '</div>' +
-                            '<div class="save-timestamp">Last saved: ' + savedTime + '</div>';
-                        
-                        // Add persistent row highlighting
+                var rows = document.querySelectorAll('table tbody tr');
+                rows.forEach(function(row) {
+                    var studentId = row.id.replace('row-', '');
+                    var savedInfo = savedStudents[studentId];
+                    
+                    if (savedInfo) {
+                        // Apply saved row styling IMMEDIATELY
                         row.classList.add('row-saved');
+                        
+                        // Restore the save indicator
+                        var msgDiv = document.getElementById('msg-' + studentId);
+                        if (msgDiv) {
+                            msgDiv.innerHTML = 
+                                '<div class="save-indicator" title="Last saved: ' + savedInfo.time + '">' +
+                                    '<span>✓</span>' +
+                                    '<span>Saved</span>' +
+                                '</div>';
+                        }
+                        
+                        // Apply visual emphasis to make it clear this row was saved
+                        var saveBtn = row.querySelector('.btn-save');
+                        if (saveBtn) {
+                            saveBtn.innerHTML = '✓ Saved';
+                            saveBtn.style.background = '#0d6efd';
+                            saveBtn.style.cursor = 'default';
+                        }
                     }
-                }
-            });
+                });
+            }
         }
         
         function updateSavedCounter() {
-            // Count how many students have been saved in this session
+            // Count how many students have been saved (using localStorage for persistence)
+            var phase = <%= selectedPhase %>;
+            var udise = '<%= udiseNo %>';
+            var storageKey = 'saved-phase' + phase + '-udise-' + udise;
+            var savedData = localStorage.getItem(storageKey);
+            
             var savedCount = 0;
-            for (var i = 0; i < sessionStorage.length; i++) {
-                var key = sessionStorage.key(i);
-                if (key && key.startsWith('saved-')) {
-                    savedCount++;
-                }
+            if (savedData) {
+                var savedStudents = JSON.parse(savedData);
+                savedCount = Object.keys(savedStudents).length;
             }
             
             // Update counter display
@@ -750,7 +796,7 @@
         function applyFilters() {
             var filterPEN = document.getElementById('filterPEN').value.toLowerCase();
             var filterName = document.getElementById('filterName').value.toLowerCase();
-            var filterClass = document.getElementById('filterClass').value.toLowerCase();
+            var filterClass = document.getElementById('filterClass').value;
             var filterSection = document.getElementById('filterSection').value.toLowerCase();
             
             // Check if any filter is active
@@ -770,7 +816,8 @@
             var filteredStudents = allStudentsData.filter(function(student) {
                 var penMatch = student.pen.toLowerCase().includes(filterPEN) || filterPEN === '';
                 var nameMatch = student.name.toLowerCase().includes(filterName) || filterName === '';
-                var classMatch = student.studentClass.toLowerCase().includes(filterClass) || filterClass === '';
+                // Exact match for class filter (comparing numbers as strings)
+                var classMatch = (filterClass === '' || student.studentClass.toString() === filterClass);
                 var sectionMatch = student.section.toLowerCase().includes(filterSection) || filterSection === '';
                 
                 return penMatch && nameMatch && classMatch && sectionMatch;
@@ -819,10 +866,10 @@
                         '<select name="english_akshara" class="level-select" ' + (currentPhaseComplete ? 'disabled' : '') + '>' +
                             '<option value="0" ' + (student.englishLevel == 0 ? 'selected' : '') + '>स्तर निश्चित केला नाही</option>' +
                             '<option value="1" ' + (student.englishLevel == 1 ? 'selected' : '') + '>Beginner level</option>' +
-                            '<option value="2" ' + (student.englishLevel == 2 ? 'selected' : '') + '>Letter level</option>' +
+                            '<option value="2" ' + (student.englishLevel == 2 ? 'selected' : '') + '>Alphabet level</option>' +
                             '<option value="3" ' + (student.englishLevel == 3 ? 'selected' : '') + '>Word level</option>' +
                             '<option value="4" ' + (student.englishLevel == 4 ? 'selected' : '') + '>Sentence level</option>' +
-                            '<option value="5" ' + (student.englishLevel == 5 ? 'selected' : '') + '>Reading comprehension and dictation level</option>' +
+                            '<option value="5" ' + (student.englishLevel == 5 ? 'selected' : '') + '>Paragraph Reading with Understanding</option>' +
                         '</select>' +
                     '</td>' +
                     '<td style="text-align: center;">' +
@@ -861,7 +908,7 @@
         }
         
         function getEnglishLevelText(level) {
-            var levels = ['स्तर निश्चित केला नाही', 'Beginner level', 'Letter level', 'Word level', 'Sentence level', 'Reading comprehension and dictation level'];
+            var levels = ['स्तर निश्चित केला नाही', 'Beginner level', 'Alphabet level', 'Word level', 'Sentence level', 'Paragraph Reading with Understanding'];
             return levels[level] || levels[0];
         }
         
@@ -913,19 +960,20 @@
                     });
                     
                     // Show success state with flash animation
-                    saveBtn.style.background = '#28a745';
-                    row.style.background = '#d4edda';
+                    saveBtn.innerHTML = '✓ Saved';
+                    saveBtn.style.background = '#0d6efd';
+                    saveBtn.style.cursor = 'default';
+                    row.style.background = '#cfe2ff';
                     row.style.transition = 'background 0.3s';
                     
-                    // Create persistent save indicator
+                    // Create persistent save indicator inline with tooltip
                     msgDiv.innerHTML = 
-                        '<div class="save-indicator">' +
+                        '<div class="save-indicator" title="Last saved: ' + timeString + '">' +
                             '<span>✓</span>' +
                             '<span>Saved</span>' +
-                        '</div>' +
-                        '<div class="save-timestamp">Last saved: ' + timeString + '</div>';
+                        '</div>';
                     
-                    // Add persistent row highlighting
+                    // Add persistent row highlighting - ALWAYS visible
                     setTimeout(() => {
                         row.classList.add('row-saved');
                         row.style.background = '';
@@ -936,8 +984,26 @@
                         saveBtn.disabled = false;
                     }, 1000);
                     
-                    // Store saved state in session storage
-                    sessionStorage.setItem('saved-' + studentId, timeString);
+                    // Store saved state in localStorage (persists across sessions)
+                    var phase = document.getElementById('phaseSelector').value;
+                    var udise = '<%= udiseNo %>';
+                    var storageKey = 'saved-phase' + phase + '-udise-' + udise;
+                    
+                    // Get existing saved data
+                    var savedData = localStorage.getItem(storageKey);
+                    var savedStudents = savedData ? JSON.parse(savedData) : {};
+                    
+                    // Add/update this student's save info
+                    savedStudents[studentId] = {
+                        time: timeString,
+                        marathi: marathiLevel,
+                        math: mathLevel,
+                        english: englishLevel,
+                        phase: phase
+                    };
+                    
+                    // Save back to localStorage (persists permanently)
+                    localStorage.setItem(storageKey, JSON.stringify(savedStudents));
                     
                     // Update the saved counter
                     updateSavedCounter();

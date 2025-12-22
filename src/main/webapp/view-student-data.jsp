@@ -20,7 +20,7 @@
     String schoolName = school != null ? school.getSchoolName() : "Unknown School";
     
     // Get all students for this UDISE
-    List<Student> students = studentDAO.getStudentsByUdise(udiseNo);
+    List<Student> students = studentDAO.getStudentsByUdiseFOrView(udiseNo);
     
     // Filter parameters
     String classFilter = request.getParameter("class");
@@ -1341,9 +1341,9 @@
                                     <button class="btn-action-secondary" onclick="viewAllActivities('<%= student.getStudentId() %>', '<%= student.getStudentName() %>')" title="View All Activities">
                                         📋 View All
                                     </button>
-                                    <button class="btn-action-secondary" onclick="viewStudentVideos('<%= student.getStudentId() %>', '<%= student.getStudentName() %>', '<%= student.getStudentPen() %>')" title="View Student Videos" style="background: #007bff;">
+                                    <%-- <button class="btn-action-secondary" onclick="viewStudentVideos('<%= student.getStudentId() %>', '<%= student.getStudentName() %>', '<%= student.getStudentPen() %>')" title="View Student Videos" style="background: #007bff;">
                                         🎥 Videos
-                                    </button>
+                                    </button> --%>
                                 </td>
                             </tr>
                             <% } %>
@@ -1492,11 +1492,12 @@
                     </div>
                     
                     <!-- Section 3: Video Upload -->
-                    <div class="modal-section-title">🎬 Upload Video (Optional)</div>
+                  <!--   <div class="modal-section-title">🎬 Upload Video (Optional)</div>
                     <div class="modal-filter-group video-upload-section" style="grid-column: 1 / -1;">
                         <label for="videoUpload">📹 Choose Video File</label>
                         <input type="file" id="videoUpload" name="video" accept="video/*" class="form-control">
-                        <small>Supported formats: MP4, AVI, MOV, WMV, FLV, MKV (Max 500MB). Video will be uploaded to YouTube.</small>
+                        <small>Supported formats: MP4, AVI, MOV, WMV, FLV, MKV (Max 10MB). Video will be uploaded to YouTube.</small>
+                        <small id="videoSizeError" style="color: red; display: none; margin-top: 5px;"></small>
                         <div id="videoUploadProgress" class="video-upload-progress" style="display: none;">
                             <div class="video-progress-bar-container">
                                 <div id="videoProgressBar"></div>
@@ -1507,7 +1508,7 @@
                             <p>✅ Video uploaded successfully!</p>
                             <p style="font-size: 12px; margin-top: 8px;">YouTube URL: <a id="videoYouTubeLink" href="#" target="_blank"></a></p>
                         </div>
-                    </div>
+                    </div> -->
                     
                     <!-- Section 4: Activity Summary -->
                     <div id="selectedActivityCountSection" style="display: none;">
@@ -1998,7 +1999,7 @@
             const subject = document.getElementById('subjectFilter').value;
             const week = document.getElementById('weekFilter').value;
             const activityIndex = document.getElementById('activityFilter').value;
-            const videoFile = document.getElementById('videoUpload').files[0];
+            const videoFile = null;
             
             // Validate selections
             if (!studentId || !subject || !week || activityIndex === '') {
@@ -2032,13 +2033,20 @@
             let videoYouTubeUrl = null;
             
             // Upload video first if selected
-            if (videoFile) {
+            /* if (videoFile) {
+                // Validate video file size (max 10MB)
+                const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                if (videoFile.size > maxSize) {
+                    alert('Video file size exceeds 10MB limit. Please select a smaller file.\nSelected file size: ' + (videoFile.size / (1024 * 1024)).toFixed(2) + ' MB');
+                    return;
+                }
+                
                 videoYouTubeUrl = await uploadVideoToYouTube(videoFile, studentId, subject, week, activityText);
                 if (!videoYouTubeUrl) {
                     alert('Video upload failed. Activity not submitted.');
                     return;
                 }
-            }
+            } */
             
             // Submit activity to server
             const formData = new FormData();
@@ -2047,9 +2055,9 @@
             formData.append('week', week);
             formData.append('day', dayNumber);
             formData.append('activity', activityText);
-            if (videoYouTubeUrl) {
+            /* if (videoYouTubeUrl) {
                 formData.append('videoUrl', videoYouTubeUrl);
-            }
+            } */
             
             fetch(contextPath + '/save-student-activity', {
                 method: 'POST',
@@ -2058,13 +2066,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✓ Activity submitted successfully!' + (videoYouTubeUrl ? ' Video uploaded to YouTube.' : ''));
+                    alert('✓ Activity submitted successfully!' );
                     // Reload activity count
                     loadActivityCount();
                     // Reset form
                     document.getElementById('activityFilter').value = '';
-                    document.getElementById('videoUpload').value = '';
-                    document.getElementById('videoUploadResult').style.display = 'none';
                 } else {
                     alert('Error: ' + data.message);
                 }
@@ -2075,7 +2081,7 @@
             });
         }
         
-        async function uploadVideoToYouTube(videoFile, studentId, subject, week, activityText) {
+       <%--  async function uploadVideoToYouTube(videoFile, studentId, subject, week, activityText) {
             const contextPath = '<%= request.getContextPath() %>';
             const progressBar = document.getElementById('videoProgressBar');
             const progressSection = document.getElementById('videoUploadProgress');
@@ -2175,7 +2181,7 @@
                 statusText.textContent = 'Upload failed: ' + error.message;
                 return null;
             }
-        }
+        } --%>
         
         // Close modal when clicking outside of it
         window.onclick = function(event) {
@@ -2480,6 +2486,34 @@
             const modal = document.getElementById('videosModal');
             if (modal && event.target === modal) {
                 closeVideosModal();
+            }
+        });
+        
+        // Video file size validation (10MB limit)
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoUploadInput = document.getElementById('videoUpload');
+            const videoSizeError = document.getElementById('videoSizeError');
+            
+            if (videoUploadInput) {
+                videoUploadInput.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                        
+                        if (file.size > maxSize) {
+                            videoSizeError.textContent = '❌ File size (' + fileSizeMB + ' MB) exceeds 10MB limit. Please select a smaller file.';
+                            videoSizeError.style.display = 'block';
+                            this.value = ''; // Clear the file input
+                        } else {
+                            videoSizeError.textContent = '✓ File size: ' + fileSizeMB + ' MB (Valid)';
+                            videoSizeError.style.color = 'green';
+                            videoSizeError.style.display = 'block';
+                        }
+                    } else {
+                        videoSizeError.style.display = 'none';
+                    }
+                });
             }
         });
     </script>

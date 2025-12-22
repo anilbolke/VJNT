@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 
 /**
  * User Entity Class
- * Represents a user in the VJNT Class Management System
+ * Represents a user in the VJNT Class 
  */
 public class User {
     

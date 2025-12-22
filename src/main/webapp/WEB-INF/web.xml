@@ -9,8 +9,28 @@
     <welcome-file>login.jsp</welcome-file>
   </welcome-file-list>
   
-  <!-- Session Configuration -->
+  <!-- UTF-8 Character Encoding Filter for Marathi Support -->
+  <filter>
+    <filter-name>CharacterEncodingFilter</filter-name>
+    <filter-class>org.apache.catalina.filters.SetCharacterEncodingFilter</filter-class>
+    <init-param>
+      <param-name>encoding</param-name>
+      <param-value>UTF-8</param-value>
+    </init-param>
+    <init-param>
+      <param-name>ignore</param-name>
+      <param-value>false</param-value>
+    </init-param>
+  </filter>
+  
+  <filter-mapping>
+    <filter-name>CharacterEncodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+  
+  <!-- Session Configuration - Extended for video uploads -->
   <session-config>
-    <session-timeout>30</session-timeout>
+    <session-timeout>60</session-timeout> <!-- 60 minutes for video uploads -->
   </session-config>
+  
 </web-app>

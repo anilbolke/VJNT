@@ -917,14 +917,28 @@
                     group.activities.forEach(activity => {
                         html += `
                             <div class="activity-item">
-                                <div class="activity-day">Day ${'$'}{activity.dayNumber}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div class="activity-day">Day ${'$'}{activity.dayNumber}</div>
+                        `;
+                        
+                        // Show subject teacher name prominently if available
+                        if (activity.assignedBy) {
+                            html += `
+                                <div style="background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                                    <i class="fas fa-user-tie"></i> Teacher Name: ${'$'}{activity.assignedBy}
+                                </div>
+                            `;
+                        }
+                        
+                        html += `</div>
                                 <div class="activity-text">${'$'}{activity.activityText || 'N/A'}</div>
                         `;
                         
-                        if (activity.assignedBy || activity.activityCount > 1) {
+                        // Show activity metadata
+                        if (activity.activityCount > 1 || activity.assignedDate) {
                             html += '<div class="activity-meta">';
-                            if (activity.assignedBy) {
-                                html += `<span>Assigned by: ${'$'}{activity.assignedBy}</span>`;
+                            if (activity.assignedDate) {
+                                html += `<span><i class="fas fa-calendar"></i> Assigned: ${'$'}{new Date(activity.assignedDate).toLocaleDateString()}</span>`;
                             }
                             if (activity.activityCount > 1) {
                                 html += `<span class="activity-count-badge">${'$'}{activity.activityCount}x</span>`;

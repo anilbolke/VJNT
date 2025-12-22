@@ -50,8 +50,77 @@
             align-items: center;
         }
         
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .header-logo {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .header-logo img {
+            max-width: 150px;
+            width: 150px;
+            height: auto;
+            display: block;
+        }
+        
         .header h1 {
             font-size: 24px;
+        }
+        
+        .gatee-tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            margin-left: 8px;
+            color: #ffd700;
+            font-size: 16px;
+        }
+        
+        .gatee-tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 1000;
+            background: #2d3748;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2d3748 transparent transparent transparent;
+        }
+        
+        .tooltip-content div {
+            margin: 3px 0;
         }
         
         .btn {
@@ -267,13 +336,23 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <div>
-                <h1>🏛️ District Analytics Dashboard</h1>
-                <p>District: <%= districtName %></p>
+            <div class="header-left">
+                <%-- <div class="header-logo">
+                    <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
+                </div> --%>
+                <!-- Logo Section - END -->
+                <!-- District Icon and Name Section - START -->
+                <div class="school-icon">🏢</div>
+                <h1><%= districtName %> District</h1>
+                <!-- District Icon and Name Section - END -->
+                <p>District Analytics Dashboard</p>
             </div>
             <div>
                 <a href="<%= request.getContextPath() %>/district-dashboard.jsp" class="btn btn-logout">Basic View</a>
                 <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">📈 Activity Analysis</a>
+                <a href="<%= request.getContextPath() %>/district-teacher-report.jsp" class="btn btn-logout" style="background: #4CAF50;">👨‍🏫 Teacher Report</a>
+                <a href="<%= request.getContextPath() %>/district-credentials" class="btn btn-logout" style="background: #FF6B6B;">🔑 Login Credentials</a>
+                <a href="<%= request.getContextPath() %>/district-profile" class="btn btn-logout" style="background: #2196F3;">👤 My Profile</a>
                 <a href="<%= request.getContextPath() %>/logout" class="btn btn-logout">Logout</a>
             </div>
         </div>

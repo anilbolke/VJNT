@@ -455,16 +455,43 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Subjects Taught <span style="color: red;">*</span></label>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" name="subjects" value="Marathi"> मराठी (Marathi)</label>
-                            <label><input type="checkbox" name="subjects" value="Hindi"> हिंदी (Hindi)</label>
-                            <label><input type="checkbox" name="subjects" value="English"> English</label>
-                            <label><input type="checkbox" name="subjects" value="Mathematics"> गणित (Mathematics)</label>
-                            <label><input type="checkbox" name="subjects" value="Science"> विज्ञान (Science)</label>
-                            <label><input type="checkbox" name="subjects" value="History"> इतिहास (History)</label>
+                        <label>Subjects Taught / विषय <span style="color: red;">*</span></label>
+                        <div class="checkbox-group" style="max-height: 400px; overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                            <label><input type="checkbox" name="subjects" value="मराठी" class="edit-subject-checkbox"> मराठी</label>
+                            <label><input type="checkbox" name="subjects" value="इंग्रजी" class="edit-subject-checkbox"> इंग्रजी</label>
+                            <label><input type="checkbox" name="subjects" value="हिंदी" class="edit-subject-checkbox"> हिंदी</label>
+                            <label><input type="checkbox" name="subjects" value="गणित" class="edit-subject-checkbox"> गणित</label>
+                            <label><input type="checkbox" name="subjects" value="परिसर अभ्यास /विज्ञान (भाग १ व २)" class="edit-subject-checkbox"> परिसर अभ्यास /विज्ञान (भाग १ व २)</label>
+                            <label><input type="checkbox" name="subjects" value="इतिहास /नागरिकशास्त्र" class="edit-subject-checkbox"> इतिहास /नागरिकशास्त्र</label>
+                            <label><input type="checkbox" name="subjects" value="भूगोल" class="edit-subject-checkbox"> भूगोल</label>
+                            <label><input type="checkbox" name="subjects" value="जलसुरक्षा" class="edit-subject-checkbox"> जलसुरक्षा</label>
+                            <label><input type="checkbox" name="subjects" value="संरक्षण शास्त्र" class="edit-subject-checkbox"> संरक्षण शास्त्र</label>
+                            <label><input type="checkbox" name="subjects" value="शारीरिक शिक्षण" class="edit-subject-checkbox"> शारीरिक शिक्षण</label>
+                            <label><input type="checkbox" name="subjects" value="कला शिक्षण" class="edit-subject-checkbox"> कला शिक्षण</label>
+                            <label><input type="checkbox" name="subjects" value="कार्यअनुभव" class="edit-subject-checkbox"> कार्यअनुभव</label>
+                            <label><input type="checkbox" name="subjects" value="भौतिकशास्त्र (Physics)" class="edit-subject-checkbox"> भौतिकशास्त्र (Physics)</label>
+                            <label><input type="checkbox" name="subjects" value="रसायनशास्त्र (Chemistry)" class="edit-subject-checkbox"> रसायनशास्त्र (Chemistry)</label>
+                            <label><input type="checkbox" name="subjects" value="जीवशास्त्र (Biology)" class="edit-subject-checkbox"> जीवशास्त्र (Biology)</label>
+                            <label><input type="checkbox" name="subjects" value="राज्यशास्त्र" class="edit-subject-checkbox"> राज्यशास्त्र</label>
+                            <label><input type="checkbox" name="subjects" value="अर्थशास्त्र" class="edit-subject-checkbox"> अर्थशास्त्र</label>
+                            <label><input type="checkbox" name="subjects" value="समाजशास्त्र" class="edit-subject-checkbox"> समाजशास्त्र</label>
+                            <label><input type="checkbox" name="subjects" value="इतर (Other)" class="edit-subject-checkbox" id="editOtherSubjectCheckbox" onchange="toggleEditOtherSubjectInput()"> इतर (Other)</label>
                         </div>
-                        <span id="editSubjectError" style="color: red; font-size: 12px; display: none;">Please select at least one subject</span>
+                        
+                        <!-- Other Subject Input Field (Hidden by default) -->
+                        <div id="editOtherSubjectInputContainer" style="display: none; margin-top: 15px; padding: 15px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #856404;">
+                                📝 Enter Other Subject Name / इतर विषयाचे नाव लिहा <span style="color: red;">*</span>
+                            </label>
+                            <input type="text" id="editOtherSubjectName" name="editOtherSubjectName"
+                                   style="width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 14px; background: white;"
+                                   placeholder="Enter custom subject name / विषयाचे नाव लिहा">
+                            <small style="display: block; margin-top: 5px; color: #856404; font-size: 12px;">
+                                💡 This field is required when "Other Subject" is selected
+                            </small>
+                        </div>
+                        
+                        <span id="editSubjectError" style="color: red; font-size: 12px; display: none; margin-top: 5px;">कृपया किमान एक विषय निवडा / Please select at least one subject</span>
                     </div>
                     
                     <div class="form-group">
@@ -487,13 +514,20 @@
             <% for (int i = 0; i < teachers.size(); i++) {
                 Map<String, Object> teacher = teachers.get(i);
                 if (i > 0) out.print(",");
+                
+                // Properly escape strings for JavaScript
+                String name = ((String)teacher.get("name")).replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r");
+                String mobile = String.valueOf(teacher.get("mobile"));
+                String subjects = ((String)teacher.get("subjects")).replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r");
+                String description = teacher.get("description") != null ? 
+                    ((String)teacher.get("description")).replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r") : "";
             %>
             {
                 id: <%= teacher.get("id") %>,
-                name: '<%= ((String)teacher.get("name")).replace("'", "\\'") %>',
-                mobile: '<%= teacher.get("mobile") %>',
-                subjects: '<%= teacher.get("subjects") %>',
-                description: '<%= teacher.get("description") != null ? ((String)teacher.get("description")).replace("'", "\\'") : "" %>'
+                name: '<%= name %>',
+                mobile: '<%= mobile %>',
+                subjects: '<%= subjects %>',
+                description: '<%= description %>'
             }
             <% } %>
         ];
@@ -521,12 +555,51 @@
             document.getElementById('editTeacherMobile').value = teacher.mobile;
             document.getElementById('editTeacherDescription').value = teacher.description;
             
-            // Check subject checkboxes
-            const subjects = teacher.subjects.split(',');
+            // Reset all checkboxes first
             const checkboxes = document.querySelectorAll('#editTeacherForm input[name="subjects"]');
-            checkboxes.forEach(cb => {
-                cb.checked = subjects.some(s => s.trim() === cb.value);
+            checkboxes.forEach(cb => cb.checked = false);
+            
+            // Hide other subject input initially
+            document.getElementById('editOtherSubjectInputContainer').style.display = 'none';
+            document.getElementById('editOtherSubjectName').value = '';
+            
+            // Check subject checkboxes
+            const subjects = teacher.subjects.split(',').map(s => s.trim());
+            
+            // Define all predefined subjects
+            const predefinedSubjects = [
+                'मराठी', 'इंग्रजी', 'हिंदी', 'गणित',
+                'परिसर अभ्यास /विज्ञान (भाग १ व २)', 'इतिहास /नागरिकशास्त्र', 'भूगोल',
+                'जलसुरक्षा', 'संरक्षण शास्त्र', 'शारीरिक शिक्षण', 'कला शिक्षण', 'कार्यअनुभव',
+                'भौतिकशास्त्र (Physics)', 'रसायनशास्त्र (Chemistry)', 'जीवशास्त्र (Biology)',
+                'राज्यशास्त्र', 'अर्थशास्त्र', 'समाजशास्त्र'
+            ];
+            
+            let hasOtherSubject = false;
+            let otherSubjectValues = [];
+            
+            subjects.forEach(subject => {
+                if (predefinedSubjects.includes(subject)) {
+                    // Check the matching predefined subject
+                    checkboxes.forEach(cb => {
+                        if (cb.value === subject) {
+                            cb.checked = true;
+                        }
+                    });
+                } else if (subject) {
+                    // This is a custom subject - collect all custom subjects
+                    hasOtherSubject = true;
+                    otherSubjectValues.push(subject);
+                }
             });
+            
+            // If there's a custom subject, show the "Other Subject" checkbox and input
+            if (hasOtherSubject) {
+                document.getElementById('editOtherSubjectCheckbox').checked = true;
+                document.getElementById('editOtherSubjectInputContainer').style.display = 'block';
+                // Join all custom subjects with comma
+                document.getElementById('editOtherSubjectName').value = otherSubjectValues.join(', ');
+            }
             
             document.getElementById('editModal').classList.add('show');
         }
@@ -535,6 +608,23 @@
         function closeEditModal() {
             document.getElementById('editModal').classList.remove('show');
             document.getElementById('editTeacherForm').reset();
+            document.getElementById('editOtherSubjectInputContainer').style.display = 'none';
+            document.getElementById('editOtherSubjectName').value = '';
+        }
+        
+        // Toggle Other Subject Input Field in Edit Modal
+        function toggleEditOtherSubjectInput() {
+            const checkbox = document.getElementById('editOtherSubjectCheckbox');
+            const container = document.getElementById('editOtherSubjectInputContainer');
+            const input = document.getElementById('editOtherSubjectName');
+            
+            if (checkbox.checked) {
+                container.style.display = 'block';
+                input.focus();
+            } else {
+                container.style.display = 'none';
+                input.value = '';
+            }
         }
         
         // Update teacher
@@ -547,11 +637,30 @@
             const description = document.getElementById('editTeacherDescription').value.trim();
             
             const subjectCheckboxes = document.querySelectorAll('#editTeacherForm input[name="subjects"]:checked');
-            const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+            let subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
             
             if (subjects.length === 0) {
                 document.getElementById('editSubjectError').style.display = 'block';
+                alert('कृपया किमान एक विषय निवडा / Please select at least one subject');
                 return;
+            } else {
+                document.getElementById('editSubjectError').style.display = 'none';
+            }
+            
+            // Check if "Other Subject" is selected
+            const otherSubjectCheckbox = document.getElementById('editOtherSubjectCheckbox');
+            const otherSubjectName = document.getElementById('editOtherSubjectName').value.trim();
+            
+            if (otherSubjectCheckbox.checked) {
+                if (!otherSubjectName) {
+                    alert('कृपया इतर विषयाचे नाव लिहा / Please enter the other subject name');
+                    document.getElementById('editOtherSubjectName').focus();
+                    return;
+                }
+                // Replace "Other Subject" with the custom name
+                subjects = subjects.map(subject => 
+                    subject === 'इतर (Other)' ? otherSubjectName : subject
+                );
             }
             
             const formData = new URLSearchParams();

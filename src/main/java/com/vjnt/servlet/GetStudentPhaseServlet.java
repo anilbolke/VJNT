@@ -138,7 +138,7 @@ public class GetStudentPhaseServlet extends HttpServlet {
     
     private String getMarathiLevelText(int level) {
         switch (level) {
-        case 0: return "स्थर निश्चित केला नाही";
+        case 0: return "स्तर निश्चित केला नाही";
     	case 1: return "प्रारंभिक स्तर";
         case 2: return "अक्षर स्तर";
         case 3: return "शब्द स्तर";
@@ -151,7 +151,7 @@ public class GetStudentPhaseServlet extends HttpServlet {
     
     private String getMathLevelText(int level) {
         switch (level) {
-        case 0: return "स्थर निश्चित केला नाही";
+        case 0: return "स्तर निश्चित केला नाही";
         case 1: return "प्रारंभिक स्तर";
         case 2: return "अंक ज्ञान स्तर";
         case 3: return "संख्याज्ञान स्तर";
@@ -166,12 +166,12 @@ public class GetStudentPhaseServlet extends HttpServlet {
     
     private String getEnglishLevelText(int level) {
         switch (level) {
-        case 0: return "स्थर निश्चित केला नाही";
+        case 0: return "स्तर निश्चित केला नाही";
         case 1: return "Beginner level";
-        case 2: return "Letter level";
+        case 2: return "Alphabet level";
         case 3: return "Word level";
         case 4: return "Sentence level";
-        case 5: return "Reading comprehension and dictation level";
+        case 5: return "Paragraph Reading with Understanding";
         case 6: return "English reading and writing FLN level 100% complete";
         default: return "स्तर निश्चित केला नाही";
         }

@@ -51,6 +51,7 @@ public class SaveTeacherAssignmentServlet extends HttpServlet {
             String teacherIdStr = request.getParameter("teacherId");
             String teacherName = request.getParameter("teacherName");
             String subjects = request.getParameter("subjects");
+            String isClassTeacherStr = request.getParameter("isClassTeacher");
             
             if (udiseCode == null || classValue == null || section == null || 
                 teacherIdStr == null || teacherName == null || subjects == null) {
@@ -60,15 +61,30 @@ public class SaveTeacherAssignmentServlet extends HttpServlet {
             }
             
             int teacherId = Integer.parseInt(teacherIdStr);
+            int isClassTeacher = (isClassTeacherStr != null && isClassTeacherStr.equals("1")) ? 1 : 0;
             
             Connection conn = null;
             PreparedStatement pstmt = null;
             
             try {
                 conn = DatabaseConnection.getConnection();
+                conn.setAutoCommit(false); // Start transaction
                 
-                String sql = "INSERT INTO teacher_assignments (udise_code, district, division, teacher_id, teacher_name, class, section, subjects_assigned, created_by) " +
-                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                // If this teacher is being marked as class teacher, unmark any existing class teacher for this class-section
+                if (isClassTeacher == 1) {
+                    String updateSql = "UPDATE teacher_assignments SET is_class_teacher = 0 " +
+                                      "WHERE udise_code = ? AND class = ? AND section = ? AND is_class_teacher = 1";
+                    pstmt = conn.prepareStatement(updateSql);
+                    pstmt.setString(1, udiseCode);
+                    pstmt.setString(2, classValue);
+                    pstmt.setString(3, section);
+                    pstmt.executeUpdate();
+                    pstmt.close();
+                }
+                
+                // Insert the new assignment
+                String sql = "INSERT INTO teacher_assignments (udise_code, district, division, teacher_id, teacher_name, class, section, subjects_assigned, is_class_teacher, created_by) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 pstmt = conn.prepareStatement(sql);
                 pstmt.setString(1, udiseCode);
                 pstmt.setString(2, district);
@@ -78,13 +94,16 @@ public class SaveTeacherAssignmentServlet extends HttpServlet {
                 pstmt.setString(6, classValue);
                 pstmt.setString(7, section);
                 pstmt.setString(8, subjects);
-                pstmt.setInt(9, user.getUserId());
+                pstmt.setInt(9, isClassTeacher);
+                pstmt.setInt(10, user.getUserId());
                 
                 int rowsAffected = pstmt.executeUpdate();
                 
                 if (rowsAffected > 0) {
+                    conn.commit(); // Commit transaction
                     jsonResponse.append("{\"success\":true,\"message\":\"Teacher assigned successfully\"}");
                 } else {
+                    conn.rollback(); // Rollback on failure
                     jsonResponse.append("{\"success\":false,\"message\":\"Failed to assign teacher\"}");
                 }
                 

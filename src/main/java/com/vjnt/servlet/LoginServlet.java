@@ -36,13 +36,6 @@ public class LoginServlet extends HttpServlet {
         String username = request.getParameter("username");
         String password = request.getParameter("password");
         
-        System.out.println("============================================");
-        System.out.println("LOGIN ATTEMPT");
-        System.out.println("============================================");
-        System.out.println("Username: " + username);
-        System.out.println("Password length: " + (password != null ? password.length() : 0));
-        System.out.println("Password provided: [" + password + "]");
-        System.out.println("============================================");
         
         // Validate input
         if (username == null || username.trim().isEmpty() ||
@@ -54,12 +47,6 @@ public class LoginServlet extends HttpServlet {
         
         // Authenticate user
         User user = userDAO.authenticateUser(username.trim(), password);
-        
-        System.out.println("Authentication result: " + (user != null ? "SUCCESS" : "FAILED"));
-        if (user != null) {
-            System.out.println("User found - Type: " + user.getUserType() + ", Active: " + user.isActive());
-        }
-        System.out.println("============================================");
         
         if (user != null) {
             // Create session

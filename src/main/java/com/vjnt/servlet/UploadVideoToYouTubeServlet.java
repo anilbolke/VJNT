@@ -103,6 +103,20 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                 return;
             }
             
+            // Validate file size - minimum 10 MB required
+            long fileSize = filePart.getSize();
+            long minFileSize = 10 * 1024 * 1024; // 10 MB in bytes
+            
+            if (fileSize < minFileSize) {
+                double fileSizeMB = fileSize / (1024.0 * 1024.0);
+                result.put("success", false);
+                result.put("message", String.format("Video file is too small. Minimum required size is 10 MB. Your file is %.2f MB", fileSizeMB));
+                response.getWriter().write(gson.toJson(result));
+                return;
+            }
+            
+            System.out.println("Video file size: " + fileSize + " bytes (" + (fileSize / (1024.0 * 1024.0)) + " MB)");
+            
             // Get filename
             String fileName = getFileName(filePart);
             if (!isValidVideoFile(fileName)) {

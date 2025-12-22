@@ -320,11 +320,11 @@ public class StudentDAO {
     }
     
     /**
-     * Get students by UDISE number
+     * Get students by UDISE number (excludes FLN completed students for phase activities)
      */
     public List<Student> getStudentsByUdise(String udiseNo) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE udise_no = ? ORDER BY class, section, student_name";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND (fln_completed IS NULL OR fln_completed = FALSE) ORDER BY class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -338,6 +338,52 @@ public class StudentDAO {
             
         } catch (SQLException e) {
             System.err.println("Error getting students by UDISE: " + e.getMessage());
+        }
+        return students;
+    }
+    
+    /**
+     * Get ALL students by UDISE for viewing (includes FLN completed students)
+     */
+    public List<Student> getStudentsByUdiseFOrView(String udiseNo) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE) ORDER BY class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting students by UDISE: " + e.getMessage());
+        }
+        return students;
+    }
+    
+    /**
+     * Get only FLN completed students by UDISE
+     */
+    public List<Student> getFlnCompletedStudentsByUdise(String udiseNo) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND fln_completed = 1 AND is_active = 1  ORDER BY class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting FLN completed students: " + e.getMessage());
         }
         return students;
     }
@@ -417,6 +463,13 @@ public class StudentDAO {
             student.setActive(true); // Default to active if column not found
         }
         
+        // Load FLN completion status
+        try {
+            student.setFlnCompleted(rs.getBoolean("fln_completed"));
+        } catch (SQLException e) {
+            student.setFlnCompleted(false); // Default to false if column not found
+        }
+        
         return student;
     }
     
@@ -426,7 +479,7 @@ public class StudentDAO {
     public List<Student> getStudentsByUdiseWithPagination(String udiseNo, int page, int pageSize) {
         List<Student> students = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 ORDER BY class, section, student_name LIMIT ? OFFSET ?";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE)  ORDER BY class, section, student_name LIMIT ? OFFSET ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -593,6 +646,24 @@ public class StudentDAO {
             // Create audit entry
             if (rows > 0) {
                 auditPhaseChange(studentId, phase, marathiLevel, mathLevel, englishLevel, updatedBy);
+                
+                // Check FLN completion after ANY phase (1, 2, 3, or 4)
+                // If student achieves Marathi=6, Math=8, English=6 in ANY phase, mark as FLN completed
+                boolean flnComplete = checkFlnCompletion(studentId);
+                
+                if (flnComplete) {
+                    // ✓ Student achieved 100% FLN - mark as completed immediately
+                    updateFlnCompletionStatus(studentId, true);
+                    System.out.println("✓ Student " + studentId + " achieved FLN 100% in Phase " + phase + " - marked as completed!");
+                } else if (phase == 4) {
+                    // Only for Phase 4: If not FLN complete but all phases done, restart
+                    boolean allPhasesCompleted = hasCompletedAllPhases(studentId);
+                    if (allPhasesCompleted) {
+                        // Restart phases with Phase 4 data copied to Phase 1
+                        restartPhasesWithPhase4Data(studentId);
+                        System.out.println("✓ Student " + studentId + " completed Phase 4 but FLN not 100% - phases restarted");
+                    }
+                }
             }
             
             return rows > 0;
@@ -634,6 +705,11 @@ public class StudentDAO {
      * Update student basic information
      */
     public boolean updateStudent(Student student) {
+        // Get original student data to check if standard changed
+        Student originalStudent = getStudentById(student.getStudentId());
+        boolean standardChanged = originalStudent != null && 
+                                  !originalStudent.getStudentClass().equals(student.getStudentClass());
+        
         String sql = "UPDATE students SET " +
                      "division = ?, district = ?, udise_no = ?, class = ?, section = ?, " +
                      "class_category = ?, student_name = ?, gender = ?, student_pen = ?, " +
@@ -661,6 +737,14 @@ public class StudentDAO {
             pstmt.setInt(15, student.getStudentId());
             
             int rowsAffected = pstmt.executeUpdate();
+            
+            // If standard changed, check FLN completion and handle phase restart
+            if (rowsAffected > 0 && standardChanged) {
+                System.out.println("✓ Student standard changed from '" + originalStudent.getStudentClass() + 
+                                   "' to '" + student.getStudentClass() + "', checking FLN completion...");
+                handleStandardUpdate(student.getStudentId());
+            }
+            
             return rowsAffected > 0;
             
         } catch (SQLException e) {
@@ -700,5 +784,410 @@ public class StudentDAO {
             System.err.println("Error getting phase completion percentage: " + e.getMessage());
         }
         return 0;
+    }
+    
+    /**
+     * Get phase-wise subject statistics for all students by UDISE
+     * Returns detailed counts of dropdown values for each phase and subject
+     */
+    public List<java.util.Map<String, Object>> getPhaseWiseSubjectStatistics(String udiseNo) {
+        List<java.util.Map<String, Object>> statistics = new ArrayList<>();
+        
+        String sql = "SELECT " +
+                     "student_id, student_name, student_pen, class, section, " +
+                     "phase1_marathi, phase1_math, phase1_english, phase1_date, " +
+                     "phase2_marathi, phase2_math, phase2_english, phase2_date, " +
+                     "phase3_marathi, phase3_math, phase3_english, phase3_date, " +
+                     "phase4_marathi, phase4_math, phase4_english, phase4_date " +
+                     "FROM students " +
+                     "WHERE udise_no = ? AND is_active = 1 " +
+                     "ORDER BY class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                java.util.Map<String, Object> studentData = new java.util.HashMap<>();
+                
+                studentData.put("studentId", rs.getInt("student_id"));
+                studentData.put("studentName", rs.getString("student_name"));
+                studentData.put("studentPen", rs.getString("student_pen"));
+                studentData.put("studentClass", rs.getString("class"));
+                studentData.put("section", rs.getString("section"));
+                
+                // Phase 1 data
+                studentData.put("phase1Marathi", rs.getObject("phase1_marathi"));
+                studentData.put("phase1Math", rs.getObject("phase1_math"));
+                studentData.put("phase1English", rs.getObject("phase1_english"));
+                studentData.put("phase1Date", rs.getTimestamp("phase1_date"));
+                
+                // Phase 2 data
+                studentData.put("phase2Marathi", rs.getObject("phase2_marathi"));
+                studentData.put("phase2Math", rs.getObject("phase2_math"));
+                studentData.put("phase2English", rs.getObject("phase2_english"));
+                studentData.put("phase2Date", rs.getTimestamp("phase2_date"));
+                
+                // Phase 3 data
+                studentData.put("phase3Marathi", rs.getObject("phase3_marathi"));
+                studentData.put("phase3Math", rs.getObject("phase3_math"));
+                studentData.put("phase3English", rs.getObject("phase3_english"));
+                studentData.put("phase3Date", rs.getTimestamp("phase3_date"));
+                
+                // Phase 4 data
+                studentData.put("phase4Marathi", rs.getObject("phase4_marathi"));
+                studentData.put("phase4Math", rs.getObject("phase4_math"));
+                studentData.put("phase4English", rs.getObject("phase4_english"));
+                studentData.put("phase4Date", rs.getTimestamp("phase4_date"));
+                
+                statistics.add(studentData);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting phase-wise subject statistics: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return statistics;
+    }
+    
+    /**
+     * Get aggregate phase-wise subject counts by UDISE
+     * Returns summary of how many students have each dropdown value for each phase/subject
+     */
+    public java.util.Map<String, Object> getPhaseWiseSubjectCounts(String udiseNo) {
+        java.util.Map<String, Object> counts = new java.util.HashMap<>();
+        
+        String sql = "SELECT " +
+                     // Phase 1 counts - Marathi (0-6)
+                     "SUM(CASE WHEN phase1_marathi = 0 THEN 1 ELSE 0 END) as p1_marathi_0, " +
+                     "SUM(CASE WHEN phase1_marathi = 1 THEN 1 ELSE 0 END) as p1_marathi_1, " +
+                     "SUM(CASE WHEN phase1_marathi = 2 THEN 1 ELSE 0 END) as p1_marathi_2, " +
+                     "SUM(CASE WHEN phase1_marathi = 3 THEN 1 ELSE 0 END) as p1_marathi_3, " +
+                     "SUM(CASE WHEN phase1_marathi = 4 THEN 1 ELSE 0 END) as p1_marathi_4, " +
+                     "SUM(CASE WHEN phase1_marathi = 5 THEN 1 ELSE 0 END) as p1_marathi_5, " +
+                     "SUM(CASE WHEN phase1_marathi = 6 THEN 1 ELSE 0 END) as p1_marathi_6, " +
+                     // Phase 1 counts - Math (0-8)
+                     "SUM(CASE WHEN phase1_math = 0 THEN 1 ELSE 0 END) as p1_math_0, " +
+                     "SUM(CASE WHEN phase1_math = 1 THEN 1 ELSE 0 END) as p1_math_1, " +
+                     "SUM(CASE WHEN phase1_math = 2 THEN 1 ELSE 0 END) as p1_math_2, " +
+                     "SUM(CASE WHEN phase1_math = 3 THEN 1 ELSE 0 END) as p1_math_3, " +
+                     "SUM(CASE WHEN phase1_math = 4 THEN 1 ELSE 0 END) as p1_math_4, " +
+                     "SUM(CASE WHEN phase1_math = 5 THEN 1 ELSE 0 END) as p1_math_5, " +
+                     "SUM(CASE WHEN phase1_math = 6 THEN 1 ELSE 0 END) as p1_math_6, " +
+                     "SUM(CASE WHEN phase1_math = 7 THEN 1 ELSE 0 END) as p1_math_7, " +
+                     "SUM(CASE WHEN phase1_math = 8 THEN 1 ELSE 0 END) as p1_math_8, " +
+                     // Phase 1 counts - English (0-6)
+                     "SUM(CASE WHEN phase1_english = 0 THEN 1 ELSE 0 END) as p1_english_0, " +
+                     "SUM(CASE WHEN phase1_english = 1 THEN 1 ELSE 0 END) as p1_english_1, " +
+                     "SUM(CASE WHEN phase1_english = 2 THEN 1 ELSE 0 END) as p1_english_2, " +
+                     "SUM(CASE WHEN phase1_english = 3 THEN 1 ELSE 0 END) as p1_english_3, " +
+                     "SUM(CASE WHEN phase1_english = 4 THEN 1 ELSE 0 END) as p1_english_4, " +
+                     "SUM(CASE WHEN phase1_english = 5 THEN 1 ELSE 0 END) as p1_english_5, " +
+                     "SUM(CASE WHEN phase1_english = 6 THEN 1 ELSE 0 END) as p1_english_6, " +
+                     // Phase 2 counts - Marathi (0-6)
+                     "SUM(CASE WHEN phase2_marathi = 0 THEN 1 ELSE 0 END) as p2_marathi_0, " +
+                     "SUM(CASE WHEN phase2_marathi = 1 THEN 1 ELSE 0 END) as p2_marathi_1, " +
+                     "SUM(CASE WHEN phase2_marathi = 2 THEN 1 ELSE 0 END) as p2_marathi_2, " +
+                     "SUM(CASE WHEN phase2_marathi = 3 THEN 1 ELSE 0 END) as p2_marathi_3, " +
+                     "SUM(CASE WHEN phase2_marathi = 4 THEN 1 ELSE 0 END) as p2_marathi_4, " +
+                     "SUM(CASE WHEN phase2_marathi = 5 THEN 1 ELSE 0 END) as p2_marathi_5, " +
+                     "SUM(CASE WHEN phase2_marathi = 6 THEN 1 ELSE 0 END) as p2_marathi_6, " +
+                     // Phase 2 counts - Math (0-8)
+                     "SUM(CASE WHEN phase2_math = 0 THEN 1 ELSE 0 END) as p2_math_0, " +
+                     "SUM(CASE WHEN phase2_math = 1 THEN 1 ELSE 0 END) as p2_math_1, " +
+                     "SUM(CASE WHEN phase2_math = 2 THEN 1 ELSE 0 END) as p2_math_2, " +
+                     "SUM(CASE WHEN phase2_math = 3 THEN 1 ELSE 0 END) as p2_math_3, " +
+                     "SUM(CASE WHEN phase2_math = 4 THEN 1 ELSE 0 END) as p2_math_4, " +
+                     "SUM(CASE WHEN phase2_math = 5 THEN 1 ELSE 0 END) as p2_math_5, " +
+                     "SUM(CASE WHEN phase2_math = 6 THEN 1 ELSE 0 END) as p2_math_6, " +
+                     "SUM(CASE WHEN phase2_math = 7 THEN 1 ELSE 0 END) as p2_math_7, " +
+                     "SUM(CASE WHEN phase2_math = 8 THEN 1 ELSE 0 END) as p2_math_8, " +
+                     // Phase 2 counts - English (0-6)
+                     "SUM(CASE WHEN phase2_english = 0 THEN 1 ELSE 0 END) as p2_english_0, " +
+                     "SUM(CASE WHEN phase2_english = 1 THEN 1 ELSE 0 END) as p2_english_1, " +
+                     "SUM(CASE WHEN phase2_english = 2 THEN 1 ELSE 0 END) as p2_english_2, " +
+                     "SUM(CASE WHEN phase2_english = 3 THEN 1 ELSE 0 END) as p2_english_3, " +
+                     "SUM(CASE WHEN phase2_english = 4 THEN 1 ELSE 0 END) as p2_english_4, " +
+                     "SUM(CASE WHEN phase2_english = 5 THEN 1 ELSE 0 END) as p2_english_5, " +
+                     "SUM(CASE WHEN phase2_english = 6 THEN 1 ELSE 0 END) as p2_english_6, " +
+                     // Phase 3 counts - Marathi (0-6)
+                     "SUM(CASE WHEN phase3_marathi = 0 THEN 1 ELSE 0 END) as p3_marathi_0, " +
+                     "SUM(CASE WHEN phase3_marathi = 1 THEN 1 ELSE 0 END) as p3_marathi_1, " +
+                     "SUM(CASE WHEN phase3_marathi = 2 THEN 1 ELSE 0 END) as p3_marathi_2, " +
+                     "SUM(CASE WHEN phase3_marathi = 3 THEN 1 ELSE 0 END) as p3_marathi_3, " +
+                     "SUM(CASE WHEN phase3_marathi = 4 THEN 1 ELSE 0 END) as p3_marathi_4, " +
+                     "SUM(CASE WHEN phase3_marathi = 5 THEN 1 ELSE 0 END) as p3_marathi_5, " +
+                     "SUM(CASE WHEN phase3_marathi = 6 THEN 1 ELSE 0 END) as p3_marathi_6, " +
+                     // Phase 3 counts - Math (0-8)
+                     "SUM(CASE WHEN phase3_math = 0 THEN 1 ELSE 0 END) as p3_math_0, " +
+                     "SUM(CASE WHEN phase3_math = 1 THEN 1 ELSE 0 END) as p3_math_1, " +
+                     "SUM(CASE WHEN phase3_math = 2 THEN 1 ELSE 0 END) as p3_math_2, " +
+                     "SUM(CASE WHEN phase3_math = 3 THEN 1 ELSE 0 END) as p3_math_3, " +
+                     "SUM(CASE WHEN phase3_math = 4 THEN 1 ELSE 0 END) as p3_math_4, " +
+                     "SUM(CASE WHEN phase3_math = 5 THEN 1 ELSE 0 END) as p3_math_5, " +
+                     "SUM(CASE WHEN phase3_math = 6 THEN 1 ELSE 0 END) as p3_math_6, " +
+                     "SUM(CASE WHEN phase3_math = 7 THEN 1 ELSE 0 END) as p3_math_7, " +
+                     "SUM(CASE WHEN phase3_math = 8 THEN 1 ELSE 0 END) as p3_math_8, " +
+                     // Phase 3 counts - English (0-6)
+                     "SUM(CASE WHEN phase3_english = 0 THEN 1 ELSE 0 END) as p3_english_0, " +
+                     "SUM(CASE WHEN phase3_english = 1 THEN 1 ELSE 0 END) as p3_english_1, " +
+                     "SUM(CASE WHEN phase3_english = 2 THEN 1 ELSE 0 END) as p3_english_2, " +
+                     "SUM(CASE WHEN phase3_english = 3 THEN 1 ELSE 0 END) as p3_english_3, " +
+                     "SUM(CASE WHEN phase3_english = 4 THEN 1 ELSE 0 END) as p3_english_4, " +
+                     "SUM(CASE WHEN phase3_english = 5 THEN 1 ELSE 0 END) as p3_english_5, " +
+                     "SUM(CASE WHEN phase3_english = 6 THEN 1 ELSE 0 END) as p3_english_6, " +
+                     // Phase 4 counts - Marathi (0-6)
+                     "SUM(CASE WHEN phase4_marathi = 0 THEN 1 ELSE 0 END) as p4_marathi_0, " +
+                     "SUM(CASE WHEN phase4_marathi = 1 THEN 1 ELSE 0 END) as p4_marathi_1, " +
+                     "SUM(CASE WHEN phase4_marathi = 2 THEN 1 ELSE 0 END) as p4_marathi_2, " +
+                     "SUM(CASE WHEN phase4_marathi = 3 THEN 1 ELSE 0 END) as p4_marathi_3, " +
+                     "SUM(CASE WHEN phase4_marathi = 4 THEN 1 ELSE 0 END) as p4_marathi_4, " +
+                     "SUM(CASE WHEN phase4_marathi = 5 THEN 1 ELSE 0 END) as p4_marathi_5, " +
+                     "SUM(CASE WHEN phase4_marathi = 6 THEN 1 ELSE 0 END) as p4_marathi_6, " +
+                     // Phase 4 counts - Math (0-8)
+                     "SUM(CASE WHEN phase4_math = 0 THEN 1 ELSE 0 END) as p4_math_0, " +
+                     "SUM(CASE WHEN phase4_math = 1 THEN 1 ELSE 0 END) as p4_math_1, " +
+                     "SUM(CASE WHEN phase4_math = 2 THEN 1 ELSE 0 END) as p4_math_2, " +
+                     "SUM(CASE WHEN phase4_math = 3 THEN 1 ELSE 0 END) as p4_math_3, " +
+                     "SUM(CASE WHEN phase4_math = 4 THEN 1 ELSE 0 END) as p4_math_4, " +
+                     "SUM(CASE WHEN phase4_math = 5 THEN 1 ELSE 0 END) as p4_math_5, " +
+                     "SUM(CASE WHEN phase4_math = 6 THEN 1 ELSE 0 END) as p4_math_6, " +
+                     "SUM(CASE WHEN phase4_math = 7 THEN 1 ELSE 0 END) as p4_math_7, " +
+                     "SUM(CASE WHEN phase4_math = 8 THEN 1 ELSE 0 END) as p4_math_8, " +
+                     // Phase 4 counts - English (0-6)
+                     "SUM(CASE WHEN phase4_english = 0 THEN 1 ELSE 0 END) as p4_english_0, " +
+                     "SUM(CASE WHEN phase4_english = 1 THEN 1 ELSE 0 END) as p4_english_1, " +
+                     "SUM(CASE WHEN phase4_english = 2 THEN 1 ELSE 0 END) as p4_english_2, " +
+                     "SUM(CASE WHEN phase4_english = 3 THEN 1 ELSE 0 END) as p4_english_3, " +
+                     "SUM(CASE WHEN phase4_english = 4 THEN 1 ELSE 0 END) as p4_english_4, " +
+                     "SUM(CASE WHEN phase4_english = 5 THEN 1 ELSE 0 END) as p4_english_5, " +
+                     "SUM(CASE WHEN phase4_english = 6 THEN 1 ELSE 0 END) as p4_english_6, " +
+                     "COUNT(*) as total_students " +
+                     "FROM students " +
+                     "WHERE udise_no = ? AND is_active = 1";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                // Store all counts in the map
+                for (int phase = 1; phase <= 4; phase++) {
+                    // Marathi counts (0-6)
+                    java.util.Map<String, Integer> marathiCounts = new java.util.HashMap<>();
+                    for (int level = 0; level <= 6; level++) {
+                        String columnName = "p" + phase + "_marathi_" + level;
+                        marathiCounts.put(String.valueOf(level), rs.getInt(columnName));
+                    }
+                    counts.put("phase" + phase + "_marathi", marathiCounts);
+                    
+                    // Math counts (0-8)
+                    java.util.Map<String, Integer> mathCounts = new java.util.HashMap<>();
+                    for (int level = 0; level <= 8; level++) {
+                        String columnName = "p" + phase + "_math_" + level;
+                        mathCounts.put(String.valueOf(level), rs.getInt(columnName));
+                    }
+                    counts.put("phase" + phase + "_math", mathCounts);
+                    
+                    // English counts (0-6)
+                    java.util.Map<String, Integer> englishCounts = new java.util.HashMap<>();
+                    for (int level = 0; level <= 6; level++) {
+                        String columnName = "p" + phase + "_english_" + level;
+                        englishCounts.put(String.valueOf(level), rs.getInt(columnName));
+                    }
+                    counts.put("phase" + phase + "_english", englishCounts);
+                }
+                counts.put("totalStudents", rs.getInt("total_students"));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting phase-wise subject counts: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return counts;
+    }
+    
+    /**
+     * Generate next available PEN number in format TEMPXXXXX
+     * @return Next PEN number (e.g., TEMP00001, TEMP00002, etc.)
+     */
+    public String generateNextPenNumber() {
+        String sql = "SELECT student_pen FROM students WHERE student_pen LIKE 'TEMP%' ORDER BY student_pen DESC LIMIT 1";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            
+            if (rs.next()) {
+                String lastPen = rs.getString("student_pen");
+                // Extract the numeric part (e.g., TEMP00123 -> 123)
+                String numericPart = lastPen.substring(4); // Remove "TEMP"
+                int nextNumber = Integer.parseInt(numericPart) + 1;
+                // Format with leading zeros (5 digits)
+                return String.format("TEMP%05d", nextNumber);
+            } else {
+                // No existing TEMP PEN numbers, start from TEMP00001
+                return "TEMP00001";
+            }
+            
+        } catch (SQLException | NumberFormatException e) {
+            System.err.println("Error generating PEN number: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: use timestamp-based PEN
+            return "TEMP" + String.format("%05d", (int)(System.currentTimeMillis() % 100000));
+        }
+    }
+    
+    /**
+     * Check if student has completed all 4 phases
+     */
+    public boolean hasCompletedAllPhases(int studentId) {
+        String sql = "SELECT phase1_date, phase2_date, phase3_date, phase4_date " +
+                     "FROM students WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getTimestamp("phase1_date") != null &&
+                       rs.getTimestamp("phase2_date") != null &&
+                       rs.getTimestamp("phase3_date") != null &&
+                       rs.getTimestamp("phase4_date") != null;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking phases completion: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * Check if student has achieved 100% FLN in all subjects
+     * Marathi: Level 6, Math: Level 8, English: Level 6
+     */
+    public boolean checkFlnCompletion(int studentId) {
+        String sql = "SELECT marathi_akshara_level, math_akshara_level, english_akshara_level " +
+                     "FROM students WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, studentId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int marathiLevel = rs.getInt("marathi_akshara_level");
+                int mathLevel = rs.getInt("math_akshara_level");
+                int englishLevel = rs.getInt("english_akshara_level");
+                
+                return marathiLevel == 6 && mathLevel == 8 && englishLevel == 6;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking FLN completion: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * Update FLN completion status for a student
+     */
+    public boolean updateFlnCompletionStatus(int studentId, boolean flnCompleted) {
+        String sql = "UPDATE students SET fln_completed = ?, updated_date = NOW() WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setBoolean(1, flnCompleted);
+            pstmt.setInt(2, studentId);
+            
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating FLN completion status: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * Restart phases for a student who completed all phases but didn't achieve 100% FLN
+     * Copies Phase 4 data to Phase 1 and clears all phase dates
+     */
+    public boolean restartPhasesWithPhase4Data(int studentId) {
+        String sql = "UPDATE students SET " +
+                     "phase1_marathi = phase4_marathi, " +
+                     "phase1_math = phase4_math, " +
+                     "phase1_english = phase4_english, " +
+                     "phase1_date = NULL, " +
+                     "phase2_marathi = NULL, " +
+                     "phase2_math = NULL, " +
+                     "phase2_english = NULL, " +
+                     "phase2_date = NULL, " +
+                     "phase3_marathi = NULL, " +
+                     "phase3_math = NULL, " +
+                     "phase3_english = NULL, " +
+                     "phase3_date = NULL, " +
+                     "phase4_marathi = NULL, " +
+                     "phase4_math = NULL, " +
+                     "phase4_english = NULL, " +
+                     "phase4_date = NULL, " +
+                     "updated_date = NOW() " +
+                     "WHERE student_id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, studentId);
+            int rowsAffected = pstmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                System.out.println("✓ Phases restarted for student ID: " + studentId + " with Phase 4 data copied to Phase 1");
+                return true;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error restarting phases: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    /**
+     * Check and handle student when standard is updated
+     * If FLN is not 100% complete, restart phases
+     */
+    public void handleStandardUpdate(int studentId) {
+        try {
+            // Check if student has completed all 4 phases
+            boolean allPhasesCompleted = hasCompletedAllPhases(studentId);
+            
+            if (allPhasesCompleted) {
+                // Check if FLN is 100% complete
+                boolean flnComplete = checkFlnCompletion(studentId);
+                
+                if (flnComplete) {
+                    // Mark student as FLN completed
+                    updateFlnCompletionStatus(studentId, true);
+                    System.out.println("✓ Student " + studentId + " marked as FLN completed");
+                } else {
+                    // Restart phases with Phase 4 data
+                    restartPhasesWithPhase4Data(studentId);
+                    System.out.println("✓ Student " + studentId + " phases restarted (FLN not 100%)");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error handling standard update: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

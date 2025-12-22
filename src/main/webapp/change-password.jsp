@@ -18,7 +18,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Change Password - VJNT Class Management System</title>
+    <title>Change Password - GATEE PORTAL </title>
     <style>
         * {
             margin: 0;

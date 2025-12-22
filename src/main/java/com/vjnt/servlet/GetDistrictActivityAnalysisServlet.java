@@ -41,11 +41,13 @@ public class GetDistrictActivityAnalysisServlet extends HttpServlet {
         JsonArray districtsArray = new JsonArray();
 
         try (Connection conn = DatabaseConnection.getConnection()) {
+            long startTime = System.currentTimeMillis();
 
-            // Get all districts in this division with their activity analysis
-            String districtSql = "SELECT DISTINCT district " +
+            // Optimized query to get districts with student counts in single query
+            String districtSql = "SELECT district, COUNT(*) as total_students " +
                                 "FROM students " +
-                                "WHERE division = ? " +
+                                "WHERE division = ? AND is_active = 1 " +
+                                "GROUP BY district " +
                                 "ORDER BY district";
 
             PreparedStatement ps = conn.prepareStatement(districtSql);
@@ -54,18 +56,16 @@ public class GetDistrictActivityAnalysisServlet extends HttpServlet {
 
             while (rs.next()) {
                 String districtName = rs.getString("district");
+                int totalStudents = rs.getInt("total_students");
 
                 JsonObject districtData = new JsonObject();
                 districtData.addProperty("districtName", districtName);
-
-                // Get total students in this district
-                int totalStudents = getTotalStudents(conn, districtName);
                 districtData.addProperty("totalStudents", totalStudents);
 
                 // Get phase-wise analysis
                 JsonArray phasesArray = new JsonArray();
                 for (int phase = 1; phase <= 4; phase++) {
-                    JsonObject phaseData = getPhaseAnalysis(conn, districtName, phase);
+                    JsonObject phaseData = getPhaseAnalysisOptimized(conn, districtName, phase);
                     phasesArray.add(phaseData);
                 }
                 districtData.add("phases", phasesArray);
@@ -76,6 +76,10 @@ public class GetDistrictActivityAnalysisServlet extends HttpServlet {
             result.addProperty("success", true);
             result.addProperty("division", divisionName);
             result.add("districts", districtsArray);
+            
+            long endTime = System.currentTimeMillis();
+            System.out.println("GetDistrictActivityAnalysisServlet - Data fetched in " + (endTime - startTime) + "ms");
+            System.out.println("GetDistrictActivityAnalysisServlet - Total districts: " + districtsArray.size());
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -86,15 +90,70 @@ public class GetDistrictActivityAnalysisServlet extends HttpServlet {
         response.getWriter().write(new Gson().toJson(result));
     }
 
-    private int getTotalStudents(Connection conn, String districtName) throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM students WHERE district = ? AND is_active = 1";
+    private JsonObject getPhaseAnalysisOptimized(Connection conn, String districtName, int phase) throws SQLException {
+        JsonObject phaseData = new JsonObject();
+        phaseData.addProperty("phaseNumber", phase);
+
+        String dateColumn = "phase" + phase + "_date";
+        String marathiColumn = "phase" + phase + "_marathi";
+        String mathColumn = "phase" + phase + "_math";
+        String englishColumn = "phase" + phase + "_english";
+
+        // Single optimized query to get all subject distributions at once
+        String sql = "SELECT " +
+                    marathiColumn + " as marathi_level, " +
+                    mathColumn + " as math_level, " +
+                    englishColumn + " as english_level " +
+                    "FROM students " +
+                    "WHERE district = ? AND " + dateColumn + " IS NOT NULL";
+
         PreparedStatement ps = conn.prepareStatement(sql);
         ps.setString(1, districtName);
         ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            return rs.getInt("total");
+
+        // Count distributions in memory (faster than multiple DB queries)
+        Map<Integer, Integer> marathiMap = new LinkedHashMap<>();
+        Map<Integer, Integer> mathMap = new LinkedHashMap<>();
+        Map<Integer, Integer> englishMap = new LinkedHashMap<>();
+
+        // Initialize all levels to 0
+        for (int i = 0; i <= 6; i++) {
+            marathiMap.put(i, 0);
+            englishMap.put(i, 0);
         }
-        return 0;
+        for (int i = 0; i <= 8; i++) {
+            mathMap.put(i, 0);
+        }
+
+        // Count occurrences
+        while (rs.next()) {
+            Integer marathiLevel = rs.getObject("marathi_level") != null ? rs.getInt("marathi_level") : 0;
+            Integer mathLevel = rs.getObject("math_level") != null ? rs.getInt("math_level") : 0;
+            Integer englishLevel = rs.getObject("english_level") != null ? rs.getInt("english_level") : 0;
+
+            marathiMap.put(marathiLevel, marathiMap.get(marathiLevel) + 1);
+            mathMap.put(mathLevel, mathMap.get(mathLevel) + 1);
+            englishMap.put(englishLevel, englishMap.get(englishLevel) + 1);
+        }
+
+        // Convert to JSON arrays
+        phaseData.add("marathiLevels", buildLevelArray(marathiMap, "marathi"));
+        phaseData.add("mathLevels", buildLevelArray(mathMap, "math"));
+        phaseData.add("englishLevels", buildLevelArray(englishMap, "english"));
+
+        return phaseData;
+    }
+
+    private JsonArray buildLevelArray(Map<Integer, Integer> levelMap, String subject) {
+        JsonArray levelsArray = new JsonArray();
+        for (Map.Entry<Integer, Integer> entry : levelMap.entrySet()) {
+            JsonObject levelData = new JsonObject();
+            levelData.addProperty("level", entry.getKey());
+            levelData.addProperty("levelName", getLevelName(entry.getKey(), subject));
+            levelData.addProperty("studentCount", entry.getValue());
+            levelsArray.add(levelData);
+        }
+        return levelsArray;
     }
 
     private JsonObject getPhaseAnalysis(Connection conn, String districtName, int phase) throws SQLException {
@@ -192,10 +251,10 @@ public class GetDistrictActivityAnalysisServlet extends HttpServlet {
             switch (level) {
                 case 0: return "Level Not Set";
                 case 1: return "Beginner level";
-                case 2: return "Letter level";
+                case 2: return "Alphabet level";
                 case 3: return "Word level";
                 case 4: return "Sentence level";
-                case 5: return "Reading comprehension and dictation level";
+                case 5: return "Paragraph Reading with Understanding";
                 case 6: return "English reading and writing FLN level 100% complete";
                 default: return "Unknown";
             }

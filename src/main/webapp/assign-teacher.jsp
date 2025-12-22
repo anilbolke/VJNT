@@ -74,8 +74,8 @@
     List<Map<String, Object>> assignments = new ArrayList<>();
     try {
         conn = DatabaseConnection.getConnection();
-        String sql = "SELECT assignment_id, teacher_name, class, section, subjects_assigned, created_date " +
-                     "FROM teacher_assignments WHERE udise_code = ? AND is_active = 1 ORDER BY class, section, teacher_name";
+        String sql = "SELECT assignment_id, teacher_name, class, section, subjects_assigned, is_class_teacher, created_date " +
+                     "FROM teacher_assignments WHERE udise_code = ? AND is_active = 1 ORDER BY is_class_teacher DESC, class, section, teacher_name";
         pstmt = conn.prepareStatement(sql);
         pstmt.setString(1, udiseCode);
         rs = pstmt.executeQuery();
@@ -87,6 +87,7 @@
             assignment.put("class", rs.getString("class"));
             assignment.put("section", rs.getString("section"));
             assignment.put("subjects", rs.getString("subjects_assigned"));
+            assignment.put("isClassTeacher", rs.getBoolean("is_class_teacher"));
             assignment.put("createdDate", rs.getTimestamp("created_date"));
             assignments.add(assignment);
         }
@@ -321,6 +322,60 @@
             margin-bottom: 5px;
         }
         
+        .class-teacher-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-right: 5px;
+            box-shadow: 0 2px 5px rgba(255, 215, 0, 0.4);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 2px 5px rgba(255, 215, 0, 0.4); }
+            50% { box-shadow: 0 2px 15px rgba(255, 215, 0, 0.8); }
+        }
+        
+        .class-teacher-row {
+            background: #fffbf0 !important;
+            border-left: 4px solid #ffd700;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+        
+        .checkbox-item:hover {
+            background: #e3f2fd;
+            border-color: #667eea;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .checkbox-item.class-teacher-checkbox {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff4cc 100%);
+            border: 2px solid #ffd700;
+        }
+        
+        .checkbox-item.class-teacher-checkbox label {
+            font-weight: 700;
+            color: #b8860b;
+        }
+        
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -421,7 +476,7 @@
         <div class="header">
             <div>
                 <h1>👨‍🏫 Assign Teacher to Class</h1>
-                <p style="margin-top: 5px; opacity: 0.9;">शिक्षक वर्ग नियुक्ती / Assign teachers to classes and subjects</p>
+                <p style="margin-top: 5px; opacity: 0.9;">(वर्ग शिक्षक / विषय शिक्षक निश्चिती) / Class teacher / Subject teacher assignment</p>
             </div>
             <a href="<%= request.getContextPath() %>/school-dashboard-enhanced.jsp" class="btn">
                 ← Back to Dashboard
@@ -506,6 +561,17 @@
                         <span id="subjectError" style="color: red; font-size: 12px; display: none;">Please select at least one subject</span>
                     </div>
                     
+                    <div class="form-group" id="classTeacherCheckbox" style="display: none; margin-top: 20px;">
+                        <div class="checkbox-item class-teacher-checkbox">
+                            <input type="checkbox" id="isClassTeacher" name="isClassTeacher" value="1" onchange="handleClassTeacherChange()">
+                            <label for="isClassTeacher" style="cursor: pointer; margin: 0; font-size: 14px;">
+                                👨‍🏫 Mark as Class Teacher (वर्ग शिक्षक)
+                            </label>
+                        </div>
+                        <span id="classTeacherError" style="color: red; font-size: 12px; display: none; margin-top: 8px; display: block;"></span>
+                        <span id="classTeacherWarning" style="color: #f57c00; font-size: 12px; display: none; margin-top: 8px; display: block;"></span>
+                    </div>
+                    
                     <div style="margin-top: 30px; display: flex; gap: 15px;">
                         <button type="submit" class="btn btn-success">💾 Save Assignment</button>
                         <button type="button" class="btn" onclick="resetForm()">🔄 Reset</button>
@@ -531,6 +597,7 @@
                                 <th>Teacher Name</th>
                                 <th>Class</th>
                                 <th>Section</th>
+                                <th>Class Teacher</th>
                                 <th>Subjects Assigned</th>
                                 <th>Actions</th>
                             </tr>
@@ -539,12 +606,20 @@
                             <% for (int i = 0; i < assignments.size(); i++) {
                                 Map<String, Object> assignment = assignments.get(i);
                                 String[] subjects = ((String)assignment.get("subjects")).split(",");
+                                boolean isClassTeacher = (Boolean)assignment.get("isClassTeacher");
                             %>
-                            <tr>
+                            <tr class="<%= isClassTeacher ? "class-teacher-row" : "" %>">
                                 <td><%= i + 1 %></td>
                                 <td><strong><%= assignment.get("teacherName") %></strong></td>
                                 <td><%= assignment.get("class") %></td>
                                 <td><%= assignment.get("section") %></td>
+                                <td style="text-align: center;">
+                                    <% if (isClassTeacher) { %>
+                                        <span class="class-teacher-badge">👨‍🏫 CLASS TEACHER</span>
+                                    <% } else { %>
+                                        <span style="color: #999;">—</span>
+                                    <% } %>
+                                </td>
                                 <td>
                                     <% for (String subject : subjects) { %>
                                         <span class="subject-badge"><%= subject.trim() %></span>
@@ -645,7 +720,8 @@
                 teacherName: '<%= ((String)assignment.get("teacherName")).replace("'", "\\'") %>',
                 class: '<%= assignment.get("class") %>',
                 section: '<%= assignment.get("section") %>',
-                subjects: '<%= assignment.get("subjects") %>'
+                subjects: '<%= assignment.get("subjects") %>',
+                isClassTeacher: <%= assignment.get("isClassTeacher") %>
             }
             <% } %>
         ];
@@ -674,6 +750,7 @@
             
             if (selectedOption.value === '') {
                 document.getElementById('subjectCheckboxes').style.display = 'none';
+                document.getElementById('classTeacherCheckbox').style.display = 'none';
                 return;
             }
             
@@ -694,6 +771,55 @@
             });
             
             document.getElementById('subjectCheckboxes').style.display = 'block';
+            
+            // Show class teacher checkbox if class and section are selected
+            const classVal = document.getElementById('classSelect').value;
+            const section = document.getElementById('sectionSelect').value;
+            if (classVal && section) {
+                document.getElementById('classTeacherCheckbox').style.display = 'block';
+                checkExistingClassTeacher();
+            }
+        }
+        
+        function handleClassTeacherChange() {
+            const isChecked = document.getElementById('isClassTeacher').checked;
+            const classVal = document.getElementById('classSelect').value;
+            const section = document.getElementById('sectionSelect').value;
+            
+            if (isChecked && classVal && section) {
+                checkExistingClassTeacher();
+            } else {
+                document.getElementById('classTeacherError').style.display = 'none';
+                document.getElementById('classTeacherWarning').style.display = 'none';
+            }
+        }
+        
+        function checkExistingClassTeacher() {
+            const classVal = document.getElementById('classSelect').value;
+            const section = document.getElementById('sectionSelect').value;
+            const isClassTeacherChecked = document.getElementById('isClassTeacher').checked;
+            
+            if (!isClassTeacherChecked) return;
+            
+            // Check if this class-section already has a class teacher
+            const existingClassTeacher = assignmentsData.find(a => 
+                a.class === classVal && 
+                a.section === section && 
+                a.isClassTeacher === true
+            );
+            
+            const errorSpan = document.getElementById('classTeacherError');
+            const warningSpan = document.getElementById('classTeacherWarning');
+            
+            if (existingClassTeacher) {
+                errorSpan.textContent = `⚠️ Warning: ${existingClassTeacher.teacherName} is already the class teacher for Class ${classVal} Section ${section}.`;
+                errorSpan.style.display = 'block';
+                warningSpan.textContent = 'Proceeding will replace the existing class teacher with this teacher.';
+                warningSpan.style.display = 'block';
+            } else {
+                errorSpan.style.display = 'none';
+                warningSpan.style.display = 'none';
+            }
         }
         
         function submitAssignment(event) {
@@ -717,15 +843,47 @@
             const teacherSelect = document.getElementById('teacherSelect');
             const teacherName = teacherSelect.options[teacherSelect.selectedIndex].getAttribute('data-name');
             
+            // Get class teacher checkbox value
+            const isClassTeacher = document.getElementById('isClassTeacher').checked ? 1 : 0;
+            const classVal = formData.get('class');
+            const section = formData.get('section');
+            
+            // Check if trying to assign class teacher when one already exists
+            if (isClassTeacher === 1) {
+                const existingClassTeacher = assignmentsData.find(a => 
+                    a.class === classVal && 
+                    a.section === section && 
+                    a.isClassTeacher === true
+                );
+                
+                if (existingClassTeacher) {
+                    // Show confirmation popup for replacement
+                    const confirmReplace = confirm(
+                        `⚠️ WARNING: Class Teacher Already Exists!\n\n` +
+                        `Current Class Teacher: ${existingClassTeacher.teacherName}\n` +
+                        `Class: ${classVal}, Section: ${section}\n\n` +
+                        `Do you want to REPLACE ${existingClassTeacher.teacherName} with ${teacherName} as the class teacher?\n\n` +
+                        `Click OK to replace, or Cancel to keep the existing class teacher.`
+                    );
+                    
+                    if (!confirmReplace) {
+                        // User cancelled - uncheck the class teacher checkbox
+                        document.getElementById('isClassTeacher').checked = false;
+                        return;
+                    }
+                }
+            }
+            
             const data = new URLSearchParams();
             data.append('udiseCode', formData.get('udiseCode'));
             data.append('district', formData.get('district'));
             data.append('division', formData.get('division'));
-            data.append('class', formData.get('class'));
-            data.append('section', formData.get('section'));
+            data.append('class', classVal);
+            data.append('section', section);
             data.append('teacherId', formData.get('teacherId'));
             data.append('teacherName', teacherName);
             data.append('subjects', subjects.join(','));
+            data.append('isClassTeacher', isClassTeacher);
             
             console.log('Submitting assignment:', Object.fromEntries(data));
             

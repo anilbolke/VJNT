@@ -182,7 +182,8 @@ public class ExcelUploadServlet extends HttpServlet {
             
             // FAST-TRACK: Pre-load all existing PENs to avoid repeated DB queries
             List<String> allPensInFile = new ArrayList<>();
-            System.out.println("📊 FAST-TRACK: Pre-scanning file for all PENs...");
+            Set<String> allUdiseInFile = new HashSet<>();
+            System.out.println("📊 FAST-TRACK: Pre-scanning file for all PENs and UDISE numbers...");
             for (int i = 1; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
                 if (row != null) {
@@ -190,12 +191,23 @@ public class ExcelUploadServlet extends HttpServlet {
                     if (!isEmpty(studentPen)) {
                         allPensInFile.add(studentPen);
                     }
+                    String udiseNo = getCellValue(row.getCell(2)).trim();
+                    if (!isEmpty(udiseNo)) {
+                        allUdiseInFile.add(udiseNo);
+                    }
                 }
             }
             
             // Load existing PENs in bulk (single query instead of thousands)
             Set<String> existingPens = new HashSet<>(studentDAO.getExistingPens(allPensInFile));
             System.out.println("✓ Found " + existingPens.size() + " existing students");
+            
+            // Load existing UDISE numbers with users in bulk (single query instead of thousands)
+            System.out.println("📊 Total unique UDISE numbers in Excel file: " + allUdiseInFile.size());
+            Set<String> existingUdiseUsers = userDAO.getExistingUdiseNumbers(allUdiseInFile);
+            System.out.println("✓ Found " + existingUdiseUsers.size() + " UDISE numbers with existing users");
+            int udiseNeedingUsers = allUdiseInFile.size() - existingUdiseUsers.size();
+            System.out.println("📝 UDISE numbers needing users: " + udiseNeedingUsers + " (will create " + (udiseNeedingUsers * 2) + " users: SR + HM for each)");
             
             // Process data rows (skip header)
             long startTime = System.currentTimeMillis();
@@ -226,10 +238,49 @@ public class ExcelUploadServlet extends HttpServlet {
                         continue;
                     }
                     
+                    // Track unique divisions, districts, and UDISE for user creation
+                    // DO THIS FIRST - before checking if student exists
+                    // This ensures users are created even if all students already exist
+                    if (!isEmpty(division) && !processedDivisions.contains(division)) {
+                        processedDivisions.add(division);
+                        User divUser = createDivisionUserObject(division, uploadedBy);
+                        userBatch.add(divUser);
+                    }
+                    
+                    if (!isEmpty(district) && !processedDistricts.contains(district)) {
+                        processedDistricts.add(district);
+                        User dcUser1 = createDistrictUserObject(district, division, "DC1", uploadedBy);
+                        User dcUser2 = createDistrictUserObject(district, division, "DC2", uploadedBy);
+                        userBatch.add(dcUser1);
+                        userBatch.add(dcUser2);
+                    }
+                    
+                    if (!isEmpty(udiseNo) && !processedUdiseNumbers.contains(udiseNo)) {
+                        processedUdiseNumbers.add(udiseNo);
+                        
+                        // Check if users for this UDISE already exist in database
+                        if (!existingUdiseUsers.contains(udiseNo)) {
+                            User scUser = createSchoolUserObject(udiseNo, district, division, "SR", uploadedBy);
+                            User hmUser = createSchoolUserObject(udiseNo, district, division, "HM", uploadedBy);
+                            userBatch.add(scUser);
+                            userBatch.add(hmUser);
+                            System.out.println("✓ Queued users for UDISE " + udiseNo + " (SR: " + scUser.getUsername() + ", HM: " + hmUser.getUsername() + ")");
+                        } else {
+                            System.out.println("⚠ Skipping users for UDISE " + udiseNo + " - already exist in database");
+                        }
+                    }
+                    
+                    // Flush user batch when it reaches size
+                    if (userBatch.size() >= BATCH_SIZE) {
+                        int inserted = userDAO.batchCreateUsers(userBatch);
+                        result.usersCreated += inserted;
+                        userBatch.clear();
+                    }
+                    
                     // FAST-TRACK: Check against pre-loaded PENs (no DB query)
                     if (!isEmpty(studentPen) && existingPens.contains(studentPen)) {
                         result.studentsSkipped++;
-                        continue;
+                        continue;  // Skip student creation, but users are already queued above
                     }
                     
                     // Log UDISE number for debugging
@@ -263,29 +314,6 @@ public class ExcelUploadServlet extends HttpServlet {
                         studentBatch.clear();
                     }
                     
-                    // Track unique divisions, districts, and UDISE for user creation
-                    if (!isEmpty(division) && !processedDivisions.contains(division)) {
-                        processedDivisions.add(division);
-                        User divUser = createDivisionUserObject(division, uploadedBy);
-                        userBatch.add(divUser);
-                    }
-                    
-                    if (!isEmpty(district) && !processedDistricts.contains(district)) {
-                        processedDistricts.add(district);
-                        User dcUser1 = createDistrictUserObject(district, division, "DC1", uploadedBy);
-                        User dcUser2 = createDistrictUserObject(district, division, "DC2", uploadedBy);
-                        userBatch.add(dcUser1);
-                        userBatch.add(dcUser2);
-                    }
-                    
-                    if (!isEmpty(udiseNo) && !processedUdiseNumbers.contains(udiseNo)) {
-                        processedUdiseNumbers.add(udiseNo);
-                        User scUser = createSchoolUserObject(udiseNo, district, division, "SR", uploadedBy);
-                        User hmUser = createSchoolUserObject(udiseNo, district, division, "HM", uploadedBy);
-                        userBatch.add(scUser);
-                        userBatch.add(hmUser);
-                    }
-                    
                     // Flush user batch when it reaches size
                     if (userBatch.size() >= BATCH_SIZE) {
                         int inserted = userDAO.batchCreateUsers(userBatch);
@@ -306,14 +334,19 @@ public class ExcelUploadServlet extends HttpServlet {
             }
             
             if (!userBatch.isEmpty()) {
+                System.out.println("📝 Flushing final user batch: " + userBatch.size() + " users");
                 int inserted = userDAO.batchCreateUsers(userBatch);
                 result.usersCreated += inserted;
+                System.out.println("✓ Final batch inserted: " + inserted + " users");
             }
             
             long duration = System.currentTimeMillis() - startTime;
             System.out.println("✓ Excel processing completed in " + duration + "ms");
             System.out.println("  - Students created: " + result.studentsCreated);
             System.out.println("  - Users created: " + result.usersCreated);
+            System.out.println("  - Total UDISE numbers processed: " + processedUdiseNumbers.size());
+            System.out.println("  - UDISE numbers with existing users (skipped): " + existingUdiseUsers.size());
+            System.out.println("  - UDISE numbers that should have new users: " + (processedUdiseNumbers.size() - existingUdiseUsers.size()));
             
             result.divisionsProcessed = processedDivisions.size();
             result.districtsProcessed = processedDistricts.size();

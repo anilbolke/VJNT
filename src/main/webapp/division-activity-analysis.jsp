@@ -497,9 +497,14 @@
         <!-- Search/Filter -->
         <div class="search-filter" id="searchFilter" style="display: none;">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Search district by name..." onkeyup="filterDistricts()">
+                <input type="text" id="searchInput" placeholder="🔍 Search district by name..." onkeyup="if(event.key==='Enter') applyFilter()">
             </div>
+            <button class="pagination-btn" onclick="applyFilter()" style="padding: 12px 24px;">Apply Filter</button>
+            <button class="pagination-btn" onclick="resetFilter()" style="padding: 12px 24px; background: #6c757d;">Reset</button>
         </div>
+        
+        <!-- Pagination Top -->
+        <div id="paginationTop"></div>
         
         <!-- Content -->
         <div id="content">
@@ -509,6 +514,9 @@
                 <p style="margin-top: 8px; font-size: 14px; color: #999;">Please wait while we fetch the information</p>
             </div>
         </div>
+        
+        <!-- Pagination Bottom -->
+        <div id="paginationBottom"></div>
     </div>
     
     <!-- Help Modal -->
@@ -536,7 +544,7 @@
             <ul>
                 <li>Level 0: Not yet assessed</li>
                 <li>Level 1: Beginning level (प्रारंभिक स्तर)</li>
-                <li>Level 2: Letter level (अक्षर स्तर)</li>
+                <li>Level 2: Alphabet level (अक्षर स्तर)</li>
                 <li>Level 3: Word level (शब्द स्तर)</li>
                 <li>Level 4: Sentence level (वाक्य स्तर)</li>
                 <li>Level 5: Reading comprehension (समजपूर्वक उतारा वाचन)</li>
@@ -557,11 +565,22 @@
     </div>
     
     <script>
+        // Pagination and filtering state
+        let allDistricts = []; // Store all districts data
+        let filteredDistricts = []; // Store filtered districts
+        let currentPage = 1;
+        let itemsPerPage = 5;
+        
         // Fetch data on page load
         window.onload = function() {
+            const startTime = performance.now();
+            
             fetch('GetDistrictActivityAnalysisServlet')
                 .then(response => response.json())
                 .then(data => {
+                    const loadTime = performance.now() - startTime;
+                    console.log('Data loaded in ' + loadTime.toFixed(2) + 'ms');
+                    
                     if (data.success) {
                         displayData(data);
                     } else {
@@ -577,19 +596,49 @@
         };
         
         function displayData(data) {
+            allDistricts = data.districts || [];
+            filteredDistricts = allDistricts;
+            currentPage = 1;
+            
+            if (!allDistricts || allDistricts.length === 0) {
+                document.getElementById('content').innerHTML = 
+                    '<div class="no-data">' +
+                    '  <div class="no-data-icon">📊</div>' +
+                    '  <h3>No Data Available</h3>' +
+                    '  <p>There are no districts found in this division.</p>' +
+                    '</div>';
+                return;
+            }
+            
+            // Update stats overview
+            updateStats(data);
+            
+            // Show search filter
+            document.getElementById('searchFilter').style.display = 'flex';
+            
+            // Render paginated districts
+            renderPaginatedDistricts();
+        }
+        
+        function renderPaginatedDistricts() {
+            const startTime = performance.now();
+            
+            // Calculate pagination
+            const totalItems = filteredDistricts.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+            const districtsToDisplay = filteredDistricts.slice(startIndex, endIndex);
+            
+            // Render districts
             const content = document.getElementById('content');
             let html = '';
             
-            if (!data.districts || data.districts.length === 0) {
-                html = '<div class="no-data">';
-                html += '  <div class="no-data-icon">📊</div>';
-                html += '  <h3>No Data Available</h3>';
-                html += '  <p>There are no districts found in this division.</p>';
-                html += '</div>';
+            if (districtsToDisplay.length === 0) {
+                html = '<div class="no-results">No districts match your filter criteria.</div>';
             } else {
-                // Update stats overview
-                updateStats(data);
-                data.districts.forEach((district, districtIndex) => {
+                districtsToDisplay.forEach((district, index) => {
+                    const districtIndex = startIndex + index; // Use global index for unique IDs
                     html += '<div class="district-card">';
                     html += '  <div class="district-header">';
                     html += '    <div class="district-name">🏛️ ' + escapeHtml(district.districtName) + '</div>';
@@ -606,51 +655,17 @@
                     }
                     html += '  </div>';
                     
-                    // Phase contents
+                    // Phase contents - render only Phase 1 initially for performance
                     district.phases.forEach((phase, phaseIndex) => {
-                        html += '  <div class="phase-content ' + (phaseIndex === 0 ? 'active' : '') + '" id="district' + districtIndex + '_phase' + phase.phaseNumber + '">';
+                        html += '  <div class="phase-content ' + (phaseIndex === 0 ? 'active' : '') + '" id="district' + districtIndex + '_phase' + phase.phaseNumber + '" data-phase="' + phase.phaseNumber + '" data-district="' + districtIndex + '">';
                         
-                        // Marathi section
-                        html += '    <div class="subject-section">';
-                        html += '      <div class="subject-title marathi-title">📘 MARATHI LEVELS</div>';
-                        html += '      <div class="level-grid">';
-                        phase.marathiLevels.forEach(level => {
-                            html += '        <div class="level-card">';
-                            html += '          <div class="level-name">' + escapeHtml(level.levelName) + '</div>';
-                            html += '          <div class="level-count">' + level.studentCount + '</div>';
-                            html += '          <div class="level-count-label">students</div>';
-                            html += '        </div>';
-                        });
-                        html += '      </div>';
-                        html += '    </div>';
-                        
-                        // Math section
-                        html += '    <div class="subject-section">';
-                        html += '      <div class="subject-title math-title">🔢 MATH LEVELS</div>';
-                        html += '      <div class="level-grid">';
-                        phase.mathLevels.forEach(level => {
-                            html += '        <div class="level-card">';
-                            html += '          <div class="level-name">' + escapeHtml(level.levelName) + '</div>';
-                            html += '          <div class="level-count">' + level.studentCount + '</div>';
-                            html += '          <div class="level-count-label">students</div>';
-                            html += '        </div>';
-                        });
-                        html += '      </div>';
-                        html += '    </div>';
-                        
-                        // English section
-                        html += '    <div class="subject-section">';
-                        html += '      <div class="subject-title english-title">🔤 ENGLISH LEVELS</div>';
-                        html += '      <div class="level-grid">';
-                        phase.englishLevels.forEach(level => {
-                            html += '        <div class="level-card">';
-                            html += '          <div class="level-name">' + escapeHtml(level.levelName) + '</div>';
-                            html += '          <div class="level-count">' + level.studentCount + '</div>';
-                            html += '          <div class="level-count-label">students</div>';
-                            html += '        </div>';
-                        });
-                        html += '      </div>';
-                        html += '    </div>';
+                        if (phaseIndex === 0) {
+                            // Render Phase 1 immediately
+                            html += renderPhaseContent(phase);
+                        } else {
+                            // Lazy load other phases
+                            html += '    <div class="loading" style="padding: 40px; text-align: center; color: #667eea;">Loading phase data...</div>';
+                        }
                         
                         html += '  </div>';
                     });
@@ -660,11 +675,147 @@
             }
             
             content.innerHTML = html;
+            
+            // Render pagination
+            renderPagination(totalItems, totalPages, startIndex, endIndex);
+            
+            const renderTime = performance.now() - startTime;
+            console.log('Rendered ' + districtsToDisplay.length + ' districts in ' + renderTime.toFixed(2) + 'ms');
+        }
+        
+        function renderPhaseContent(phase) {
+            let html = '';
+            
+            // Marathi section
+            html += '    <div class="subject-section">';
+            html += '      <div class="subject-title marathi-title">📘 MARATHI LEVELS</div>';
+            html += '      <div class="level-grid">';
+            phase.marathiLevels.forEach(level => {
+                html += '        <div class="level-card">';
+                html += '          <div class="level-name">' + escapeHtml(level.levelName) + '</div>';
+                html += '          <div class="level-count">' + level.studentCount + '</div>';
+                html += '          <div class="level-count-label">students</div>';
+                html += '        </div>';
+            });
+            html += '      </div>';
+            html += '    </div>';
+            
+            // Math section
+            html += '    <div class="subject-section">';
+            html += '      <div class="subject-title math-title">🔢 MATH LEVELS</div>';
+            html += '      <div class="level-grid">';
+            phase.mathLevels.forEach(level => {
+                html += '        <div class="level-card">';
+                html += '          <div class="level-name">' + escapeHtml(level.levelName) + '</div>';
+                html += '          <div class="level-count">' + level.studentCount + '</div>';
+                html += '          <div class="level-count-label">students</div>';
+                html += '        </div>';
+            });
+            html += '      </div>';
+            html += '    </div>';
+            
+            // English section
+            html += '    <div class="subject-section">';
+            html += '      <div class="subject-title english-title">🔤 ENGLISH LEVELS</div>';
+            html += '      <div class="level-grid">';
+            phase.englishLevels.forEach(level => {
+                html += '        <div class="level-card">';
+                html += '          <div class="level-name">' + escapeHtml(level.levelName) + '</div>';
+                html += '          <div class="level-count">' + level.studentCount + '</div>';
+                html += '          <div class="level-count-label">students</div>';
+                html += '        </div>';
+            });
+            html += '      </div>';
+            html += '    </div>';
+            
+            return html;
+        }
+        
+        function renderPagination(totalItems, totalPages, startIndex, endIndex) {
+            let paginationHtml = '<div class="pagination-section">';
+            
+            // Left side - Info and page size selector
+            paginationHtml += '<div style="display: flex; gap: 20px; align-items: center;">';
+            paginationHtml += '  <div class="pagination-info">Showing ' + (startIndex + 1) + '-' + endIndex + ' of ' + totalItems + ' districts</div>';
+            paginationHtml += '  <div class="page-size-selector">';
+            paginationHtml += '    <label>Per page:</label>';
+            paginationHtml += '    <select onchange="changePageSize(this.value)">';
+            paginationHtml += '      <option value="5"' + (itemsPerPage === 5 ? ' selected' : '') + '>5</option>';
+            paginationHtml += '      <option value="10"' + (itemsPerPage === 10 ? ' selected' : '') + '>10</option>';
+            paginationHtml += '      <option value="20"' + (itemsPerPage === 20 ? ' selected' : '') + '>20</option>';
+            paginationHtml += '      <option value="50"' + (itemsPerPage === 50 ? ' selected' : '') + '>50</option>';
+            paginationHtml += '    </select>';
+            paginationHtml += '  </div>';
+            paginationHtml += '</div>';
+            
+            // Right side - Pagination controls
+            paginationHtml += '<div class="pagination-controls">';
+            paginationHtml += '  <button class="pagination-btn" onclick="goToPage(1)" ' + (currentPage === 1 ? 'disabled' : '') + '>First</button>';
+            paginationHtml += '  <button class="pagination-btn" onclick="goToPage(' + (currentPage - 1) + ')" ' + (currentPage === 1 ? 'disabled' : '') + '>Previous</button>';
+            
+            // Page numbers (show max 5 pages)
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            startPage = Math.max(1, endPage - 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHtml += '  <button class="page-number ' + (i === currentPage ? 'active' : '') + '" onclick="goToPage(' + i + ')">' + i + '</button>';
+            }
+            
+            paginationHtml += '  <button class="pagination-btn" onclick="goToPage(' + (currentPage + 1) + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>Next</button>';
+            paginationHtml += '  <button class="pagination-btn" onclick="goToPage(' + totalPages + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>Last</button>';
+            paginationHtml += '</div>';
+            
+            paginationHtml += '</div>';
+            
+            document.getElementById('paginationTop').innerHTML = paginationHtml;
+            document.getElementById('paginationBottom').innerHTML = paginationHtml;
+        }
+        
+        function goToPage(page) {
+            currentPage = page;
+            renderPaginatedDistricts();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function changePageSize(newSize) {
+            itemsPerPage = parseInt(newSize);
+            currentPage = 1;
+            renderPaginatedDistricts();
+        }
+        
+        function applyFilter() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            filteredDistricts = allDistricts.filter(district => {
+                const districtNameMatch = !searchTerm || 
+                    (district.districtName && district.districtName.toLowerCase().includes(searchTerm));
+                
+                return districtNameMatch;
+            });
+            
+            currentPage = 1; // Reset to first page
+            renderPaginatedDistricts();
+        }
+        
+        function resetFilter() {
+            document.getElementById('searchInput').value = '';
+            filteredDistricts = allDistricts;
+            currentPage = 1;
+            renderPaginatedDistricts();
         }
         
         function showPhase(districtIndex, phaseNumber) {
-            // Hide all phase contents for this district
-            const district = document.querySelectorAll('.district-card')[districtIndex];
+            const pageStartIndex = (currentPage - 1) * itemsPerPage;
+            const actualDistrictIndex = districtIndex - pageStartIndex;
+            
+            // Get the actual district card within current page
+            const districtCards = document.querySelectorAll('.district-card');
+            if (actualDistrictIndex < 0 || actualDistrictIndex >= districtCards.length) {
+                return;
+            }
+            
+            const district = districtCards[actualDistrictIndex];
             const phaseContents = district.querySelectorAll('.phase-content');
             const phaseTabs = district.querySelectorAll('.phase-tab');
             
@@ -675,7 +826,21 @@
             const selectedContent = district.querySelector('#district' + districtIndex + '_phase' + phaseNumber);
             const selectedTab = phaseTabs[phaseNumber - 1];
             
-            if (selectedContent) selectedContent.classList.add('active');
+            if (selectedContent) {
+                // Check if phase content needs to be loaded
+                if (selectedContent.querySelector('.loading')) {
+                    // Find the district data and render the phase
+                    const districtData = filteredDistricts[districtIndex];
+                    
+                    if (districtData && districtData.phases) {
+                        const phaseData = districtData.phases.find(p => p.phaseNumber === phaseNumber);
+                        if (phaseData) {
+                            selectedContent.innerHTML = renderPhaseContent(phaseData);
+                        }
+                    }
+                }
+                selectedContent.classList.add('active');
+            }
             if (selectedTab) selectedTab.classList.add('active');
             
             // Update current phase display

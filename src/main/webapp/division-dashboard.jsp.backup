@@ -248,7 +248,7 @@
     <div class="header">
         <div class="header-content">
             <div>
-                <h1>🎓 VJNT Class Management System</h1>
+                <h1>🎓 GATEE Class </h1>
                 <p>Division Dashboard - <%= divisionName %></p>
             </div>
             <div class="header-info">

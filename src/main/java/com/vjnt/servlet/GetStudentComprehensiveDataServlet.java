@@ -110,7 +110,7 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
     // Get Marathi level text based on level number
     private String getMarathiLevelText(int level) {
         switch (level) {
-        case 0: return "स्थर निश्चित केला नाही";
+        case 0: return "स्तर निश्चित केला नाही";
     	case 1: return "प्रारंभिक स्तर";
         case 2: return "अक्षर स्तर";
         case 3: return "शब्द स्तर";
@@ -124,7 +124,7 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
     // Get Math level text based on level number
     private String getMathLevelText(int level) {
         switch (level) {
-        case 0: return "स्थर निश्चित केला नाही";
+        case 0: return "स्तर निश्चित केला नाही";
         case 1: return "प्रारंभिक स्तर";
         case 2: return "अंक ज्ञान स्तर";
         case 3: return "संख्याज्ञान स्तर";
@@ -140,12 +140,12 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
     // Get English level text based on level number
     private String getEnglishLevelText(int level) {
         switch (level) {
-        case 0: return "स्थर निश्चित केला नाही";
+        case 0: return "स्तर निश्चित केला नाही";
         case 1: return "Beginner level";
-        case 2: return "Letter level";
+        case 2: return "Alphabet level";
         case 3: return "Word level";
         case 4: return "Sentence level";
-        case 5: return "Reading comprehension and dictation level";
+        case 5: return "Paragraph Reading with Understanding";
         case 6: return "English reading and writing FLN level 100% complete";
         default: return "स्तर निश्चित केला नाही";
         }
@@ -155,11 +155,19 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
     private List<Map<String, Object>> getAllStudentActivities(Connection conn, String penNumber) throws SQLException {
         List<Map<String, Object>> activities = new ArrayList<>();
         
-        String sql = "SELECT language, week_number, day_number, activity_text, activity_identifier, " +
-                    "activity_count, completed, assigned_by, assigned_date " +
-                    "FROM student_weekly_activities " +
-                    "WHERE student_pen = ? " +
-                    "ORDER BY language, week_number, day_number";
+        // Join with teacher_assignments table to get teacher's name based on school, class, section, and subject
+        // Use COLLATE to fix collation mismatch between tables
+        String sql = "SELECT swa.language, swa.week_number, swa.day_number, swa.activity_text, " +
+                    "swa.activity_identifier, swa.activity_count, swa.completed, swa.assigned_by, " +
+                    "swa.assigned_date, ta.teacher_name " +
+                    "FROM student_weekly_activities swa " +
+                    "LEFT JOIN teacher_assignments ta ON swa.udise_no COLLATE utf8mb4_0900_ai_ci = ta.udise_code COLLATE utf8mb4_0900_ai_ci " +
+                    "    AND swa.student_class COLLATE utf8mb4_0900_ai_ci = ta.class COLLATE utf8mb4_0900_ai_ci " +
+                    "    AND swa.section COLLATE utf8mb4_0900_ai_ci = ta.section COLLATE utf8mb4_0900_ai_ci " +
+                    "    AND ta.is_active = 1 " +
+                    "    AND FIND_IN_SET(swa.language COLLATE utf8mb4_0900_ai_ci, ta.subjects_assigned COLLATE utf8mb4_0900_ai_ci) > 0 " +
+                    "WHERE swa.student_pen = ? " +
+                    "ORDER BY swa.language, swa.week_number, swa.day_number";
         
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, penNumber);
@@ -174,7 +182,14 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
                 activity.put("activityIdentifier", rs.getString("activity_identifier"));
                 activity.put("activityCount", rs.getInt("activity_count"));
                 activity.put("completed", rs.getBoolean("completed"));
-                activity.put("assignedBy", rs.getString("assigned_by"));
+                
+                // Use teacher's name from teacher_assignments table if available
+                String teacherName = rs.getString("teacher_name");
+                String assignedBy = rs.getString("assigned_by");
+                
+                // Priority: teacher_name from teacher_assignments, then assigned_by username
+                activity.put("assignedBy", teacherName != null ? teacherName : (assignedBy != null ? assignedBy : "Not Assigned"));
+                
                 activity.put("assignedDate", rs.getTimestamp("assigned_date") != null ? 
                            rs.getTimestamp("assigned_date").toString() : null);
                 activities.add(activity);

@@ -9,7 +9,7 @@
     <version>1.0.0</version>
     <packaging>war</packaging>
 
-    <name>VJNT Class Management System</name>
+    <name>VJNT Class </name>
     <description>Multi-Level User Access Control System</description>
 
     <properties>

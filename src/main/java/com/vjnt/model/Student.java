@@ -69,6 +69,10 @@ public class Student {
     // Student status (active/inactive)
     private boolean isActive = true; // Default to active
     
+    // FLN completion status - true if student achieved 100% FLN in all 3 subjects
+    // Marathi = 6, Math = 8, English = 6
+    private boolean flnCompleted = false;
+    
     // Constructors
     public Student() {
     }
@@ -454,6 +458,23 @@ public class Student {
     
     public void setActive(boolean active) {
         isActive = active;
+    }
+    
+    // FLN completion status getter and setter
+    public boolean isFlnCompleted() {
+        return flnCompleted;
+    }
+    
+    public void setFlnCompleted(boolean flnCompleted) {
+        this.flnCompleted = flnCompleted;
+    }
+    
+    /**
+     * Check if student has achieved 100% FLN in all 3 subjects
+     * Marathi: Level 6, Math: Level 8, English: Level 6
+     */
+    public boolean checkFlnCompletion() {
+        return marathiAksharaLevel == 6 && mathAksharaLevel == 8 && englishAksharaLevel == 6;
     }
     
     @Override

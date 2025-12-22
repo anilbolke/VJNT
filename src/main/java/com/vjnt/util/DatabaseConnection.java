@@ -11,12 +11,12 @@ import java.sql.SQLException;
 public class DatabaseConnection {
     
     // Database credentials - UPDATE THESE WITH YOUR DATABASE DETAILS
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/vjnt_class_management";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/vjnt_class_management?useUnicode=true&characterEncoding=UTF-8";
     private static final String DB_USER = "root";
-   // private static final String DB_PASSWORD = "root";
+  // private static final String DB_PASSWORD = "root";
     
-   // private static final String DB_USER = "root";
-   private static final String DB_PASSWORD = "Ou@rl}gN4n3maAy*";
+    // private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "Ou@rl}gN4n3maAy*";
     
     
     private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";

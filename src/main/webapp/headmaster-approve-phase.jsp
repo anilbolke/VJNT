@@ -49,37 +49,44 @@
     java.util.function.Function<Integer, String> getMarathiDescription = (level) -> {
         if (level == null) return "निरांक";
         switch (level) {
-            case 1: return "अक्षर स्तरावरील (वाचन व लेखन)";
-            case 2: return "शब्द स्तरावरील (वाचन व लेखन)";
-            case 3: return "वाक्य स्तरावरील";
-            case 4: return "समजपुर्वक उतार वाचन स्तरावरील";
-            default: return "निरांक";
+        	case 0: return "स्थर निश्चित केला नाही";
+            case 1: return "प्रारंभिक स्तर";
+            case 2: return "अक्षर स्तर";
+            case 3: return "शब्द स्तर";
+            case 4: return "वाक्य स्तर";
+            case 5: return "समजपूर्वक उतारा वाचन स्तर";
+            case 6: return "मराठी वाचन व लेखन FLN स्तर 100% पूर्ण";
+            default: return "स्थर निश्चित केला नाही";
         }
     };
     
     java.util.function.Function<Integer, String> getMathDescription = (level) -> {
         if (level == null) return "निरांक";
         switch (level) {
-            case 1: return "प्रारंभीक स्तरावरील";
-            case 2: return "अंक स्तरावरील";
-            case 3: return "संख्या वाचन स्तरावरील";
-            case 4: return "बेरीज स्तरावरील";
-            case 5: return "वजाबाकी स्तरावरील";
-            case 6: return "गुणाकार स्तरावरील";
-            case 7: return "भागाकर स्तरावरील";
-            default: return "निरांक";
+        	case 0: return "स्थर निश्चित केला नाही";
+            case 1: return "प्रारंभिक स्तर";
+            case 2: return "अंक ज्ञान स्तर";
+            case 3: return "संख्याज्ञान स्तर";
+            case 4: return "बेरीज स्तर";
+            case 5: return "वजाबाकी स्तर";
+            case 6: return "गुणाकार स्तर";
+            case 7: return "भागाकार स्तर";
+            case 8: return "गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण";
+            default: return "स्थर निश्चित केला नाही";
         }
     };
     
     java.util.function.Function<Integer, String> getEnglishDescription = (level) -> {
         if (level == null) return "NA";
         switch (level) {
-            case 1: return "BEGINER LEVEL";
-            case 2: return "ALPHABET LEVEL";
-            case 3: return "WORD LEVEL";
-            case 4: return "SENTENCE LEVEL";
-            case 5: return "PARAGRAPH LEVEL";
-            default: return "NA";
+        	case 0: return "स्थर निश्चित केला नाही";
+            case 1: return "Beginner level";
+            case 2: return "Alphabet level";
+            case 3: return "Word level";
+            case 4: return "Sentence level";
+            case 5: return "Paragraph Reading with Understanding";
+            case 6: return "English reading and writing FLN level 100% complete";
+            default: return "स्थर निश्चित केला नाही";
         }
     };
     

@@ -19,7 +19,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Admin Dashboard - VJNT Class Management</title>
+    <title>Data Admin Dashboard - GATEE PORTAL Class Management</title>
     <style>
         * {
             margin: 0;
@@ -49,10 +49,79 @@
             align-items: center;
         }
         
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .header-logo {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .header-logo img {
+            max-width: 150px;
+            width: 150px;
+            height: auto;
+            display: block;
+        }
+        
         .header h1 {
             color: #000;
             font-size: 24px;
             font-weight: 700;
+        }
+        
+        .gatee-tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            margin-left: 8px;
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        .gatee-tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 1000;
+            background: #2d3748;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2d3748 transparent transparent transparent;
+        }
+        
+        .tooltip-content div {
+            margin: 3px 0;
         }
         
         .logout-btn {
@@ -228,8 +297,16 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div>
-                <h1>📊 Data Admin Dashboard</h1>
+            <div class="header-left">
+                <!-- Logo Section - START -->
+               <%--  <div class="header-logo">
+                    <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
+                </div> --%>
+                <!-- Logo Section - END -->
+                <!-- Admin Icon and Title Section - START -->
+                <div class="school-icon">👨‍💼</div>
+                <h1>Data Admin Dashboard</h1>
+                <!-- Admin Icon and Title Section - END -->
                 <p style="color: #666; margin-top: 5px;">Welcome, <%= user.getFullName() %></p>
             </div>
             <a href="<%= request.getContextPath() %>/logout" class="logout-btn">Logout</a>

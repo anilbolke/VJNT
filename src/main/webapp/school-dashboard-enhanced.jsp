@@ -9,6 +9,8 @@
 <%@ page import="com.vjnt.model.School" %>
 <%@ page import="com.vjnt.model.PhaseApproval" %>
 <%@ page import="java.util.*" %>
+<%@ page import="java.sql.*" %>
+<%@ page import="com.vjnt.util.DatabaseConnection" %>
 <%
     User user = (User) session.getAttribute("user");
     if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
@@ -19,6 +21,88 @@
     
     StudentDAO studentDAO = new StudentDAO();
     SchoolDAO schoolDAO = new SchoolDAO();
+    
+    // Fetch active notifications for this school
+    List<Map<String, Object>> notifications = new ArrayList<>();
+    Connection conn = null;
+    PreparedStatement pstmt = null;
+    ResultSet rs = null;
+    
+    try {
+        conn = DatabaseConnection.getConnection();
+        // Get notifications that are:
+        // 1. Active (is_active = 1)
+        // 2. Not expired (expiry_date is NULL or > NOW())
+        // 3. Targeted to this school (ALL, or specific division/district/udise)
+        // 4. Target audience matches user type (ALL, SCHOOL_COORDINATOR, or HEAD_MASTER)
+        String userTypeStr = user.getUserType().toString(); // SCHOOL_COORDINATOR or HEAD_MASTER
+        
+        // Debug: Print user info
+        System.out.println("=== NOTIFICATION DEBUG ===");
+        System.out.println("User Type: " + userTypeStr);
+        System.out.println("Division: [" + user.getDivisionName() + "]");
+        System.out.println("District: [" + user.getDistrictName() + "]");
+        System.out.println("UDISE: [" + user.getUdiseNo() + "]");
+        
+        // Use TRIM to handle any whitespace issues
+        String notifSql = "SELECT notification_id, title, message, notification_type, priority, " +
+                         "created_by_name, created_date, expiry_date, division, district, udise_code, target_audience " +
+                         "FROM notifications " +
+                         "WHERE is_active = 1 " +
+                         "AND (expiry_date IS NULL OR expiry_date > NOW()) " +
+                         "AND (division IS NULL OR TRIM(division) = '' OR TRIM(division) = TRIM(?)) " +
+                         "AND (district IS NULL OR TRIM(district) = '' OR TRIM(district) = TRIM(?)) " +
+                         "AND (udise_code IS NULL OR TRIM(udise_code) = '' OR TRIM(udise_code) = TRIM(?)) " +
+                         "AND (target_audience = 'ALL' OR target_audience = ?) " +
+                         "ORDER BY priority DESC, created_date DESC " +
+                         "LIMIT 5";
+        pstmt = conn.prepareStatement(notifSql);
+        pstmt.setString(1, user.getDivisionName());
+        pstmt.setString(2, user.getDistrictName());
+        pstmt.setString(3, user.getUdiseNo());
+        pstmt.setString(4, userTypeStr);
+        
+        System.out.println("Executing query with parameters:");
+        System.out.println("1 (Division): [" + user.getDivisionName() + "]");
+        System.out.println("2 (District): [" + user.getDistrictName() + "]");
+        System.out.println("3 (UDISE): [" + user.getUdiseNo() + "]");
+        System.out.println("4 (UserType): [" + userTypeStr + "]");
+        
+        rs = pstmt.executeQuery();
+        
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            System.out.println("Found notification #" + count + ": " + rs.getString("title"));
+            System.out.println("  - Division: [" + rs.getString("division") + "]");
+            System.out.println("  - District: [" + rs.getString("district") + "]");
+            System.out.println("  - UDISE: [" + rs.getString("udise_code") + "]");
+            System.out.println("  - Target: [" + rs.getString("target_audience") + "]");
+            
+            Map<String, Object> notification = new HashMap<>();
+            notification.put("id", rs.getInt("notification_id"));
+            notification.put("title", rs.getString("title"));
+            notification.put("message", rs.getString("message"));
+            notification.put("type", rs.getString("notification_type"));
+            notification.put("priority", rs.getInt("priority"));
+            notification.put("createdBy", rs.getString("created_by_name"));
+            notification.put("createdDate", rs.getTimestamp("created_date"));
+            notification.put("expiryDate", rs.getTimestamp("expiry_date"));
+            notifications.add(notification);
+        }
+        
+        System.out.println("Total notifications found: " + count);
+        System.out.println("Notifications list size: " + notifications.size());
+        System.out.println("========================");
+        
+    } catch (Exception e) {
+        System.out.println("ERROR fetching notifications: " + e.getMessage());
+        e.printStackTrace();
+    } finally {
+        if (rs != null) try { rs.close(); } catch (SQLException e) { }
+        if (pstmt != null) try { pstmt.close(); } catch (SQLException e) { }
+        if (conn != null) try { conn.close(); } catch (SQLException e) { }
+    }
     
     // Pagination parameters
     int currentPage = 1;
@@ -38,7 +122,7 @@
     // Get school name from schools table
     School school = schoolDAO.getSchoolByUdise(udiseNo);
     String schoolName = school != null ? school.getSchoolName() : "Unknown School";
-    List<com.vjnt.model.Student> allStudents = studentDAO.getStudentsByUdise(udiseNo);
+    List<com.vjnt.model.Student> allStudents = studentDAO.getStudentsByUdiseFOrView(udiseNo);
     int totalStudents = studentDAO.getStudentCountByUdise(udiseNo);
     int totalPages = (int) Math.ceil((double) totalStudents / pageSize);
     
@@ -239,13 +323,76 @@
         
         .header-left {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .header-logo {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .header-logo img {
+            max-width: 150px;
+            width: 150px;
+            height: auto;
+            display: block;
         }
         
         .school-icon {
-            font-size: 48px;
+            font-size: 24px;
             animation: bounce 2s infinite;
+        }
+        
+        .gatee-tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            margin-left: 8px;
+            color: #667eea;
+            font-size: 18px;
+        }
+        
+        .gatee-tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 1000;
+            background: #2d3748;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2d3748 transparent transparent transparent;
+        }
+        
+        .tooltip-content div {
+            margin: 3px 0;
         }
         
         @keyframes bounce {
@@ -376,6 +523,167 @@
             0%, 100% { transform: rotate(0deg); }
             25% { transform: rotate(20deg); }
             75% { transform: rotate(-20deg); }
+        }
+        
+        /* Notification Styles */
+        .notifications-section {
+            width: 100%;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .notifications-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .notification-icon {
+            font-size: 24px;
+            animation: bell-ring 2s infinite;
+        }
+        
+        @keyframes bell-ring {
+            0%, 100% { transform: rotate(0deg); }
+            10%, 30% { transform: rotate(-10deg); }
+            20%, 40% { transform: rotate(10deg); }
+        }
+        
+        .notifications-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .notification-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .notification-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+        
+        .notification-item.type-INFO {
+            border-left-color: #2196f3;
+            background: #e3f2fd;
+        }
+        
+        .notification-item.type-WARNING {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+        
+        .notification-item.type-URGENT {
+            border-left-color: #f44336;
+            background: #ffebee;
+            animation: pulse-urgent 2s infinite;
+        }
+        
+        .notification-item.type-SUCCESS {
+            border-left-color: #4caf50;
+            background: #e8f5e9;
+        }
+        
+        @keyframes pulse-urgent {
+            0%, 100% { box-shadow: 0 2px 5px rgba(244, 67, 54, 0.2); }
+            50% { box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4); }
+        }
+        
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .notification-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: #333;
+            flex: 1;
+        }
+        
+        .notification-priority {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 10px;
+        }
+        
+        .priority-0 {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .priority-1 {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .priority-2 {
+            background: #f44336;
+            color: white;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .notification-message {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .notification-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #777;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .notification-author {
+            font-weight: 600;
+        }
+        
+        .notification-date {
+            font-style: italic;
+        }
+        
+        .no-notifications {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .notification-badge {
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 8px;
         }
         
         .breadcrumb {
@@ -1437,39 +1745,44 @@
         // Helper functions to get level display text - EXACT DROPDOWN VALUES
         function getMarathiLevelText(level) {
             const levels = {
-                0: 'स्तर निश्चित केला नाही',
-                1: 'अक्षर स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)',
-                2: 'शब्द स्तरावरील विद्यार्थी संख्या (वाचन व लेखन)',
-                3: 'वाक्य स्तरावरील विद्यार्थी संख्या',
-                4: 'समजपुर्वक उतार वाचन स्तरावरील विद्यार्थी संख्या'
+             0:  'स्थर निश्चित केला नाही',
+        	 1:  'प्रारंभिक स्तर',
+             2:  'अक्षर स्तर',
+             3:  'शब्द स्तर',
+             4:  'वाक्य स्तर',
+             5:  'समजपूर्वक उतारा वाचन स्तर',
+             6:  'मराठी वाचन व लेखन FLN स्तर 100% पूर्ण',
+            default:  'स्तर निश्चित केला नाही'
             };
-            return levels[level] || 'Unknown';
+            return levels[level] || 'स्तर निश्चित केला नाही';
         }
         
         function getMathLevelText(level) {
             const levels = {
-                0: 'स्तर निश्चित केला नाही',
-                1: 'प्रारंभीक स्तरावरील विद्यार्थी संख्या',
-                2: 'अंक स्तरावरील विद्यार्थी संख्या',
-                3: 'संख्या वाचन स्तरावरील विद्यार्थी संख्या',
-                4: 'बेरीज स्तरावरील विद्यार्थी संख्या',
-                5: 'वजाबाकी स्तरावरील विद्यार्थी संख्या',
-                6: 'गुणाकार स्तरावरील विद्यार्थी संख्या',
-                7: 'भागाकर स्तरावरील विद्यार्थी संख्या'
+             0:  'स्थर निश्चित केला नाही',
+            1:  'प्रारंभिक स्तर',
+            2:  'अंक ज्ञान स्तर',
+            3:  'संख्याज्ञान स्तर',
+            4:  'बेरीज स्तर',
+            5:  'वजाबाकी स्तर',
+            6:  'गुणाकार स्तर',
+            7:  'भागाकार स्तर',
+            8:  'गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण'
             };
-            return levels[level] || 'Unknown';
+            return levels[level] || 'स्थर निश्चित केला नाही';
         }
         
         function getEnglishLevelText(level) {
             const levels = {
-                0: 'स्तर निश्चित केला नाही',
-                1: 'BEGINER LEVEL',
-                2: 'ALPHABET LEVEL Reading and Writing',
-                3: 'WORD LEVEL Reading and Writing',
-                4: 'SENTENCE LEVEL',
-                5: 'Paragraph Reading with Understanding'
+            0: 'स्थर निश्चित केला नाही',
+            1: 'Beginner level',
+            2: 'Alphabet level',
+            3: 'Word level',
+            4: 'Sentence level',
+            5: 'Paragraph Reading with Understanding',
+            6: 'English reading and writing FLN level 100% complete'
             };
-            return levels[level] || 'Unknown';
+            return levels[level] || 'स्थर निश्चित केला नाही';
         }
         
         function toggleStudentDetails(phaseNum) {
@@ -1903,6 +2216,24 @@
             // Reset form
             document.getElementById('addTeacherForm').reset();
             document.getElementById('subjectError').style.display = 'none';
+            // Hide other subject input
+            document.getElementById('otherSubjectInputContainer').style.display = 'none';
+            document.getElementById('otherSubjectName').value = '';
+        }
+        
+        // Toggle Other Subject Input Field
+        function toggleOtherSubjectInput() {
+            const checkbox = document.getElementById('otherSubjectCheckbox');
+            const container = document.getElementById('otherSubjectInputContainer');
+            const input = document.getElementById('otherSubjectName');
+            
+            if (checkbox.checked) {
+                container.style.display = 'block';
+                input.focus();
+            } else {
+                container.style.display = 'none';
+                input.value = '';
+            }
         }
         
         // Submit Teacher Form
@@ -1914,16 +2245,33 @@
             const mobile = document.getElementById('teacherMobile').value.trim();
             const description = document.getElementById('teacherDescription').value.trim();
             
-            // Get selected subjects
+            // Get selected subjects from checkboxes
             const subjectCheckboxes = document.querySelectorAll('.subject-checkbox:checked');
-            const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+            let subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
             
             // Validate at least one subject is selected
             if (subjects.length === 0) {
                 document.getElementById('subjectError').style.display = 'block';
+                alert('कृपया किमान एक विषय निवडा / Please select at least one subject');
                 return;
             } else {
                 document.getElementById('subjectError').style.display = 'none';
+            }
+            
+            // Check if "Other Subject" is selected
+            const otherSubjectCheckbox = document.getElementById('otherSubjectCheckbox');
+            const otherSubjectName = document.getElementById('otherSubjectName').value.trim();
+            
+            if (otherSubjectCheckbox.checked) {
+                if (!otherSubjectName) {
+                    alert('कृपया इतर विषयाचे नाव लिहा / Please enter the इतर (Other) name');
+                    document.getElementById('otherSubjectName').focus();
+                    return;
+                }
+                // Replace "Other Subject" with the custom name
+                subjects = subjects.map(subject => 
+                    subject === 'इतर (Other)' ? otherSubjectName : subject
+                );
             }
             
             // Prepare data - Use URLSearchParams instead of FormData
@@ -2035,31 +2383,19 @@
     <div class="header">
         <div class="header-content">
             <div class="header-left">
+               <%--  <div class="header-logo">
+                    <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
+                </div> --%>
                 <div class="school-icon">🏫</div>
-                <div class="header-title">
-                    <h1><%= schoolName %></h1>
-                    <div class="header-subtitle">UDISE: <%= udiseNo %> | <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %></div>
-                </div>
+                <h1><%= schoolName %></h1>
+                <div class="header-subtitle">UDISE: <%= udiseNo %> | <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %></div>
             </div>
             <div class="header-info">
-                <div class="user-badge">
-                    👤 <strong><%= user.getFullName() %></strong>
-                </div>
                <%--  <div class="user-badge">
                     🏷️ <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %>
                 </div> --%>
                 <div class="header-actions">
-                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
-                        <a href="<%= request.getContextPath() %>/manage-students.jsp" class="btn" style="color: black;">
-                            📝 Manage Students
-                        </a>
-                        <a href="<%= request.getContextPath() %>/manage-teachers.jsp" class="btn" style="color: black;">
-                            👨‍🏫 Manage Teachers
-                        </a>
-                        <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="btn" style="color: black;">
-                            👥 Palak Melava
-                        </a>
-                    <% } %>
+                    
                     <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
                         <% if (pendingApprovalsCount > 0) { %>
                         <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="color: black;">
@@ -2096,8 +2432,76 @@
         <!-- Welcome Card -->
         <div class="welcome-card">
             <div class="welcome-content">
-                <h2>नमस्कार <%= user.getFullName() %>! 🙏</h2>
-                <p>Welcome to your dashboard. Manage your school's student data and track language proficiency levels.</p>
+                <!-- Notifications Section -->
+                <% if (notifications != null && notifications.size() > 0) { %>
+                <div class="notifications-section">
+                    <div class="notifications-header">
+                        <span class="notification-icon">🔔</span>
+                        <span>Announcements from Division Head</span>
+                        <span class="notification-badge"><%= notifications.size() %></span>
+                    </div>
+                    <div class="notifications-list">
+                        <% 
+                        int displayCount = 0;
+                        for (Map<String, Object> notif : notifications) {
+                            if (displayCount >= 3) break; // Show max 3 notifications
+                            displayCount++;
+                            
+                            String type = (String) notif.get("type");
+                            int priority = (Integer) notif.get("priority");
+                            String priorityLabel = priority == 2 ? "URGENT" : (priority == 1 ? "HIGH" : "NORMAL");
+                            String priorityClass = "priority-" + priority;
+                            
+                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, yyyy hh:mm a");
+                            String createdDate = sdf.format((java.util.Date) notif.get("createdDate"));
+                        %>
+                        <div class="notification-item type-<%= type %>">
+                            <div class="notification-header">
+                                <span class="notification-title">
+                                    <% if (type.equals("URGENT")) { %>⚠️<% } %>
+                                    <% if (type.equals("WARNING")) { %>⚡<% } %>
+                                    <% if (type.equals("INFO")) { %>ℹ️<% } %>
+                                    <% if (type.equals("SUCCESS")) { %>✅<% } %>
+                                    <%= notif.get("title") %>
+                                </span>
+                                <span class="notification-priority <%= priorityClass %>">
+                                    <%= priorityLabel %>
+                                </span>
+                            </div>
+                            <div class="notification-message">
+                                <%= notif.get("message") %>
+                            </div>
+                            <div class="notification-footer">
+                                <span class="notification-author">
+                                    📢 <%= notif.get("createdBy") %>
+                                </span>
+                                <span class="notification-date">
+                                    <%= createdDate %>
+                                </span>
+                            </div>
+                        </div>
+                        <% } %>
+                        
+                        <% if (notifications.size() > 3) { %>
+                        <div style="text-align: center; padding: 10px;">
+                            <a href="#" style="color: #667eea; font-weight: 600; text-decoration: none;">
+                                View <%= notifications.size() - 3 %> more notifications →
+                            </a>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+                <% } else { %>
+                <div class="notifications-section">
+                    <div class="notifications-header">
+                        <span class="notification-icon">🔔</span>
+                        <span>Announcements from Division Head</span>
+                    </div>
+                    <div class="no-notifications">
+                        📭 No new announcements at this time
+                    </div>
+                </div>
+                <% } %>
             </div>
             <div class="welcome-icon">👋</div>
         </div>
@@ -2151,39 +2555,39 @@
             
             <div class="grid-3">
                 <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
-                <!-- 1. Manage Students -->
-                <a href="<%= request.getContextPath() %>/manage-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <!-- 1. Manage Students - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📚</div>
                     <div class="quick-action-title">Manage Students</div>
-                    <div class="quick-action-subtitle">विद्यार्थी व्यवस्थापन</div>
+                    <div class="quick-action-subtitle">विद्यार्थी स्तर निश्चिती</div>
                     <div class="quick-action-desc">Complete student management with view, edit, delete options. Search, filter, and export student data.</div>
-                </a>
+                </div>
                 
-                <!-- 2. View All Student Data -->
-                <a href="<%= request.getContextPath() %>/view-student-data.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <!-- 2. View All Student Data - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
-                    <div class="quick-action-title">View All Student Data</div>
-                    <div class="quick-action-subtitle">सर्व विद्यार्थी डेटा</div>
+                    <div class="quick-action-title">Students Activity</div>
+                    <div class="quick-action-subtitle">विद्यार्थी अक्टिव्हिटी </div>
                     <div class="quick-action-desc">Display all student information registered against this UDISE number with filtering and search capabilities.</div>
-                </a>
+                </div>
                 
-                <!-- 3. Palak Melava -->
-                <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <!-- 3. Palak Melava - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👥</div>
-                    <div class="quick-action-title">Palak Melava</div>
+                    <div class="quick-action-title">Parents Meeting</div>
                     <div class="quick-action-subtitle">पालक मेळावा</div>
                     <div class="quick-action-desc">Register parent meetings, upload photos, and manage approvals. Track all palak melava activities.</div>
-                </a>
+                </div>
                 
-                <!-- 4. Add Student -->
-                <a href="<%= request.getContextPath() %>/add-modify-student.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <!-- 4. Add Student - DISABLED -->
+                 <a href="<%= request.getContextPath() %>/add-modify-student.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">➕</div>
                     <div class="quick-action-title">Add Student</div>
                     <div class="quick-action-subtitle">विद्यार्थी जोडा</div>
                     <div class="quick-action-desc">Add new student records with personal, academic details and language proficiency information.</div>
                 </a>
                 
-                <!-- 5. Add Teacher -->
+                <!-- 5. Add Teacher - ENABLED -->
                 <a href="javascript:void(0);" onclick="openAddTeacherModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👨‍🏫</div>
                     <div class="quick-action-title">Add Teacher</div>
@@ -2191,15 +2595,15 @@
                     <div class="quick-action-desc">Add new teacher with name, contact details, subjects taught, and additional information.</div>
                 </a>
                 
-                <!-- 6. Edit Student -->
-                <a href="<%= request.getContextPath() %>/select-student-to-edit.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <!-- 6. Edit Student - DISABLED -->
+               <a href="<%= request.getContextPath() %>/select-student-to-edit.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">✏️</div>
                     <div class="quick-action-title">Edit Student</div>
                     <div class="quick-action-subtitle">विद्यार्थी संपादित करा</div>
                     <div class="quick-action-desc">Modify existing student information. Select a student from the list and update their details.</div>
                 </a>
                 
-                <!-- 7. Manage Teachers -->
+                <!-- 7. Manage Teachers - ENABLED -->
                 <a href="<%= request.getContextPath() %>/manage-teachers.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👨‍🏫</div>
                     <div class="quick-action-title">Manage Teachers</div>
@@ -2207,22 +2611,62 @@
                     <div class="quick-action-desc">View, edit, and manage all teachers. Search by name, mobile, or subject. Update details and assignments.</div>
                 </a>
                 
-                <!-- 8. Assign Teacher to Class -->
+                <!-- 8. Assign Teacher to Class - ENABLED -->
                 <a href="<%= request.getContextPath() %>/assign-teacher.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📋</div>
-                    <div class="quick-action-title">Assign Teacher to Class</div>
-                    <div class="quick-action-subtitle">वर्ग शिक्षक नियुक्ती</div>
+                    <div class="quick-action-title">Class teacher / Subject teacher assignment</div>
+                    <div class="quick-action-subtitle">(वर्ग शिक्षक / विषय शिक्षक निश्चिती)</div>
                     <div class="quick-action-desc">Assign teachers to specific classes, sections and subjects. Manage teacher assignments and schedules.</div>
                 </a>
                 
-                <!-- 9. Student Comprehensive Report (School Coordinator) -->
+                <!-- 9. Student Comprehensive Report (School Coordinator) - DISABLED -->
                 <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
-                <a href="<%= request.getContextPath() %>/student-comprehensive-report-new.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">Generate Student Report</div>
                     <div class="quick-action-subtitle">विद्यार्थी अहवाल तयार करा</div>
                     <div class="quick-action-desc">Request comprehensive student reports with academic data, activities, and progress tracking. Submit for headmaster approval.</div>
-                </a>
+                </div>
+                
+                <!-- 10. Phase-wise Subject Statistics - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-title">Phase-wise Subject Statistics</div>
+                    <div class="quick-action-subtitle">टप्पा-निहाय विषय आकडेवारी</div>
+                    <div class="quick-action-desc">View detailed phase-wise subject level counts for all students. Track dropdown values across all 4 phases with aggregate statistics.</div>
+                </div>
+                
+                <!-- 11. VIDEO UPLOAD - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🎥</div>
+                    <div class="quick-action-title">Video Upload</div>
+                    <div class="quick-action-subtitle">व्हिडिओ अपलोड</div>
+                    <div class="quick-action-desc">Upload student progress videos. Select student, subject, month and track their development journey.</div>
+                </div>
+                
+                <!-- 12. VIEW UPLOADED VIDEOS - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📹</div>
+                    <div class="quick-action-title">View Uploaded Videos</div>
+                    <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
+                    <div class="quick-action-desc">View all uploaded student progress videos. Filter by subject, month, student and track learning progress with video playback.</div>
+                </div>
+                
+                <!-- 13. FLN Completed Students - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🏆</div>
+                    <div class="quick-action-title">FLN Completed Students</div>
+                    <div class="quick-action-subtitle">FLN 100% पूर्ण विद्यार्थी</div>
+                    <div class="quick-action-desc">View students who achieved 100% FLN in all subjects (Marathi=6, Math=8, English=6). These students are excluded from phase activities.</div>
+                </div>
+                
+                 <!-- 14. Other School Activity (School Coordinator) - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🎯</div>
+                    <div class="quick-action-title">Other School Activity</div>
+                    <div class="quick-action-subtitle">इतर शालेय उपक्रम</div>
+                    <div class="quick-action-desc">Record other school activities with date, subject, guests, description, photos and video link. Requires headmaster approval.</div>
+                </div>
                 
                <%--  <!-- 10. My Report Requests -->
                 <a href="<%= request.getContextPath() %>/my-report-requests.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -2234,14 +2678,64 @@
                 <% } %>
                 <% } %>
                 
-                <!-- 11. Approve Reports (Headmaster Only) -->
+                <!-- Headmaster Only Actions -->
                 <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
-                <a href="<%= request.getContextPath() %>/approve-student-reports.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                
+                <!-- Add Teacher - ENABLED -->
+                <a href="javascript:void(0);" onclick="openAddTeacherModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">👨‍🏫</div>
+                    <div class="quick-action-title">Add Teacher</div>
+                    <div class="quick-action-subtitle">शिक्षक जोडा</div>
+                    <div class="quick-action-desc">Add new teacher with name, contact details, subjects taught, and additional information.</div>
+                </a>
+                
+                <!-- Manage Teachers - ENABLED -->
+                <a href="<%= request.getContextPath() %>/manage-teachers.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">👨‍🏫</div>
+                    <div class="quick-action-title">Manage Teachers</div>
+                    <div class="quick-action-subtitle">शिक्षक व्यवस्थापन</div>
+                    <div class="quick-action-desc">View, edit, and manage all teachers. Search by name, mobile, or subject. Update details and assignments.</div>
+                </a>
+                
+                <!-- Assign Teacher to Class - ENABLED -->
+                <a href="<%= request.getContextPath() %>/assign-teacher.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📋</div>
+                    <div class="quick-action-title">Assign Teacher to Class</div>
+                    <div class="quick-action-subtitle">वर्ग शिक्षक नियुक्ती</div>
+                    <div class="quick-action-desc">Assign teachers to specific classes, sections and subjects. Manage teacher assignments and schedules.</div>
+                </a>
+                
+                <!-- 11. Approve Reports (Headmaster Only) - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">✅</div>
                     <div class="quick-action-title">Approve Reports</div>
                     <div class="quick-action-subtitle">अहवाल मंजूर करा</div>
                     <div class="quick-action-desc">Review and approve pending student comprehensive reports. View student data and approve or reject requests.</div>
-                </a>
+                </div>
+                
+                <!-- 12. Phase-wise Subject Statistics (Headmaster) - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-title">Phase-wise Subject Statistics</div>
+                    <div class="quick-action-subtitle">टप्पा-निहाय विषय आकडेवारी</div>
+                    <div class="quick-action-desc">View detailed phase-wise subject level counts for all students. Track dropdown values across all 4 phases with aggregate statistics and actual level descriptions.</div>
+                </div>
+                
+                <!-- 13. FLN Completed Students (Headmaster) - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🏆</div>
+                    <div class="quick-action-title">FLN Completed Students</div>
+                    <div class="quick-action-subtitle">FLN 100% पूर्ण विद्यार्थी</div>
+                    <div class="quick-action-desc">View students who achieved 100% FLN in all subjects (Marathi=6, Math=8, English=6). These students are excluded from phase activities.</div>
+                </div>
+                
+                 <!-- 14. Approve Other School Activities (Headmaster Only) - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🎯</div>
+                    <div class="quick-action-title">Approve School Activities</div>
+                    <div class="quick-action-subtitle">शालेय उपक्रम मंजूर करा</div>
+                    <div class="quick-action-desc">Review and approve other school activities submitted by coordinators. View details and approve or reject.</div>
+                </div>
                 <% } %>
                 
                
@@ -2249,6 +2743,7 @@
             </div>
         </div>
         
+        <%-- PHASE REPORTS SECTION - DISABLED
         <!-- Phase Reports - School Coordinator Only -->
         <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
         <div class="section">
@@ -2428,6 +2923,381 @@
                 </div>
             </div>
         </div>
+        <% } %>
+        END OF PHASE REPORTS SECTION - DISABLED --%>
+        
+        <%
+        // Initialize uploadedVideos variable for modal (even though main section is hidden)
+        List<Map<String, Object>> uploadedVideos = new ArrayList<>();
+        %>
+        
+        <%-- UPLOADED VIDEOS SECTION - HIDDEN (Now accessible via Quick Action modal only)
+        <div class="section" style="margin-top: 40px;">
+            <h2 class="section-title">🎥 Uploaded Videos - अपलोड केलेले व्हिडिओ</h2>
+            <p style="margin-bottom: 20px; color: #666;">View all student progress videos (विद्यार्थी प्रगती व्हिडिओ पहा)</p>
+            
+            <%
+            // Fetch uploaded videos from database
+            Connection videoConn = null;
+            PreparedStatement videoPstmt = null;
+            ResultSet videoRs = null;
+            
+            try {
+                videoConn = DatabaseConnection.getConnection();
+                String videoSql = "SELECT v.video_id, v.student_id, s.student_name, s.student_pen, s.class, s.section, " +
+                                 "v.subject, v.month, v.has_progress, v.original_file_name, v.file_path, " +
+                                 "v.file_size, v.uploaded_by_name, v.upload_date " +
+                                 "FROM student_videos v " +
+                                 "INNER JOIN students s ON v.student_id = s.student_id " +
+                                 "WHERE v.udise_no = ? AND v.is_active = TRUE " +
+                                 "ORDER BY v.upload_date DESC";
+                
+                videoPstmt = videoConn.prepareStatement(videoSql);
+                videoPstmt.setString(1, udiseNo);
+                videoRs = videoPstmt.executeQuery();
+                
+                while (videoRs.next()) {
+                    Map<String, Object> video = new HashMap<>();
+                    video.put("videoId", videoRs.getInt("video_id"));
+                    video.put("studentId", videoRs.getInt("student_id"));
+                    video.put("studentName", videoRs.getString("student_name"));
+                    video.put("studentPen", videoRs.getString("student_pen"));
+                    video.put("studentClass", videoRs.getString("class"));
+                    video.put("section", videoRs.getString("section"));
+                    video.put("subject", videoRs.getString("subject"));
+                    video.put("month", videoRs.getString("month"));
+                    video.put("hasProgress", videoRs.getString("has_progress"));
+                    video.put("fileName", videoRs.getString("original_file_name"));
+                    video.put("filePath", videoRs.getString("file_path"));
+                    video.put("fileSize", videoRs.getLong("file_size"));
+                    video.put("uploadedBy", videoRs.getString("uploaded_by_name"));
+                    video.put("uploadDate", videoRs.getTimestamp("upload_date"));
+                    uploadedVideos.add(video);
+                }
+            } catch (Exception e) {
+                System.err.println("Error fetching uploaded videos: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                if (videoRs != null) try { videoRs.close(); } catch (SQLException e) { }
+                if (videoPstmt != null) try { videoPstmt.close(); } catch (SQLException e) { }
+                if (videoConn != null) try { videoConn.close(); } catch (SQLException e) { }
+            }
+            %>
+            
+            <% if (uploadedVideos.isEmpty()) { %>
+            <!-- No Videos Message -->
+            <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; border: 2px dashed #667eea;">
+                <div style="font-size: 64px; margin-bottom: 20px;">🎥</div>
+                <h3 style="color: #333; margin-bottom: 10px;">No Videos Uploaded Yet</h3>
+                <p style="color: #666; margin-bottom: 20px;">अद्याप कोणतेही व्हिडिओ अपलोड केलेले नाहीत</p>
+                <button onclick="openVideoUploadModal()" 
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                    🎥 Upload First Video
+                </button>
+            </div>
+            <% } else { %>
+            
+            <!-- Video Filters -->
+            <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">🔍 Search</label>
+                        <input type="text" id="videoSearchFilter" placeholder="Student name or PEN..." 
+                               onkeyup="filterVideos()"
+                               style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📚 Subject</label>
+                        <select id="videoSubjectFilter" onchange="filterVideos()" 
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            <option value="">All Subjects</option>
+                            <option value="Marathi">मराठी (Marathi)</option>
+                            <option value="Math">गणित (Math)</option>
+                            <option value="English">इंग्रजी (English)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📅 Month</label>
+                        <select id="videoMonthFilter" onchange="filterVideos()" 
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            <option value="">All Months</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📈 Progress</label>
+                        <select id="videoProgressFilter" onchange="filterVideos()" 
+                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            <option value="">All</option>
+                            <option value="yes">✅ Yes - Progress Made</option>
+                            <option value="no">❌ No - No Progress</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; text-align: right;">
+                    <button onclick="resetVideoFilters()" 
+                            style="background: #e0e0e0; color: #333; border: none; padding: 8px 20px; border-radius: 6px; font-size: 14px; cursor: pointer;">
+                        🔄 Reset Filters
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Video Statistics -->
+            <%
+            // Count videos with progress
+            int videosWithProgress = 0;
+            int videosNoProgress = 0;
+            for (Map<String, Object> video : uploadedVideos) {
+                String hasProgress = (String) video.get("hasProgress");
+                if ("yes".equals(hasProgress)) {
+                    videosWithProgress++;
+                } else if ("no".equals(hasProgress)) {
+                    videosNoProgress++;
+                }
+            }
+            %>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;"><%= uploadedVideos.size() %></div>
+                    <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">Total Videos</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;"><%= videosWithProgress %></div>
+                    <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">With Progress</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;"><%= videosNoProgress %></div>
+                    <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">No Progress Yet</div>
+                </div>
+            </div>
+            
+            <!-- Videos Grid -->
+            <div id="videosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+                <% 
+                java.text.SimpleDateFormat videoDateFormat = new java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a");
+                for (Map<String, Object> video : uploadedVideos) {
+                    String hasProgress = (String) video.get("hasProgress");
+                    String progressBadge = "yes".equals(hasProgress) ? 
+                        "<span style='background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>✅ Progress</span>" :
+                        "<span style='background: #ff9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>⏳ No Progress</span>";
+                    
+                    long fileSizeMB = (Long) video.get("fileSize") / (1024 * 1024);
+                    String uploadDate = videoDateFormat.format((java.util.Date) video.get("uploadDate"));
+                %>
+                <div class="video-card" 
+                     data-name="<%= video.get("studentName") %>" 
+                     data-pen="<%= video.get("studentPen") %>"
+                     data-subject="<%= video.get("subject") %>"
+                     data-month="<%= video.get("month") %>"
+                     data-progress="<%= video.get("hasProgress") %>"
+                     style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s; cursor: pointer;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)';">
+                    
+                    <!-- Video Thumbnail -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
+                        <div style="font-size: 48px; color: white;">🎥</div>
+                    </div>
+                    
+                    <!-- Video Info -->
+                    <div style="padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <h3 style="margin: 0; font-size: 16px; color: #333; font-weight: 700;"><%= video.get("studentName") %></h3>
+                            <%= progressBadge %>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                <span>🏷️</span>
+                                <span style="font-family: monospace;"><%= video.get("studentPen") %></span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                <span>📚</span>
+                                <span><%= video.get("studentClass") %> - <%= video.get("section") %></span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                <span>📖</span>
+                                <span><strong><%= video.get("subject") %></strong></span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                <span>📅</span>
+                                <span><%= video.get("month") %></span>
+                            </div>
+                        </div>
+                        
+                        <div style="padding-top: 12px; border-top: 1px solid #eee;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 12px; color: #999;">📦 <%= fileSizeMB %> MB</span>
+                                <span style="font-size: 12px; color: #999;">👤 <%= video.get("uploadedBy") %></span>
+                            </div>
+                            <div style="font-size: 11px; color: #999; margin-bottom: 12px;">
+                                ⏰ <%= uploadDate %>
+                            </div>
+                            
+                            <button onclick="playVideo('<%= video.get("filePath") %>', '<%= video.get("studentName") %>', '<%= video.get("subject") %>', '<%= video.get("month") %>')" 
+                                    style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
+                                    onmouseover="this.style.transform='scale(1.05)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                ▶️ Play Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+            </div>
+            
+            <div id="noVideosMessage" style="display: none; text-align: center; padding: 40px; background: #f5f5f5; border-radius: 12px; margin-top: 20px;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
+                <h3 style="color: #666;">No videos found matching your filters</h3>
+                <p style="color: #999;">Try adjusting your search criteria</p>
+            </div>
+            <% } %>
+        </div>
+        --%>
+        
+        <!-- Video Player Modal -->
+        <div id="videoPlayerModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9);">
+            <div style="position: relative; margin: 3% auto; max-width: 900px;">
+                <div style="background: #1a1a1a; border-radius: 12px; overflow: hidden;">
+                    <!-- Modal Header -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2 id="videoPlayerTitle" style="margin: 0; font-size: 20px;"></h2>
+                            <p id="videoPlayerSubtitle" style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;"></p>
+                        </div>
+                        <button onclick="closeVideoPlayer()" 
+                                style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 28px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            ×
+                        </button>
+                    </div>
+                    
+                    <!-- Video Player -->
+                    <div style="background: #000; padding: 0;">
+                        <video id="videoPlayer" controls style="width: 100%; max-height: 70vh; display: block;">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        // Filter videos
+        function filterVideos() {
+            const searchText = document.getElementById('videoSearchFilter').value.toLowerCase();
+            const subjectFilter = document.getElementById('videoSubjectFilter').value;
+            const monthFilter = document.getElementById('videoMonthFilter').value;
+            const progressFilter = document.getElementById('videoProgressFilter').value;
+            
+            const videoCards = document.querySelectorAll('.video-card');
+            let visibleCount = 0;
+            
+            videoCards.forEach(card => {
+                const name = card.getAttribute('data-name').toLowerCase();
+                const pen = card.getAttribute('data-pen').toLowerCase();
+                const subject = card.getAttribute('data-subject');
+                const month = card.getAttribute('data-month');
+                const progress = card.getAttribute('data-progress');
+                
+                const matchesSearch = !searchText || name.includes(searchText) || pen.includes(searchText);
+                const matchesSubject = !subjectFilter || subject === subjectFilter;
+                const matchesMonth = !monthFilter || month === monthFilter;
+                const matchesProgress = !progressFilter || progress === progressFilter;
+                
+                if (matchesSearch && matchesSubject && matchesMonth && matchesProgress) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no results message
+            const noVideosMsg = document.getElementById('noVideosMessage');
+            if (noVideosMsg) {
+                noVideosMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+        }
+        
+        // Reset filters
+        function resetVideoFilters() {
+            document.getElementById('videoSearchFilter').value = '';
+            document.getElementById('videoSubjectFilter').value = '';
+            document.getElementById('videoMonthFilter').value = '';
+            document.getElementById('videoProgressFilter').value = '';
+            filterVideos();
+        }
+        
+        // Play video in modal
+        function playVideo(filePath, studentName, subject, month) {
+            const modal = document.getElementById('videoPlayerModal');
+            const player = document.getElementById('videoPlayer');
+            const title = document.getElementById('videoPlayerTitle');
+            const subtitle = document.getElementById('videoPlayerSubtitle');
+            
+            title.textContent = studentName + ' - ' + subject;
+            subtitle.textContent = '📅 ' + month + ' | 🎥 Student Progress Video';
+            
+            player.src = '<%= request.getContextPath() %>/' + filePath;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            player.play();
+        }
+        
+        // Close video player
+        function closeVideoPlayer() {
+            const modal = document.getElementById('videoPlayerModal');
+            const player = document.getElementById('videoPlayer');
+            
+            player.pause();
+            player.src = '';
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close video when clicking outside
+        document.getElementById('videoPlayerModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeVideoPlayer();
+            }
+        });
+        
+        // Open Uploaded Videos Modal
+        function openUploadedVideosModal() {
+            document.getElementById('uploadedVideosModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Close Uploaded Videos Modal
+        function closeUploadedVideosModal() {
+            document.getElementById('uploadedVideosModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('uploadedVideosModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeUploadedVideosModal();
+                    }
+                });
+            }
+        });
+        </script>
         
         <!-- Phase Details Modal -->
         <div id="phaseModal" class="modal">
@@ -2441,6 +3311,328 @@
                 </div>
             </div>
         </div>
+        
+        <!-- UPLOADED VIDEOS MODAL -->
+        <div id="uploadedVideosModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);">
+            <div style="background-color: #fefefe; margin: 2% auto; padding: 0; border: 1px solid #888; border-radius: 12px; width: 95%; max-width: 1400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+                <!-- Modal Header -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 28px; display: flex; align-items: center; gap: 12px;">
+                            <span>📹</span>
+                            <span>Uploaded Videos - अपलोड केलेले व्हिडिओ</span>
+                        </h2>
+                        <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px;">View and play all student progress videos (सर्व विद्यार्थी प्रगती व्हिडिओ पहा)</p>
+                    </div>
+                    <button onclick="closeUploadedVideosModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 28px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">×</button>
+                </div>
+                
+                <!-- Modal Body -->
+                <div style="padding: 30px;">
+                    <%
+                    // Fetch uploaded videos from database (if not already fetched)
+                    if (uploadedVideos == null || uploadedVideos.isEmpty()) {
+                        uploadedVideos = new ArrayList<>();
+                        Connection videoModalConn = null;
+                        PreparedStatement videoModalPstmt = null;
+                        ResultSet videoModalRs = null;
+                        
+                        try {
+                            videoModalConn = DatabaseConnection.getConnection();
+                            String videoModalSql = "SELECT v.video_id, v.student_id, s.student_name, s.student_pen, s.class, s.section, " +
+                                             "v.subject, v.month, v.has_progress, v.original_file_name, v.file_path, " +
+                                             "v.file_size, v.uploaded_by_name, v.upload_date, v.youtube_video_id, v.thumbnail_url " +
+                                             "FROM student_videos v " +
+                                             "INNER JOIN students s ON v.student_id = s.student_id " +
+                                             "WHERE v.udise_no = ? AND v.is_active = TRUE " +
+                                             "ORDER BY v.upload_date DESC";
+                            
+                            videoModalPstmt = videoModalConn.prepareStatement(videoModalSql);
+                            videoModalPstmt.setString(1, udiseNo);
+                            videoModalRs = videoModalPstmt.executeQuery();
+                            
+                            while (videoModalRs.next()) {
+                                Map<String, Object> video = new HashMap<>();
+                                video.put("videoId", videoModalRs.getInt("video_id"));
+                                video.put("studentId", videoModalRs.getInt("student_id"));
+                                video.put("studentName", videoModalRs.getString("student_name"));
+                                video.put("studentPen", videoModalRs.getString("student_pen"));
+                                video.put("studentClass", videoModalRs.getString("class"));
+                                video.put("section", videoModalRs.getString("section"));
+                                video.put("subject", videoModalRs.getString("subject"));
+                                video.put("month", videoModalRs.getString("month"));
+                                video.put("hasProgress", videoModalRs.getString("has_progress"));
+                                video.put("fileName", videoModalRs.getString("original_file_name"));
+                                video.put("filePath", videoModalRs.getString("file_path"));
+                                video.put("fileSize", videoModalRs.getLong("file_size"));
+                                video.put("uploadedBy", videoModalRs.getString("uploaded_by_name"));
+                                video.put("uploadDate", videoModalRs.getTimestamp("upload_date"));
+                                video.put("youtubeVideoId", videoModalRs.getString("youtube_video_id"));
+                                video.put("thumbnailUrl", videoModalRs.getString("thumbnail_url"));
+                                uploadedVideos.add(video);
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error fetching uploaded videos in modal: " + e.getMessage());
+                            e.printStackTrace();
+                        } finally {
+                            if (videoModalRs != null) try { videoModalRs.close(); } catch (SQLException e) { }
+                            if (videoModalPstmt != null) try { videoModalPstmt.close(); } catch (SQLException e) { }
+                            if (videoModalConn != null) try { videoModalConn.close(); } catch (SQLException e) { }
+                        }
+                    }
+                    %>
+                    
+                    <% if (uploadedVideos.isEmpty()) { %>
+                    <!-- No Videos Message -->
+                    <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; border: 2px dashed #667eea;">
+                        <div style="font-size: 64px; margin-bottom: 20px;">🎥</div>
+                        <h3 style="color: #333; margin-bottom: 10px;">No Videos Uploaded Yet</h3>
+                        <p style="color: #666; margin-bottom: 20px;">अद्याप कोणतेही व्हिडिओ अपलोड केलेले नाहीत</p>
+                        <button onclick="closeUploadedVideosModal(); openVideoUploadModal();" 
+                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                            🎥 Upload First Video
+                        </button>
+                    </div>
+                    <% } else { %>
+                    
+                    <!-- Video Filters -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">🔍 Search</label>
+                                <input type="text" id="modalVideoSearchFilter" placeholder="Student name or PEN..." 
+                                       onkeyup="filterModalVideos()"
+                                       style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📚 Subject</label>
+                                <select id="modalVideoSubjectFilter" onchange="filterModalVideos()" 
+                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                    <option value="">All Subjects</option>
+                                    <option value="Marathi">मराठी (Marathi)</option>
+                                    <option value="Math">गणित (Math)</option>
+                                    <option value="English">इंग्रजी (English)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📅 Month</label>
+                                <select id="modalVideoMonthFilter" onchange="filterModalVideos()" 
+                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                    <option value="">All Months</option>
+                                    <option value="January">January</option>
+                                    <option value="February">February</option>
+                                    <option value="March">March</option>
+                                    <option value="April">April</option>
+                                    <option value="May">May</option>
+                                    <option value="June">June</option>
+                                    <option value="July">July</option>
+                                    <option value="August">August</option>
+                                    <option value="September">September</option>
+                                    <option value="October">October</option>
+                                    <option value="November">November</option>
+                                    <option value="December">December</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📈 Progress</label>
+                                <select id="modalVideoProgressFilter" onchange="filterModalVideos()" 
+                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                    <option value="">All</option>
+                                    <option value="yes">✅ Yes - Progress Made</option>
+                                    <option value="no">❌ No - No Progress</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; text-align: right;">
+                            <button onclick="resetModalVideoFilters()" 
+                                    style="background: #e0e0e0; color: #333; border: none; padding: 8px 20px; border-radius: 6px; font-size: 14px; cursor: pointer;">
+                                🔄 Reset Filters
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Video Statistics -->
+                    <%
+                    // Count videos with progress for modal
+                    int modalVideosWithProgress = 0;
+                    int modalVideosNoProgress = 0;
+                    for (Map<String, Object> video : uploadedVideos) {
+                        String hasProgress = (String) video.get("hasProgress");
+                        if ("yes".equals(hasProgress)) {
+                            modalVideosWithProgress++;
+                        } else if ("no".equals(hasProgress)) {
+                            modalVideosNoProgress++;
+                        }
+                    }
+                    %>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 32px; font-weight: 700;"><%= uploadedVideos.size() %></div>
+                            <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">Total Videos</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Videos Grid -->
+                    <div id="modalVideosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                        <% 
+                        java.text.SimpleDateFormat modalVideoDateFormat = new java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a");
+                        for (Map<String, Object> video : uploadedVideos) {
+                            String hasProgress = (String) video.get("hasProgress");
+                            String progressBadge = "yes".equals(hasProgress) ? 
+                                "<span style='background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>✅ Progress</span>" :
+                                "<span style='background: #ff9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>⏳ No Progress</span>";
+                            
+                            long fileSizeMB = (Long) video.get("fileSize") / (1024 * 1024);
+                            String uploadDate = modalVideoDateFormat.format((java.util.Date) video.get("uploadDate"));
+                            
+                            String youtubeVideoId = (String) video.get("youtubeVideoId");
+                            String thumbnailUrl = (String) video.get("thumbnailUrl");
+                            String youtubeUrl = (String) video.get("filePath");
+                            
+                            // Use YouTube thumbnail if available, otherwise use default icon
+                            boolean hasYouTubeVideo = youtubeVideoId != null && !youtubeVideoId.isEmpty();
+                        %>
+                        <div class="modal-video-card" 
+                             data-name="<%= video.get("studentName") %>" 
+                             data-pen="<%= video.get("studentPen") %>"
+                             data-subject="<%= video.get("subject") %>"
+                             data-month="<%= video.get("month") %>"
+                             data-progress="<%= video.get("hasProgress") %>"
+                             style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s; cursor: pointer;"
+                             onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';"
+                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)';">
+                            
+                            <!-- Video Thumbnail -->
+                            <% if (hasYouTubeVideo && thumbnailUrl != null) { %>
+                            <div style="position: relative; background: #000; height: 180px; overflow: hidden;">
+                                <img src="<%= thumbnailUrl %>" 
+                                     alt="Video Thumbnail" 
+                                     style="width: 100%; height: 100%; object-fit: cover;"
+                                     onerror="this.parentElement.innerHTML='<div style=\'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; height: 180px; display: flex; align-items: center; justify-content: center;\'><div style=\'font-size: 48px; color: white;\'>🎥</div></div>';">
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: white; font-size: 24px; margin-left: 5px;">▶️</span>
+                                </div>
+                                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                    YouTube
+                                </div>
+                            </div>
+                            <% } else { %>
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; height: 180px; display: flex; align-items: center; justify-content: center;">
+                                <div style="font-size: 48px; color: white;">🎥</div>
+                            </div>
+                            <% } %>
+                            
+                            <!-- Video Info -->
+                            <div style="padding: 20px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <h3 style="margin: 0; font-size: 16px; color: #333; font-weight: 700;"><%= video.get("studentName") %></h3>
+                                    <%= progressBadge %>
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                        <span>🏷️</span>
+                                        <span style="font-family: monospace;"><%= video.get("studentPen") %></span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                        <span>📚</span>
+                                        <span><%= video.get("studentClass") %> - <%= video.get("section") %></span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                        <span>📖</span>
+                                        <span><strong><%= video.get("subject") %></strong></span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
+                                        <span>📅</span>
+                                        <span><%= video.get("month") %></span>
+                                    </div>
+                                </div>
+                                
+                                <div style="padding-top: 12px; border-top: 1px solid #eee;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 12px; color: #999;">📦 <%= fileSizeMB %> MB</span>
+                                        <span style="font-size: 12px; color: #999;">👤 <%= video.get("uploadedBy") %></span>
+                                    </div>
+                                    <div style="font-size: 11px; color: #999; margin-bottom: 12px;">
+                                        ⏰ <%= uploadDate %>
+                                    </div>
+                                    
+                                    <% if (hasYouTubeVideo) { %>
+                                    <button onclick="window.open('<%= youtubeUrl %>', '_blank')" 
+                                            style="width: 100%; background: linear-gradient(135deg, #FF0000 0%, #CC0000 100%); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
+                                            onmouseover="this.style.transform='scale(1.05)'"
+                                            onmouseout="this.style.transform='scale(1)'">
+                                        ▶️ Watch on YouTube
+                                    </button>
+                                    <% } else { %>
+                                    <button onclick="alert('Video file not available')" 
+                                            style="width: 100%; background: #999; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                                        ❌ Video Not Available
+                                    </button>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+                    </div>
+                    
+                    <div id="modalNoVideosMessage" style="display: none; text-align: center; padding: 40px; background: #f5f5f5; border-radius: 12px; margin-top: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
+                        <h3 style="color: #666;">No videos found matching your filters</h3>
+                        <p style="color: #999;">Try adjusting your search criteria</p>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        // Filter videos in modal
+        function filterModalVideos() {
+            const searchText = document.getElementById('modalVideoSearchFilter').value.toLowerCase();
+            const subjectFilter = document.getElementById('modalVideoSubjectFilter').value;
+            const monthFilter = document.getElementById('modalVideoMonthFilter').value;
+            const progressFilter = document.getElementById('modalVideoProgressFilter').value;
+            
+            const videoCards = document.querySelectorAll('.modal-video-card');
+            let visibleCount = 0;
+            
+            videoCards.forEach(card => {
+                const name = card.getAttribute('data-name').toLowerCase();
+                const pen = card.getAttribute('data-pen').toLowerCase();
+                const subject = card.getAttribute('data-subject');
+                const month = card.getAttribute('data-month');
+                const progress = card.getAttribute('data-progress');
+                
+                const matchesSearch = !searchText || name.includes(searchText) || pen.includes(searchText);
+                const matchesSubject = !subjectFilter || subject === subjectFilter;
+                const matchesMonth = !monthFilter || month === monthFilter;
+                const matchesProgress = !progressFilter || progress === progressFilter;
+                
+                if (matchesSearch && matchesSubject && matchesMonth && matchesProgress) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no results message
+            const noVideosMsg = document.getElementById('modalNoVideosMessage');
+            if (noVideosMsg) {
+                noVideosMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+        }
+        
+        // Reset filters in modal
+        function resetModalVideoFilters() {
+            document.getElementById('modalVideoSearchFilter').value = '';
+            document.getElementById('modalVideoSubjectFilter').value = '';
+            document.getElementById('modalVideoMonthFilter').value = '';
+            document.getElementById('modalVideoProgressFilter').value = '';
+            filterModalVideos();
+        }
+        </script>
         
         <!-- Add Teacher Modal -->
         <div id="addTeacherModal" class="modal">
@@ -2478,39 +3670,125 @@
                                 <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #333;">
                                     Subjects Taught / विषय <span style="color: red;">*</span>
                                 </label>
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="checkbox" name="subjects" value="Marathi" class="subject-checkbox"
-                                               style="width: 18px; height: 18px; cursor: pointer;">
-                                        <span>मराठी (Marathi)</span>
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="checkbox" name="subjects" value="Hindi" class="subject-checkbox"
-                                               style="width: 18px; height: 18px; cursor: pointer;">
-                                        <span>हिंदी (Hindi)</span>
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="checkbox" name="subjects" value="English" class="subject-checkbox"
-                                               style="width: 18px; height: 18px; cursor: pointer;">
-                                        <span>English</span>
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="checkbox" name="subjects" value="Mathematics" class="subject-checkbox"
-                                               style="width: 18px; height: 18px; cursor: pointer;">
-                                        <span>गणित (Mathematics)</span>
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="checkbox" name="subjects" value="Science" class="subject-checkbox"
-                                               style="width: 18px; height: 18px; cursor: pointer;">
-                                        <span>विज्ञान (Science)</span>
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="checkbox" name="subjects" value="History" class="subject-checkbox"
-                                               style="width: 18px; height: 18px; cursor: pointer;">
-                                        <span>इतिहास (History)</span>
-                                    </label>
+                                
+                                <!-- Subject Checkboxes -->
+                                <div style="max-height: 400px; overflow-y: auto; padding: 15px; background: #f9f9f9; border-radius: 8px; border: 2px solid #e0e0e0;">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="मराठी" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">मराठी</span>
+                                        </label>
+                                        
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="इंग्रजी" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">इंग्रजी</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="हिंदी" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">हिंदी</span>
+                                        </label>
+                                        
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="गणित" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">गणित</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="परिसर अभ्यास /विज्ञान (भाग १ व २)" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">परिसर अभ्यास /विज्ञान (भाग १ व २)</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="इतिहास /नागरिकशास्त्र" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">इतिहास /नागरिकशास्त्र</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="भूगोल" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">भूगोल</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="जलसुरक्षा" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">जलसुरक्षा</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="संरक्षण शास्त्र" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">संरक्षण शास्त्र</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="शारीरिक शिक्षण" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">शारीरिक शिक्षण</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="कला शिक्षण" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">कला शिक्षण</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="कार्यअनुभव" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">कार्यअनुभव</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="भौतिकशास्त्र (Physics)" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">भौतिकशास्त्र (Physics)</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="रसायनशास्त्र (Chemistry)" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">रसायनशास्त्र (Chemistry)</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="जीवशास्त्र (Biology)" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">जीवशास्त्र (Biology)</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="राज्यशास्त्र" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">राज्यशास्त्र</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="अर्थशास्त्र" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">अर्थशास्त्र</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="समाजशास्त्र" class="subject-checkbox"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">समाजशास्त्र</span>
+                                        </label>
+                                       
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" name="subjects" value="इतर (Other)" class="subject-checkbox" id="otherSubjectCheckbox" onchange="toggleOtherSubjectInput()"
+                                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                                            <span style="font-size: 14px;">इतर (Other)</span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <span id="subjectError" style="color: red; font-size: 12px; display: none; margin-top: 5px;">Please select at least one subject</span>
+                                
+                                <!-- Other Subject Input Field (Hidden by default) -->
+                                <div id="otherSubjectInputContainer" style="display: none; margin-top: 15px; padding: 15px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px;">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #856404;">
+                                        📝 Enter Other Subject Name / इतर विषयाचे नाव लिहा <span style="color: red;">*</span>
+                                    </label>
+                                    <input type="text" id="otherSubjectName" name="otherSubjectName"
+                                           style="width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 14px; background: white;"
+                                           placeholder="Enter custom subject name / विषयाचे नाव लिहा">
+                                    <small style="display: block; margin-top: 5px; color: #856404; font-size: 12px;">
+                                        💡 This field is required when "Other Subject" is selected
+                                    </small>
+                                </div>
+                                
+                                <span id="subjectError" style="color: red; font-size: 12px; display: none; margin-top: 5px;">कृपया किमान एक विषय निवडा / Please select at least one subject</span>
                             </div>
                             
                             <!-- Description -->
@@ -2640,7 +3918,399 @@
             <% } %>
         ];
         </script>
-        <% } %>
+        
+        <!-- VIDEO UPLOAD MODAL -->
+        <div id="videoUploadModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+            <div style="background-color: #fefefe; margin: 2% auto; padding: 0; border: 1px solid #888; border-radius: 12px; width: 90%; max-width: 1200px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+                <!-- Modal Header -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 28px; display: flex; align-items: center; gap: 12px;">
+                            <span>🎥</span>
+                            <span>Video Upload - व्हिडिओ अपलोड</span>
+                        </h2>
+                        <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px;">विद्यार्थ्याची प्रगती व्हिडिओ अपलोड करा</p>
+                    </div>
+                    <button onclick="closeVideoUploadModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 28px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">×</button>
+                </div>
+                
+                <!-- Modal Body -->
+                <div style="padding: 30px;">
+                    <!-- Step 1: Student Selection -->
+                    <div id="videoStep1" style="display: block;">
+                        <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin-bottom: 25px; border-radius: 8px;">
+                            <p style="margin: 0; color: #1565c0; font-weight: 600;">📋 Step 1: Select Student - विद्यार्थी निवडा</p>
+                        </div>
+                        
+                        <!-- Search and Filter -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">🔍 Search by Name / PEN</label>
+                                <input type="text" id="videoStudentSearch" placeholder="विद्यार्थ्याचे नाव किंवा PEN" 
+                                       onkeyup="filterVideoStudents()"
+                                       style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📚 Filter by Class</label>
+                                <select id="videoClassFilter" onchange="filterVideoStudents()" 
+                                        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                    <option value="">All Classes - सर्व वर्ग</option>
+                                    <% 
+                                    Set<String> uniqueClasses = new TreeSet<>();
+                                    for (com.vjnt.model.Student s : allStudents) {
+                                        if (s.getStudentClass() != null && !s.getStudentClass().isEmpty()) {
+                                            uniqueClasses.add(s.getStudentClass());
+                                        }
+                                    }
+                                    for (String cls : uniqueClasses) { %>
+                                        <option value="<%= cls %>"><%= cls %></option>
+                                    <% } %>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📋 Filter by Section</label>
+                                <select id="videoSectionFilter" onchange="filterVideoStudents()" 
+                                        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                    <option value="">All Sections - सर्व विभाग</option>
+                                    <% 
+                                    Set<String> uniqueSections = new TreeSet<>();
+                                    for (com.vjnt.model.Student s : allStudents) {
+                                        if (s.getSection() != null && !s.getSection().isEmpty()) {
+                                            uniqueSections.add(s.getSection());
+                                        }
+                                    }
+                                    for (String sec : uniqueSections) { %>
+                                        <option value="<%= sec %>"><%= sec %></option>
+                                    <% } %>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Students List -->
+                        <div style="max-height: 400px; overflow-y: auto; border: 2px solid #ddd; border-radius: 8px;">
+                            <table id="videoStudentsTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f5f5f5; position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Select</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Student Name</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">PEN</th>
+                                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Class</th>
+                                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Section</th>
+                                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Gender</th>
+                                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Current Star</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="videoStudentsBody">
+                                    <% 
+                                    for (com.vjnt.model.Student s : allStudents) {
+                                        // Calculate current star (highest level across subjects)
+                                        int currentStar = Math.max(s.getMarathiAksharaLevel(), 
+                                                          Math.max(s.getMathAksharaLevel(), s.getEnglishAksharaLevel()));
+                                    %>
+                                    <tr class="video-student-row" 
+                                        data-name="<%= s.getStudentName() %>" 
+                                        data-pen="<%= s.getStudentPen() %>"
+                                        data-class="<%= s.getStudentClass() %>"
+                                        data-section="<%= s.getSection() %>"
+                                        data-student-id="<%= s.getStudentId() %>"
+                                        data-current-star="<%= currentStar %>"
+                                        style="cursor: pointer; transition: background 0.3s;"
+                                        onmouseover="this.style.background='#f0f8ff'"
+                                        onmouseout="this.style.background='white'">
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                                            <input type="radio" name="selectedVideoStudent" 
+                                                   value="<%= s.getStudentId() %>"
+                                                   data-name="<%= s.getStudentName() %>"
+                                                   data-pen="<%= s.getStudentPen() %>"
+                                                   data-star="<%= currentStar %>"
+                                                   onclick="selectVideoStudent(this)">
+                                        </td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee; font-weight: 600;"><%= s.getStudentName() %></td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee; font-family: monospace;"><%= s.getStudentPen() %></td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;"><%= s.getStudentClass() %></td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;"><%= s.getSection() %></td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;"><%= s.getGender() %></td>
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
+                                            <span style="background: #ffd700; color: #333; padding: 4px 12px; border-radius: 20px; font-weight: 600;">⭐ <%= currentStar %></span>
+                                        </td>
+                                    </tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: right;">
+                            <button onclick="proceedToVideoUpload()" 
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                Next - पुढे जा →
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Video Upload Form -->
+                    <div id="videoStep2" style="display: none;">
+                        <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 25px; border-radius: 8px;">
+                            <p style="margin: 0; color: #2e7d32; font-weight: 600;">📤 Step 2: Upload Video Details - व्हिडिओ तपशील भरा</p>
+                        </div>
+                        
+                        <form id="videoUploadForm" enctype="multipart/form-data">
+                            <!-- Student Info Display -->
+                            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                                <h3 style="margin: 0 0 15px 0; color: #333;">Selected Student Information</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div>
+                                        <label style="font-weight: 600; color: #666;">Student Name:</label>
+                                        <p id="selectedStudentName" style="margin: 5px 0 0 0; font-size: 18px; color: #333;"></p>
+                                    </div>
+                                    <div>
+                                        <label style="font-weight: 600; color: #666;">Student PEN:</label>
+                                        <p id="selectedStudentPEN" style="margin: 5px 0 0 0; font-size: 18px; color: #333; font-family: monospace;"></p>
+                                    </div>
+                                    <div>
+                                        <label style="font-weight: 600; color: #666;">Current Star Level:</label>
+                                        <p id="selectedStudentStar" style="margin: 5px 0 0 0; font-size: 18px; color: #333;"></p>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="videoStudentId" name="studentId">
+                            </div>
+                            
+                            <!-- Video Upload Details -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                                        Select Subject - विषय निवडा <span style="color: red;">*</span>
+                                    </label>
+                                    <select name="subject" required
+                                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                        <option value="">-- Select Subject --</option>
+                                        <option value="Marathi">मराठी (Marathi)</option>
+                                        <option value="Math">गणित (Math)</option>
+                                        <option value="English">इंग्रजी (English)</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                                        Select Month - महिना निवडा <span style="color: red;">*</span>
+                                    </label>
+                                    <select name="month" required
+                                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                                        <option value="">-- Select Month --</option>
+                                        <option value="January">जानेवारी (January)</option>
+                                        <option value="February">फेब्रुवारी (February)</option>
+                                        <option value="March">मार्च (March)</option>
+                                        <option value="April">एप्रिल (April)</option>
+                                        <option value="May">मे (May)</option>
+                                        <option value="June">जून (June)</option>
+                                        <option value="July">जुलै (July)</option>
+                                        <option value="August">ऑगस्ट (August)</option>
+                                        <option value="September">सप्टेंबर (September)</option>
+                                        <option value="October">ऑक्टोबर (October)</option>
+                                        <option value="November">नोव्हेंबर (November)</option>
+                                        <option value="December">डिसेंबर (December)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress Question -->
+                            <div style="margin-bottom: 25px;">
+                                <label style="display: block; margin-bottom: 12px; font-weight: 600; color: #333; font-size: 16px;">
+                                    विद्यार्थ्याची प्रगती झाली आहे का? (Has the student made progress?) <span style="color: red;">*</span>
+                                </label>
+                                <div style="display: flex; gap: 30px;">
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 20px; border: 2px solid #ddd; border-radius: 8px; transition: all 0.3s;">
+                                        <input type="radio" name="hasProgress" value="no" required 
+                                               onchange="this.parentElement.style.borderColor='#f44336'; this.parentElement.style.background='#ffebee';">
+                                        <span style="font-size: 16px;">❌ नाही (No)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 20px; border: 2px solid #ddd; border-radius: 8px; transition: all 0.3s;">
+                                        <input type="radio" name="hasProgress" value="yes" required
+                                               onchange="this.parentElement.style.borderColor='#4caf50'; this.parentElement.style.background='#e8f5e9';">
+                                        <span style="font-size: 16px;">✅ होय (Yes)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Video Upload Section -->
+                            <div style="border: 2px dashed #667eea; border-radius: 8px; padding: 30px; text-align: center; background: #f8f9ff; margin-bottom: 25px;">
+                                <div style="font-size: 48px; margin-bottom: 15px;">🎥</div>
+                                <label style="display: block; margin-bottom: 12px; font-weight: 600; color: #333; font-size: 16px;">
+                                    Upload Video - व्हिडिओ अपलोड करा <span style="color: red;">*</span>
+                                </label>
+                                <input type="file" name="videoFile" accept="video/*" required
+                                       onchange="displayVideoFileName(this)"
+                                       style="display: block; margin: 15px auto; padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: white; max-width: 400px;">
+                                <p id="videoFileName" style="margin-top: 10px; color: #4caf50; font-weight: 600;"></p>
+                                <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                                    Supported formats: MP4, AVI, MOV, MKV (Min 2 MB and Max size: 10MB)
+                                </p>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                                <button type="button" onclick="backToStudentSelection()" 
+                                        style="background: #e0e0e0; color: #333; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                    ← Back - मागे जा
+                                </button>
+                                <button type="submit" 
+                                        style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                    🎥 Upload Video - व्हिडिओ अपलोड करा
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VIDEO UPLOAD JAVASCRIPT -->
+        <script>
+        // Open Video Upload Modal
+        function openVideoUploadModal() {
+            document.getElementById('videoUploadModal').style.display = 'block';
+            document.getElementById('videoStep1').style.display = 'block';
+            document.getElementById('videoStep2').style.display = 'none';
+            document.body.style.overflow = 'hidden';
+            
+            // Reset selections
+            const radios = document.getElementsByName('selectedVideoStudent');
+            radios.forEach(r => r.checked = false);
+        }
+        
+        // Close Video Upload Modal
+        function closeVideoUploadModal() {
+            document.getElementById('videoUploadModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Reset form
+            document.getElementById('videoUploadForm').reset();
+            document.getElementById('videoFileName').textContent = '';
+        }
+        
+        // Filter students in video modal
+        function filterVideoStudents() {
+            const searchText = document.getElementById('videoStudentSearch').value.toLowerCase();
+            const classFilter = document.getElementById('videoClassFilter').value;
+            const sectionFilter = document.getElementById('videoSectionFilter').value;
+            
+            const rows = document.querySelectorAll('.video-student-row');
+            
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name').toLowerCase();
+                const pen = row.getAttribute('data-pen').toLowerCase();
+                const studentClass = row.getAttribute('data-class');
+                const section = row.getAttribute('data-section');
+                
+                const matchesSearch = name.includes(searchText) || pen.includes(searchText);
+                const matchesClass = !classFilter || studentClass === classFilter;
+                const matchesSection = !sectionFilter || section === sectionFilter;
+                
+                if (matchesSearch && matchesClass && matchesSection) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Select student for video upload
+        let selectedVideoStudentData = null;
+        
+        function selectVideoStudent(radio) {
+            selectedVideoStudentData = {
+                id: radio.value,
+                name: radio.getAttribute('data-name'),
+                pen: radio.getAttribute('data-pen'),
+                star: radio.getAttribute('data-star')
+            };
+        }
+        
+        // Proceed to video upload form
+        function proceedToVideoUpload() {
+            if (!selectedVideoStudentData) {
+                alert('कृपया विद्यार्थी निवडा!\nPlease select a student!');
+                return;
+            }
+            
+            // Update student info in step 2
+            document.getElementById('selectedStudentName').textContent = selectedVideoStudentData.name;
+            document.getElementById('selectedStudentPEN').textContent = selectedVideoStudentData.pen;
+            document.getElementById('selectedStudentStar').innerHTML = '⭐ ' + selectedVideoStudentData.star;
+            document.getElementById('videoStudentId').value = selectedVideoStudentData.id;
+            
+            // Switch to step 2
+            document.getElementById('videoStep1').style.display = 'none';
+            document.getElementById('videoStep2').style.display = 'block';
+        }
+        
+        // Back to student selection
+        function backToStudentSelection() {
+            document.getElementById('videoStep1').style.display = 'block';
+            document.getElementById('videoStep2').style.display = 'none';
+        }
+        
+        // Display selected video file name
+        function displayVideoFileName(input) {
+            const fileName = input.files[0] ? input.files[0].name : '';
+            const fileSize = input.files[0] ? (input.files[0].size / (1024 * 1024)).toFixed(2) : 0;
+            
+            if (fileName) {
+                document.getElementById('videoFileName').textContent = 
+                    '✓ Selected: ' + fileName + ' (' + fileSize + ' MB)';
+            }
+        }
+        
+        // Handle video upload form submission
+        document.getElementById('videoUploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            
+            // Disable submit button
+            submitButton.disabled = true;
+            submitButton.textContent = '⏳ Uploading... कृपया प्रतीक्षा करा...';
+            
+            // Submit to backend
+            fetch('<%= request.getContextPath() %>/upload-student-video', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Video uploaded to YouTube successfully!\nव्हिडिओ यशस्वीरित्या YouTube वर अपलोड केला!\n\nStudent: ' + selectedVideoStudentData.name + '\nYouTube URL: ' + data.youtubeUrl);
+                    closeVideoUploadModal();
+                    location.reload(); // Refresh to show updated data
+                } else {
+                    // Check if it's an auth expired error
+                    if (data.authExpired) {
+                        const fixUrl = '<%= request.getContextPath() %>/refresh-youtube-auth';
+                        if (confirm('❌ YouTube Authorization Expired!\n\n' + data.message + '\n\nClick OK to open the fix page in a new tab.')) {
+                            window.open(fixUrl, '_blank');
+                        }
+                    } else {
+                        alert('❌ Error uploading video!\n' + (data.message || 'Unknown error'));
+                    }
+                    submitButton.disabled = false;
+                    submitButton.textContent = '🎥 Upload Video - व्हिडिओ अपलोड करा';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Error uploading video!\nकृपया पुन्हा प्रयत्न करा!\n\n' + error.message);
+                submitButton.disabled = false;
+                submitButton.textContent = '🎥 Upload Video - व्हिडिओ अपलोड करा';
+            });
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('videoUploadModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeVideoUploadModal();
+            }
+        });
+        </script>
         
 </body>
 </html>

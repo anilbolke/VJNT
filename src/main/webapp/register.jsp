@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">Register - VJNT Class Management System</title>
+    <title id="pageTitle">Register - GATEE PORTAL </title>
     <style>
         * {
             margin: 0;
@@ -42,6 +42,20 @@
             border-radius: 8px;
         }
         
+        .header-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .header-logo img {
+            max-width: 180px;
+            width: 180px;
+            height: auto;
+            display: block;
+        }
+        
         .header-title {
             flex: 1;
         }
@@ -56,6 +70,41 @@
         .header-title p {
             color: #000;
             font-size: 13px;
+        }
+        
+        .gatee-meaning {
+            background: #f7fafc;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 11px;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        
+        .gatee-meaning h3 {
+            color: #667eea;
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .gatee-meaning ul {
+            list-style: none;
+            padding: 0;
+            display: inline-block;
+            text-align: left;
+        }
+        
+        .gatee-meaning li {
+            padding: 2px 0;
+            color: #4a5568;
+        }
+        
+        .gatee-meaning li strong {
+            color: #2d3748;
+            font-weight: 700;
         }
         
         .language-toggle {
@@ -255,16 +304,20 @@
 </head>
 <body>
     <div class="register-container">
+        <div class="header-logo">
+            <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
+        </div>
+        
         <div class="register-header">
             <div class="header-title">
-                <h1>🎓 VJNT</h1>
-                <p id="subtitle">Class Management System</p>
+                <p id="subtitle">GATEE PORTAL </p>
             </div>
             <div class="language-toggle">
                 <button type="button" class="lang-btn active" onclick="switchLanguage('en')" id="langEnBtn">EN</button>
                 <button type="button" class="lang-btn" onclick="switchLanguage('mr')" id="langMrBtn">मराठी</button>
             </div>
         </div>
+        
         
         <% 
             String errorMessage = (String) request.getAttribute("errorMessage");
@@ -353,8 +406,8 @@
         // Language translations
         const translations = {
             en: {
-                pageTitle: "Register - VJNT Class Management System",
-                subtitle: "Class Management System",
+                pageTitle: "Register - GATEE ",
+                subtitle: "Class ",
                 lblFirstName: "First Name",
                 lblLastName: "Last Name",
                 lblEmail: "Email Address",
