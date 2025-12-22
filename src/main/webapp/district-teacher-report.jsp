@@ -586,11 +586,11 @@
                 <div class="stat-value"><%= totalTeachers %></div>
                 <div class="stat-label">Total Teachers</div>
             </div>
-            <div class="stat-card">
+          <%--   <div class="stat-card">
                 <div class="stat-icon">📊</div>
                 <div class="stat-value"><%= totalSchools > 0 ? String.format("%.1f", (double)totalTeachers/totalSchools) : "0" %></div>
                 <div class="stat-label">Avg Teachers/School</div>
-            </div>
+            </div> --%>
         </div>
 
         <!-- School-wise Teacher List -->
