@@ -29,3 +29,10 @@
 # client_secret.json
 # src/main/resources/client_secret.json
 # **/client_secret*.json
+# Sensitive credentials
+**/client_secret.json
+**/service-account.json
+**/credentials/StoredCredential
+WebContent/WEB-INF/classes/credentials/
+src/main/webapp/WEB-INF/classes/credentials/
+src/main/webapp/credentials/
