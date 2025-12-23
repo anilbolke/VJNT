@@ -1,7 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.vjnt.model.User" %>
 <%@ page import="com.vjnt.dao.StudentDAO" %>
+<%@ page import="com.vjnt.dao.PhaseApprovalDAO" %>
 <%@ page import="com.vjnt.model.Student" %>
+<%@ page import="com.vjnt.model.PhaseApproval" %>
 <%@ page import="java.util.*" %>
 <%
     User user = (User) session.getAttribute("user");
@@ -453,6 +455,19 @@
             boolean phase3Complete = phaseDAO.isPhaseComplete(udiseNo, 3);
             boolean phase4Complete = phaseDAO.isPhaseComplete(udiseNo, 4);
             
+            // Check phase approval status from principal
+            PhaseApprovalDAO approvalDAO = new PhaseApprovalDAO();
+            PhaseApproval phase1Approval = approvalDAO.getPhaseApproval(udiseNo, 1);
+            PhaseApproval phase2Approval = approvalDAO.getPhaseApproval(udiseNo, 2);
+            PhaseApproval phase3Approval = approvalDAO.getPhaseApproval(udiseNo, 3);
+            PhaseApproval phase4Approval = approvalDAO.getPhaseApproval(udiseNo, 4);
+            
+            // Check if phases are approved by principal
+            boolean phase1Approved = phase1Approval != null && phase1Approval.isApproved();
+            boolean phase2Approved = phase2Approval != null && phase2Approval.isApproved();
+            boolean phase3Approved = phase3Approval != null && phase3Approval.isApproved();
+            boolean phase4Approved = phase4Approval != null && phase4Approval.isApproved();
+            
             // Get current selected phase from request parameter (default to Phase 1)
             String selectedPhaseStr = request.getParameter("phase");
             if (selectedPhaseStr != null) {
@@ -481,9 +496,9 @@
                         </label>
                         <select id="phaseSelector" onchange="changePhase()" style="padding: 10px 15px; border: 2px solid #43e97b; border-radius: 5px; font-size: 14px; font-weight: 500; min-width: 150px;">
                             <option value="1" <%= selectedPhase == 1 ? "selected" : "" %> <%= phase1Complete ? "disabled" : "" %>>Phase 1 <%= phase1Complete ? "✓ Completed" : "" %></option>
-                            <option value="2" <%= selectedPhase == 2 ? "selected" : "" %> <%= !phase1Complete || phase2Complete ? "disabled" : "" %>>Phase 2 <%= phase2Complete ? "✓ Completed" : "" %></option>
-                            <option value="3" <%= selectedPhase == 3 ? "selected" : "" %> <%= !phase2Complete || phase3Complete ? "disabled" : "" %>>Phase 3 <%= phase3Complete ? "✓ Completed" : "" %></option>
-                            <option value="4" <%= selectedPhase == 4 ? "selected" : "" %> <%= !phase3Complete || phase4Complete ? "disabled" : "" %>>Phase 4 <%= phase4Complete ? "✓ Completed" : "" %></option>
+                            <option value="2" <%= selectedPhase == 2 ? "selected" : "" %> <%= !phase1Approved || phase2Complete ? "disabled" : "" %>>Phase 2 <%= phase2Complete ? "✓ Completed" : (!phase1Approved ? "🔒 Awaiting Approval" : "") %></option>
+                            <option value="3" <%= selectedPhase == 3 ? "selected" : "" %> <%= !phase2Approved || phase3Complete ? "disabled" : "" %>>Phase 3 <%= phase3Complete ? "✓ Completed" : (!phase2Approved ? "🔒 Awaiting Approval" : "") %></option>
+                            <option value="4" <%= selectedPhase == 4 ? "selected" : "" %> <%= !phase3Approved || phase4Complete ? "disabled" : "" %>>Phase 4 <%= phase4Complete ? "✓ Completed" : (!phase3Approved ? "🔒 Awaiting Approval" : "") %></option>
                         </select>
                     </div>
                     <div>
@@ -498,14 +513,14 @@
                     <span class="phase-badge <%= phase1Complete ? "phase-complete" : "phase-progress" %>">
                         Phase 1: <%= phase1Complete ? "✓ Complete" : "⏳ In Progress" %>
                     </span>
-                    <span class="phase-badge <%= phase2Complete ? "phase-complete" : (phase1Complete ? "phase-progress" : "phase-locked") %>">
-                        Phase 2: <%= phase2Complete ? "✓ Complete" : (phase1Complete ? "⏳ Available" : "🔒 Locked") %>
+                    <span class="phase-badge <%= phase2Complete ? "phase-complete" : (phase1Approved ? "phase-progress" : "phase-locked") %>">
+                        Phase 2: <%= phase2Complete ? "✓ Complete" : (phase1Approved ? "⏳ Available" : "🔒 Awaiting P1 Approval") %>
                     </span>
-                    <span class="phase-badge <%= phase3Complete ? "phase-complete" : (phase2Complete ? "phase-progress" : "phase-locked") %>">
-                        Phase 3: <%= phase3Complete ? "✓ Complete" : (phase2Complete ? "⏳ Available" : "🔒 Locked") %>
+                    <span class="phase-badge <%= phase3Complete ? "phase-complete" : (phase2Approved ? "phase-progress" : "phase-locked") %>">
+                        Phase 3: <%= phase3Complete ? "✓ Complete" : (phase2Approved ? "⏳ Available" : "🔒 Awaiting P2 Approval") %>
                     </span>
-                    <span class="phase-badge <%= phase4Complete ? "phase-complete" : (phase3Complete ? "phase-progress" : "phase-locked") %>">
-                        Phase 4: <%= phase4Complete ? "✓ Complete" : (phase3Complete ? "⏳ Available" : "🔒 Locked") %>
+                    <span class="phase-badge <%= phase4Complete ? "phase-complete" : (phase3Approved ? "phase-progress" : "phase-locked") %>">
+                        Phase 4: <%= phase4Complete ? "✓ Complete" : (phase3Approved ? "⏳ Available" : "🔒 Awaiting P3 Approval") %>
                     </span>
                 </div>
             </div>
@@ -515,6 +530,29 @@
             <div class="alert alert-success">
                 <strong style="font-size: 16px;">✓ Phase <%= selectedPhase %> Completed!</strong>
                 <p style="margin: 5px 0 0 0;">All students have been assigned language levels for this phase. Data is now read-only.</p>
+            </div>
+            <% } %>
+            
+            <% 
+            // Show approval pending message if next phase is locked
+            boolean showApprovalMessage = false;
+            String pendingPhaseMsg = "";
+            if (selectedPhase == 1 && phase1Complete && !phase1Approved) {
+                showApprovalMessage = true;
+                pendingPhaseMsg = "Phase 1 completion is awaiting Principal/Head Master approval before Phase 2 can be started.";
+            } else if (selectedPhase == 2 && phase2Complete && !phase2Approved) {
+                showApprovalMessage = true;
+                pendingPhaseMsg = "Phase 2 completion is awaiting Principal/Head Master approval before Phase 3 can be started.";
+            } else if (selectedPhase == 3 && phase3Complete && !phase3Approved) {
+                showApprovalMessage = true;
+                pendingPhaseMsg = "Phase 3 completion is awaiting Principal/Head Master approval before Phase 4 can be started.";
+            }
+            
+            if (showApprovalMessage) { %>
+            <!-- Approval Pending Notification -->
+            <div class="alert alert-warning" style="background: #fff3cd; border-left: 4px solid #ffc107; color: #856404;">
+                <strong style="font-size: 16px;">⏳ Awaiting Principal Approval</strong>
+                <p style="margin: 5px 0 0 0;"><%= pendingPhaseMsg %></p>
             </div>
             <% } %>
             
@@ -702,57 +740,79 @@
         });
         
         function restoreSaveIndicators() {
-            // Check localStorage for saved students (persists across sessions)
+            // Check DATABASE for saved students (works across all systems/browsers)
             var phase = <%= selectedPhase %>;
-            var udise = '<%= udiseNo %>';
-            var storageKey = 'saved-phase' + phase + '-udise-' + udise;
-            var savedData = localStorage.getItem(storageKey);
             
-            if (savedData) {
-                var savedStudents = JSON.parse(savedData);
-                
-                var rows = document.querySelectorAll('table tbody tr');
-                rows.forEach(function(row) {
-                    var studentId = row.id.replace('row-', '');
-                    var savedInfo = savedStudents[studentId];
-                    
-                    if (savedInfo) {
-                        // Apply saved row styling IMMEDIATELY
-                        row.classList.add('row-saved');
+            fetch('<%= request.getContextPath() %>/check-saved-students?phase=' + phase)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.savedStudents) {
+                        var savedStudentsMap = {};
                         
-                        // Restore the save indicator
-                        var msgDiv = document.getElementById('msg-' + studentId);
-                        if (msgDiv) {
-                            msgDiv.innerHTML = 
-                                '<div class="save-indicator" title="Last saved: ' + savedInfo.time + '">' +
-                                    '<span>✓</span>' +
-                                    '<span>Saved</span>' +
-                                '</div>';
-                        }
+                        // Convert array to map for quick lookup
+                        data.savedStudents.forEach(function(savedInfo) {
+                            savedStudentsMap[savedInfo.studentId] = savedInfo;
+                        });
                         
-                        // Apply visual emphasis to make it clear this row was saved
-                        var saveBtn = row.querySelector('.btn-save');
-                        if (saveBtn) {
-                            saveBtn.innerHTML = '✓ Saved';
-                            saveBtn.style.background = '#0d6efd';
-                            saveBtn.style.cursor = 'default';
-                        }
+                        // Apply saved indicators to all matching rows
+                        var rows = document.querySelectorAll('table tbody tr');
+                        rows.forEach(function(row) {
+                            var studentId = row.id.replace('row-', '');
+                            var savedInfo = savedStudentsMap[studentId];
+                            
+                            if (savedInfo) {
+                                // Apply saved row styling IMMEDIATELY
+                                row.classList.add('row-saved');
+                                
+                                // Format saved date/time
+                                var timeString = 'Previously saved';
+                                if (savedInfo.savedDate) {
+                                    var date = new Date(savedInfo.savedDate);
+                                    timeString = date.toLocaleString('en-IN');
+                                }
+                                
+                                // Restore the save indicator
+                                var msgDiv = document.getElementById('msg-' + studentId);
+                                if (msgDiv) {
+                                    msgDiv.innerHTML = 
+                                        '<div class="save-indicator" title="Last saved: ' + timeString + '">' +
+                                            '<span>✓</span>' +
+                                            '<span>Saved</span>' +
+                                        '</div>';
+                                }
+                                
+                                // Apply visual emphasis to make it clear this row was saved
+                                var saveBtn = row.querySelector('.btn-save');
+                                if (saveBtn) {
+                                    saveBtn.innerHTML = '✓ Saved';
+                                    saveBtn.style.background = '#0d6efd';
+                                    saveBtn.style.cursor = 'default';
+                                }
+                            }
+                        });
+                        
+                        // Update the counter
+                        updateSavedCounter(data.savedStudents.length);
                     }
+                })
+                .catch(error => {
+                    console.error('Error loading saved indicators:', error);
                 });
-            }
         }
         
-        function updateSavedCounter() {
-            // Count how many students have been saved (using localStorage for persistence)
-            var phase = <%= selectedPhase %>;
-            var udise = '<%= udiseNo %>';
-            var storageKey = 'saved-phase' + phase + '-udise-' + udise;
-            var savedData = localStorage.getItem(storageKey);
-            
-            var savedCount = 0;
-            if (savedData) {
-                var savedStudents = JSON.parse(savedData);
-                savedCount = Object.keys(savedStudents).length;
+        function updateSavedCounter(savedCount) {
+            // Update counter display with database count (works across all systems)
+            if (savedCount === undefined) {
+                // If called without parameter, fetch from database
+                var phase = <%= selectedPhase %>;
+                fetch('<%= request.getContextPath() %>/check-saved-students?phase=' + phase)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.savedStudents) {
+                            updateSavedCounter(data.savedStudents.length);
+                        }
+                    });
+                return;
             }
             
             // Update counter display
@@ -984,28 +1044,7 @@
                         saveBtn.disabled = false;
                     }, 1000);
                     
-                    // Store saved state in localStorage (persists across sessions)
-                    var phase = document.getElementById('phaseSelector').value;
-                    var udise = '<%= udiseNo %>';
-                    var storageKey = 'saved-phase' + phase + '-udise-' + udise;
-                    
-                    // Get existing saved data
-                    var savedData = localStorage.getItem(storageKey);
-                    var savedStudents = savedData ? JSON.parse(savedData) : {};
-                    
-                    // Add/update this student's save info
-                    savedStudents[studentId] = {
-                        time: timeString,
-                        marathi: marathiLevel,
-                        math: mathLevel,
-                        english: englishLevel,
-                        phase: phase
-                    };
-                    
-                    // Save back to localStorage (persists permanently)
-                    localStorage.setItem(storageKey, JSON.stringify(savedStudents));
-                    
-                    // Update the saved counter
+                    // Update the saved counter from DATABASE (works across all systems)
                     updateSavedCounter();
                     
                 } else {

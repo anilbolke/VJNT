@@ -20,7 +20,7 @@
     String schoolName = school != null ? school.getSchoolName() : "Unknown School";
     
     // Get all students for this UDISE
-    List<Student> students = studentDAO.getStudentsByUdise(udiseNo);
+    List<Student> students = studentDAO.getStudentsByUdiseALL(udiseNo);
     
     // Filter parameters
     String classFilter = request.getParameter("class");

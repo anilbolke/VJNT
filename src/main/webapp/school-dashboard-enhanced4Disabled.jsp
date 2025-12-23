@@ -2564,20 +2564,20 @@
                 </a>
                 
                 <!-- 2. View All Student Data - ENABLED -->
-              <%--   <a href="<%= request.getContextPath() %>/view-all-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <a href="<%= request.getContextPath() %>/view-all-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">Students Activity</div>
                     <div class="quick-action-subtitle">विद्यार्थी अक्टिव्हिटी </div>
                     <div class="quick-action-desc">Display all student information registered against this UDISE number with filtering and search capabilities.</div>
                 </a>
-                 --%>
-               <%--  <!-- 3. Palak Melava - ENABLED -->
+                
+                <!-- 3. Palak Melava - ENABLED -->
                 <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👥</div>
                     <div class="quick-action-title">Parents Meeting</div>
                     <div class="quick-action-subtitle">पालक मेळावा</div>
                     <div class="quick-action-desc">Register parent meetings, upload photos, and manage approvals. Track all palak melava activities.</div>
-                </a> --%>
+                </a>
                 
                 <!-- 4. Add Student - DISABLED -->
                  <a href="<%= request.getContextPath() %>/add-modify-student.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -2621,52 +2621,52 @@
                 
                 <!-- 9. Student Comprehensive Report (School Coordinator) - ENABLED -->
                 <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
-               <%--   <a href="<%= request.getContextPath() %>/student-comprehensive-report-new.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <a href="<%= request.getContextPath() %>/student-report.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">Generate Student Report</div>
                     <div class="quick-action-subtitle">विद्यार्थी अहवाल तयार करा</div>
                     <div class="quick-action-desc">Request comprehensive student reports with academic data, activities, and progress tracking. Submit for headmaster approval.</div>
-                </a> --%>
+                </a>
                 
                 <!-- 10. Phase-wise Subject Statistics - ENABLED -->
-                <%-- <a href="<%= request.getContextPath() %>/phase-statistics.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <a href="<%= request.getContextPath() %>/phase-statistics.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">Phase-wise Subject Statistics</div>
                     <div class="quick-action-subtitle">टप्पा-निहाय विषय आकडेवारी</div>
                     <div class="quick-action-desc">View detailed phase-wise subject level counts for all students. Track dropdown values across all 4 phases with aggregate statistics.</div>
-                </a> --%>
+                </a>
                 
                 <!-- 11. VIDEO UPLOAD - ENABLED -->
-                <%-- <a href="<%= request.getContextPath() %>/upload-video.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <a href="<%= request.getContextPath() %>/upload-video.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🎥</div>
                     <div class="quick-action-title">Video Upload</div>
                     <div class="quick-action-subtitle">व्हिडिओ अपलोड</div>
                     <div class="quick-action-desc">Upload student progress videos. Select student, subject, month and track their development journey.</div>
-                </a> --%>
+                </a>
                 
                 <!-- 12. VIEW UPLOADED VIDEOS - ENABLED -->
-               <%--  <a href="<%= request.getContextPath() %>/view-videos.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <a href="<%= request.getContextPath() %>/view-videos.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📹</div>
                     <div class="quick-action-title">View Uploaded Videos</div>
                     <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
                     <div class="quick-action-desc">View all uploaded student progress videos. Filter by subject, month, student and track learning progress with video playback.</div>
-                </a> --%>
+                </a>
                 
                 <!-- 13. FLN Completed Students - DISABLED -->
-                <!-- <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🏆</div>
                     <div class="quick-action-title">FLN Completed Students</div>
                     <div class="quick-action-subtitle">FLN 100% पूर्ण विद्यार्थी</div>
                     <div class="quick-action-desc">View students who achieved 100% FLN in all subjects (Marathi=6, Math=8, English=6). These students are excluded from phase activities.</div>
-                </div> -->
+                </div>
                 
                  <!-- 14. Other School Activity (School Coordinator) - DISABLED -->
-                <!-- <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🎯</div>
                     <div class="quick-action-title">Other School Activity</div>
                     <div class="quick-action-subtitle">इतर शालेय उपक्रम</div>
                     <div class="quick-action-desc">Record other school activities with date, subject, guests, description, photos and video link. Requires headmaster approval.</div>
-                </div> -->
+                </div>
                 
                <%--  <!-- 10. My Report Requests -->
                 <a href="<%= request.getContextPath() %>/my-report-requests.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -2689,28 +2689,28 @@
                 </div>
                 
                 <!-- 12. Phase-wise Subject Statistics (Headmaster) - DISABLED -->
-               <%--  <a href="<%= request.getContextPath() %>/phase-wise-stats.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">Phase-wise Subject Statistics</div>
                     <div class="quick-action-subtitle">टप्पा-निहाय विषय आकडेवारी</div>
-                    <div class="quick-action-desc">View detailed phase-wise subject level counts for all students. Track dropdown values across all 4 phases with aggregate statistics.</div>
-                </a> --%>
+                    <div class="quick-action-desc">View detailed phase-wise subject level counts for all students. Track dropdown values across all 4 phases with aggregate statistics and actual level descriptions.</div>
+                </div>
                 
                 <!-- 13. FLN Completed Students (Headmaster) - DISABLED -->
-               <%--  <a href="<%= request.getContextPath() %>/fln-completed-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🏆</div>
                     <div class="quick-action-title">FLN Completed Students</div>
                     <div class="quick-action-subtitle">FLN 100% पूर्ण विद्यार्थी</div>
                     <div class="quick-action-desc">View students who achieved 100% FLN in all subjects (Marathi=6, Math=8, English=6). These students are excluded from phase activities.</div>
-                </a>
+                </div>
                 
-                 <!-- 14. Other School Activity (School Coordinator) -->
-                <a href="<%= request.getContextPath() %>/other-school-activity.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                 <!-- 14. Approve Other School Activities (Headmaster Only) - DISABLED -->
+                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🎯</div>
-                    <div class="quick-action-title">Other School Activity</div>
-                    <div class="quick-action-subtitle">इतर शालेय उपक्रम</div>
-                    <div class="quick-action-desc">Record other school activities with date, subject, guests, description, photos and video link. Requires headmaster approval.</div>
-                </a> --%>
+                    <div class="quick-action-title">Approve School Activities</div>
+                    <div class="quick-action-subtitle">शालेय उपक्रम मंजूर करा</div>
+                    <div class="quick-action-desc">Review and approve other school activities submitted by coordinators. View details and approve or reject.</div>
+                </div>
                 <% } %>
                 
                

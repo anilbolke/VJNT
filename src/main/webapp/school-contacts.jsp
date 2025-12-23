@@ -503,8 +503,70 @@
             <div class="section">
                 <h2 class="section-title">
                     <span>📋</span>
-                    <span>School Contacts (<%= schoolContacts.size() %>)</span>
+                    <span>School Contacts (<span id="totalContactsCount"><%= schoolContacts.size() %></span>)</span>
                 </h2>
+                
+                <!-- Filter Section -->
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #667eea;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                        <span style="font-size: 18px;">🔍</span>
+                        <h3 style="margin: 0; font-size: 16px; color: #333;">Filter Contacts</h3>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <!-- School Filter -->
+                        <div class="form-group" style="margin: 0;">
+                            <label for="filterSchool" style="margin-bottom: 8px;">School (UDISE)</label>
+                            <select id="filterSchool" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; width: 100%;">
+                                <option value="">All Schools</option>
+                                <% 
+                                // Get unique schools from contacts
+                                Set<String> uniqueSchools = new LinkedHashSet<>();
+                                for (SchoolContact contact : schoolContacts) {
+                                    uniqueSchools.add(contact.getUdiseNo() + "|" + (contact.getSchoolName() != null ? contact.getSchoolName() : ""));
+                                }
+                                for (String school : uniqueSchools) {
+                                    String[] parts = school.split("\\|");
+                                    String udise = parts[0];
+                                    String name = parts.length > 1 ? parts[1] : "";
+                                %>
+                                <option value="<%= udise %>"><%= udise %> - <%= name %></option>
+                                <% } %>
+                            </select>
+                        </div>
+                        
+                        <!-- Contact Type Filter -->
+                        <div class="form-group" style="margin: 0;">
+                            <label for="filterType" style="margin-bottom: 8px;">Contact Type</label>
+                            <select id="filterType" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; width: 100%;">
+                                <option value="">All Types</option>
+                                <option value="School Coordinator">School Coordinator</option>
+                                <option value="Head Master">Head Master</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Search Filter -->
+                        <div class="form-group" style="margin: 0;">
+                            <label for="filterSearch" style="margin-bottom: 8px;">Search (Name/Mobile)</label>
+                            <input type="text" 
+                                   id="filterSearch" 
+                                   placeholder="Type to search..." 
+                                   style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; width: 100%;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="applyFilters()" class="btn btn-primary" style="padding: 10px 20px;">
+                            <span>🔍</span>
+                            <span>Apply Filters</span>
+                        </button>
+                        <button onclick="resetFilters()" class="btn" style="background: #6c757d; color: white; padding: 10px 20px;">
+                            <span>🔄</span>
+                            <span>Reset</span>
+                        </button>
+                        <div id="filterResultText" style="margin-left: 10px; color: #667eea; font-weight: 600; font-size: 14px;"></div>
+                    </div>
+                </div>
                 
                 <div class="table-container">
                     <table class="table">
@@ -792,6 +854,107 @@
                 whatsapp.value = this.value;
             }
         });
+        
+        // ==================== FILTER FUNCTIONALITY ====================
+        
+        // Apply filters to contacts table
+        function applyFilters() {
+            const filterSchool = document.getElementById('filterSchool').value.toLowerCase();
+            const filterType = document.getElementById('filterType').value.toLowerCase();
+            const filterSearch = document.getElementById('filterSearch').value.toLowerCase();
+            
+            const tableBody = document.getElementById('contactTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
+            
+            let visibleCount = 0;
+            let srNo = 1;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                
+                // Skip empty state row
+                if (row.cells.length === 1 && row.cells[0].colSpan > 1) {
+                    continue;
+                }
+                
+                const udise = row.cells[1].textContent.toLowerCase();
+                const schoolName = row.cells[2].textContent.toLowerCase();
+                const contactType = row.cells[3].textContent.toLowerCase();
+                const fullName = row.cells[4].textContent.toLowerCase();
+                const mobile = row.cells[5].textContent.toLowerCase();
+                
+                // Apply filters
+                let showRow = true;
+                
+                // School filter
+                if (filterSchool && !udise.includes(filterSchool)) {
+                    showRow = false;
+                }
+                
+                // Contact type filter
+                if (filterType && !contactType.includes(filterType)) {
+                    showRow = false;
+                }
+                
+                // Search filter (name or mobile)
+                if (filterSearch && !fullName.includes(filterSearch) && !mobile.includes(filterSearch)) {
+                    showRow = false;
+                }
+                
+                // Show/hide row
+                if (showRow) {
+                    row.style.display = '';
+                    row.cells[0].textContent = srNo++;
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+            
+            // Update counts
+            document.getElementById('totalContactsCount').textContent = visibleCount;
+            
+            // Show filter result message
+            const resultText = document.getElementById('filterResultText');
+            if (filterSchool || filterType || filterSearch) {
+                resultText.textContent = `Showing ${visibleCount} of <%= schoolContacts.size() %> contacts`;
+            } else {
+                resultText.textContent = '';
+            }
+        }
+        
+        // Reset all filters
+        function resetFilters() {
+            document.getElementById('filterSchool').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterSearch').value = '';
+            
+            const tableBody = document.getElementById('contactTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
+            
+            let srNo = 1;
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.cells.length > 1) {
+                    row.style.display = '';
+                    row.cells[0].textContent = srNo++;
+                }
+            }
+            
+            document.getElementById('totalContactsCount').textContent = '<%= schoolContacts.size() %>';
+            document.getElementById('filterResultText').textContent = '';
+        }
+        
+        // Apply filters on Enter key in search box
+        document.getElementById('filterSearch').addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+        
+        // Real-time search as user types (optional - uncomment if needed)
+        // document.getElementById('filterSearch').addEventListener('input', applyFilters);
+        
     </script>
 </body>
 </html>

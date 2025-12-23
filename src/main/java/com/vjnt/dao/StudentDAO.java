@@ -324,7 +324,27 @@ public class StudentDAO {
      */
     public List<Student> getStudentsByUdise(String udiseNo) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND (fln_completed IS NULL OR fln_completed = FALSE) ORDER BY class, section, student_name";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE) ORDER BY class, section, student_name";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting students by UDISE: " + e.getMessage());
+        }
+        return students;
+    }
+    
+    public List<Student> getStudentsByUdiseALL(String udiseNo) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE udise_no = ?  ORDER BY class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -503,7 +523,7 @@ public class StudentDAO {
      * Get total count of students by UDISE
      */
     public int getStudentCountByUdise(String udiseNo) {
-        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ? AND is_active = 1";
+        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -587,7 +607,7 @@ public class StudentDAO {
         String sql = "SELECT COUNT(*) as total, " +
                      "SUM(CASE WHEN " + columnPrefix + "date IS NOT NULL " +
                      "THEN 1 ELSE 0 END) as completed " +
-                     "FROM students WHERE udise_no = ?";
+                     "FROM students WHERE udise_no = ? AND is_active = 1";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -764,7 +784,7 @@ public class StudentDAO {
         String sql = "SELECT COUNT(*) as total, " +
                      "SUM(CASE WHEN " + columnPrefix + "date IS NOT NULL " +
                      "THEN 1 ELSE 0 END) as completed " +
-                     "FROM students WHERE udise_no = ?";
+                     "FROM students WHERE udise_no = ? AND is_active = 1";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -1189,5 +1209,70 @@ public class StudentDAO {
             System.err.println("Error handling standard update: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * Get count of students who have completed a specific phase (based on phase_date NOT NULL)
+     * This matches the logic used in school-dashboard-enhanced.jsp
+     * @param udiseNo School UDISE number
+     * @param phaseNumber Phase number (1-4)
+     * @return Count of students who have phase date set
+     */
+    public int getPhaseCompletedCount(String udiseNo, int phaseNumber) {
+        String phaseColumn = "phase" + phaseNumber + "_date";
+        String sql = "SELECT COUNT(*) FROM students " +
+                     "WHERE udise_no = ? " +
+                     "AND is_active = 1 " +
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE) " +
+                     "AND " + phaseColumn + " IS NOT NULL";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                System.out.println("Phase " + phaseNumber + " completed count for UDISE " + udiseNo + ": " + count);
+                return count;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting phase completed count: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
+    }
+    
+    /**
+     * Get total count of active students (excluding FLN completed)
+     * This matches the logic used in school-dashboard-enhanced.jsp
+     * @param udiseNo School UDISE number
+     * @return Total count of active students
+     */
+    public int getTotalActiveStudentCount(String udiseNo) {
+        String sql = "SELECT COUNT(*) FROM students " +
+                     "WHERE udise_no = ? " +
+                     "AND is_active = 1 " +
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                System.out.println("Total active students for UDISE " + udiseNo + ": " + count);
+                return count;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting total active student count: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

@@ -2,6 +2,7 @@
 <%@ page import="com.vjnt.model.User" %>
 <%@ page import="com.vjnt.dao.PhaseApprovalDAO" %>
 <%@ page import="com.vjnt.dao.SchoolDAO" %>
+<%@ page import="com.vjnt.dao.StudentDAO" %>
 <%@ page import="com.vjnt.model.PhaseApproval" %>
 <%@ page import="com.vjnt.model.School" %>
 <%@ page import="java.util.*" %>
@@ -15,6 +16,7 @@
     
     PhaseApprovalDAO approvalDAO = new PhaseApprovalDAO();
     SchoolDAO schoolDAO = new SchoolDAO();
+    StudentDAO studentDAO = new StudentDAO();
     
     String udiseNo = user.getUdiseNo();
     List<PhaseApproval> allApprovals = approvalDAO.getAllPhaseApprovals(udiseNo);
@@ -344,7 +346,13 @@
             <div class="section">
                 <h2 class="section-title">⏳ Pending Approvals</h2>
                 
-                <% for (PhaseApproval approval : pendingApprovals) { %>
+                <% for (PhaseApproval approval : pendingApprovals) { 
+                    // Get real-time count from students table
+                    int realTimeCompletedCount = studentDAO.getPhaseCompletedCount(udiseNo, approval.getPhaseNumber());
+                    int realTimeTotalCount = studentDAO.getTotalActiveStudentCount(udiseNo);
+                    int realTimePendingCount = realTimeTotalCount - realTimeCompletedCount;
+                    int completionPercentage = realTimeTotalCount > 0 ? (realTimeCompletedCount * 100) / realTimeTotalCount : 0;
+                %>
                 <div class="phase-card pending">
                     <div class="phase-header">
                         <div class="phase-title">चरण <%= approval.getPhaseNumber() %> (Phase <%= approval.getPhaseNumber() %>)</div>
@@ -362,19 +370,15 @@
                         </div>
                         <div class="info-item">
                             <div class="info-label">Total Students</div>
-                            <div class="info-value"><%= approval.getTotalStudents() %></div>
+                            <div class="info-value"><%= realTimeTotalCount %></div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Completed</div>
-                            <div class="info-value"><%= approval.getCompletedStudents() %> (<%= approval.getCompletionPercentage() %>%)</div>
+                            <div class="info-value"><%= realTimeCompletedCount %> (<%= completionPercentage %>%)</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Pending</div>
-                            <div class="info-value"><%= approval.getPendingStudents() %></div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Ignored</div>
-                            <div class="info-value"><%= approval.getIgnoredStudents() %></div>
+                            <div class="info-value"><%= realTimePendingCount %></div>
                         </div>
                     </div>
                     
@@ -410,6 +414,11 @@
                         String cardClass = approval.isPending() ? "pending" : (approval.isApproved() ? "approved" : "rejected");
                         String statusClass = approval.isPending() ? "status-pending" : (approval.isApproved() ? "status-approved" : "status-rejected");
                         String statusText = approval.isPending() ? "Pending" : (approval.isApproved() ? "Approved" : "Rejected");
+                        
+                        // Get real-time completed count from students table
+                        int historyCompletedCount = studentDAO.getPhaseCompletedCount(udiseNo, approval.getPhaseNumber());
+                        int historyTotalCount = studentDAO.getTotalActiveStudentCount(udiseNo);
+                        int historyCompletionPercentage = historyTotalCount > 0 ? (historyCompletedCount * 100) / historyTotalCount : 0;
                     %>
                     <div class="phase-card <%= cardClass %>">
                         <div class="phase-header">
@@ -420,11 +429,11 @@
                         <div class="phase-info">
                             <div class="info-item">
                                 <div class="info-label">Completed Students</div>
-                                <div class="info-value"><%= approval.getCompletedStudents() %>/<%= approval.getTotalStudents() - approval.getIgnoredStudents() %></div>
+                                <div class="info-value"><%= historyCompletedCount %></div>
                             </div>
                             <div class="info-item">
                                 <div class="info-label">Completion Rate</div>
-                                <div class="info-value"><%= approval.getCompletionPercentage() %>%</div>
+                                <div class="info-value"><%= historyCompletionPercentage %>%</div>
                             </div>
                             <div class="info-item">
                                 <div class="info-label">Submitted Date</div>

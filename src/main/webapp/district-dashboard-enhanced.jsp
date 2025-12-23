@@ -351,6 +351,7 @@
                 <a href="<%= request.getContextPath() %>/district-dashboard.jsp" class="btn btn-logout">Basic View</a>
                 <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">📈 Activity Analysis</a>
                 <a href="<%= request.getContextPath() %>/district-teacher-report.jsp" class="btn btn-logout" style="background: #4CAF50;">👨‍🏫 Teacher Report</a>
+                <a href="<%= request.getContextPath() %>/district-teacher-assignments.jsp" class="btn btn-logout" style="background: #9C27B0;">👥 Teacher Assignments</a>
                 <a href="<%= request.getContextPath() %>/district-credentials" class="btn btn-logout" style="background: #FF6B6B;">🔑 Login Credentials</a>
                 <a href="<%= request.getContextPath() %>/district-profile" class="btn btn-logout" style="background: #2196F3;">👤 My Profile</a>
                 <a href="<%= request.getContextPath() %>/logout" class="btn btn-logout">Logout</a>

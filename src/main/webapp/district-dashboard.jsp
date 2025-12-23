@@ -651,16 +651,17 @@
                         <span>📊</span>
                         <span>Phase Status</span>
                     </a>
-                    <a href="<%= request.getContextPath() %>/school-contacts.jsp" class="btn btn-analytics" style="background: #9c27b0;" title="View and manage school contacts directory">
-                        <span>👥</span>
-                        <span>School Contacts</span>
-                    </a>
+                   
                     <a href="<%= request.getContextPath() %>/district-dashboard-enhanced.jsp" class="btn btn-analytics" title="View detailed analytics and reports">
                         <span>📊</span>
                         <span>Analytics</span>
                     </a>
                      <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">
                      📈 Activity Analysis</a> --%>
+                      <a href="<%= request.getContextPath() %>/school-contacts.jsp" class="btn btn-analytics" style="background: #9c27b0;" title="View and manage school contacts directory">
+                        <span>👥</span>
+                        <span>School Contacts</span>
+                    </a>
                     <button onclick="toggleSubjectLevelSection()" class="btn btn-analytics" style="background: #9C27B0; cursor: pointer; border: none;" title="View School-wise Student Count & Subject Level Actions">
                         <span>📊</span>
                         <span>Subject Level Actions</span>
@@ -669,6 +670,11 @@
                     <a href="<%= request.getContextPath() %>/district-teacher-report.jsp" class="btn btn-analytics" style="background: #4CAF50;" title="View school-wise teacher report">
                         <span>👨‍🏫</span>
                         <span>Teacher Report</span>
+                    </a>
+                    
+                    <a href="<%= request.getContextPath() %>/district-teacher-assignments.jsp" class="btn btn-analytics" style="background: #9C27B0;" title="View complete teacher assignment details with UDISE, school name, class, section, and subjects">
+                        <span>👥</span>
+                        <span>Teacher Assignments</span>
                     </a>
                     
                     <a href="<%= request.getContextPath() %>/district-credentials" class="btn btn-analytics" style="background: #FF6B6B;" title="View login credentials and manage school coordinator passwords">
