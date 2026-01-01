@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -23,13 +24,13 @@ import javax.servlet.http.Part;
 
 import com.vjnt.model.User;
 import com.vjnt.util.DatabaseConnection;
-import com.vjnt.util.YouTubeUploader;
+import com.vjnt.util.BunnyCDNService;
 
 @WebServlet("/upload-student-video")
 @MultipartConfig(
-    fileSizeThreshold = 1024 * 1024 * 10,  // 10 MB
-    maxFileSize = 1024 * 1024 * 100,        // 100 MB
-    maxRequestSize = 1024 * 1024 * 150      // 150 MB
+    fileSizeThreshold = 1024 * 1024 * 5,   // 5 MB
+    maxFileSize = 1024 * 1024 * 15,         // 15 MB
+    maxRequestSize = 1024 * 1024 * 20       // 20 MB
 )
 public class UploadStudentVideoServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
@@ -49,7 +50,8 @@ public class UploadStudentVideoServlet extends HttpServlet {
         try {
             out = response.getWriter();
             
-            System.out.println("=== Student Video Upload to YouTube Started ===");
+            System.out.println("=== Student Video Upload to Bunny CDN Started ===");
+            System.out.println("Upload request received at: " + new Date());
             
             // Check session
             HttpSession session = request.getSession(false);
@@ -60,6 +62,7 @@ public class UploadStudentVideoServlet extends HttpServlet {
             }
             
             User user = (User) session.getAttribute("user");
+            System.out.println("User: " + user.getUsername() + " (UDISE: " + user.getUdiseNo() + ")");
             File tempFile = null;
             
             try {
@@ -71,9 +74,12 @@ public class UploadStudentVideoServlet extends HttpServlet {
             
             // Validate parameters
             if (studentId == null || subject == null || month == null || hasProgress == null) {
+                System.err.println("Missing required fields - studentId: " + studentId + ", subject: " + subject + ", month: " + month);
                 out.print("{\"success\": false, \"message\": \"Missing required fields\"}");
                 return;
             }
+            
+            System.out.println("Parameters - Student ID: " + studentId + ", Subject: " + subject + ", Month: " + month);
             
             // Get student info from database for YouTube title
             String studentName = getStudentName(Integer.parseInt(studentId));
@@ -82,47 +88,58 @@ public class UploadStudentVideoServlet extends HttpServlet {
             // Get the video file
             Part filePart = request.getPart("videoFile");
             if (filePart == null || filePart.getSize() == 0) {
+                System.err.println("No video file uploaded in request");
                 out.print("{\"success\": false, \"message\": \"No video file uploaded\"}");
                 return;
             }
             
             String fileName = getFileName(filePart);
             if (fileName == null || fileName.isEmpty()) {
+                System.err.println("Invalid or missing filename");
                 out.print("{\"success\": false, \"message\": \"Invalid file name\"}");
                 return;
             }
             
+            System.out.println("Video file: " + fileName + ", Size: " + filePart.getSize() + " bytes (" + BunnyCDNService.formatFileSize(filePart.getSize()) + ")");
+            
             // Validate file extension
             String fileExtension = fileName.substring(fileName.lastIndexOf("."));
             if (!isValidVideoExtension(fileExtension)) {
+                System.err.println("Invalid file extension: " + fileExtension);
                 out.print("{\"success\": false, \"message\": \"Invalid file type. Only video files are allowed.\"}");
                 return;
             }
             
-            // Validate file size - must be between 1 MB and 10 MB
+            // Validate file size - must be between 100 KB and 15 MB
             long fileSize = filePart.getSize();
-            long minFileSize = 1 * 1024 * 1024; // 1 MB
-            long maxFileSize = 10 * 1024 * 1024; // 10 MB
+            long minFileSize = 100 * 1024; // 100 KB
+            long maxFileSize = 15 * 1024 * 1024; // 15 MB
             
             double fileSizeMB = fileSize / (1024.0 * 1024.0);
+            double fileSizeKB = fileSize / 1024.0;
             
             if (fileSize < minFileSize) {
-                out.print("{\"success\": false, \"message\": \"Video file is too small. Minimum required: 1 MB. Your file: " + 
-                         String.format("%.2f", fileSizeMB) + " MB\"}");
+                System.out.println("File too small: " + String.format("%.2f KB", fileSizeKB));
+                out.print("{\"success\": false, \"message\": \"Video file is too small. Minimum required: 100 KB. Your file: " + 
+                         String.format("%.2f", fileSizeKB) + " KB\"}");
                 return;
             }
             
             if (fileSize > maxFileSize) {
-                out.print("{\"success\": false, \"message\": \"Video file is too large. Maximum allowed: 10 MB. Your file: " + 
+                System.out.println("File too large: " + String.format("%.2f MB", fileSizeMB));
+                out.print("{\"success\": false, \"message\": \"Video file is too large. Maximum allowed: 15 MB. Your file: " + 
                          String.format("%.2f", fileSizeMB) + " MB\"}");
                 return;
             }
             
-            System.out.println("Video file size: " + fileSize + " bytes (" + (fileSize / (1024.0 * 1024.0)) + " MB)");
+            String fileSizeDisplay = fileSizeMB >= 1 ? String.format("%.2f MB", fileSizeMB) : String.format("%.2f KB", fileSizeKB);
+            System.out.println("✓ File validation passed: " + fileSizeDisplay);
             
             // Create temp file to store upload
             tempFile = File.createTempFile("student_video_", "_" + fileName);
             tempFile.deleteOnExit();
+            
+            System.out.println("Created temp file: " + tempFile.getAbsolutePath());
             
             // Save uploaded file to temp location
             try (InputStream fileContent = filePart.getInputStream();
@@ -130,135 +147,83 @@ public class UploadStudentVideoServlet extends HttpServlet {
                 
                 byte[] buffer = new byte[8192];
                 int bytesRead;
+                long totalBytesWritten = 0;
                 while ((bytesRead = fileContent.read(buffer)) != -1) {
                     outputStream.write(buffer, 0, bytesRead);
+                    totalBytesWritten += bytesRead;
                 }
+                
+                System.out.println("✓ Temp file saved: " + totalBytesWritten + " bytes written");
             }
             
             System.out.println("File saved to temp: " + tempFile.getAbsolutePath());
             
-            // Create YouTube title with student info
-            String youtubeTitle = String.format("%s - %s - %s - %s", 
-                studentName, subject, month, (hasProgress.equals("yes") ? "Progress" : "No Progress"));
+            // Upload to Bunny CDN
+            System.out.println("Starting Bunny CDN upload...");
+            String cdnUrl;
             
-            // Create description
-            String description = String.format(
-                "Student: %s\nPEN: %s\nSubject: %s\nMonth: %s\nProgress: %s\nSchool UDISE: %s\nUploaded by: %s",
-                studentName, studentPen, subject, month, hasProgress, user.getUdiseNo(), user.getUsername()
-            );
-            
-            // Prepare tags for YouTube
-            List<String> tags = Arrays.asList(subject, month, "Education", "VJNT", "Student Progress", user.getUdiseNo());
-            
-            System.out.println("YouTube Title: " + youtubeTitle);
-            System.out.println("Starting YouTube upload...");
-            
-            // Upload to YouTube
-            String youtubeVideoId;
             try {
-                youtubeVideoId = YouTubeUploader.uploadVideo(
-                    tempFile, 
-                    youtubeTitle, 
-                    description, 
-                    tags,
-                    "27", // Education category
-                    "unlisted" // Default to unlisted for student videos
-                );
-                
-                System.out.println("✓ Video uploaded to YouTube: " + youtubeVideoId);
-                
-            } catch (com.google.api.client.auth.oauth2.TokenResponseException e) {
-                // Token has expired or been revoked
-                System.err.println("YouTube OAuth token error: " + e.getMessage());
-                e.printStackTrace();
-                
-                // Build helpful error message with solution
-                String errorMessage = "YouTube authorization has expired or been revoked. " +
-                                    "Please refresh authorization: Open this page in a new tab: " +
-                                    request.getContextPath() + "/refresh-youtube-auth and follow the instructions.";
-                
-                out.print("{\"success\": false, \"message\": \"" + errorMessage + "\", \"authExpired\": true}");
-                return;
+                cdnUrl = BunnyCDNService.uploadVideo(tempFile, fileName, user.getUdiseNo());
+                System.out.println("✓ Video uploaded to Bunny CDN successfully!");
+                System.out.println("CDN URL: " + cdnUrl);
                 
             } catch (Exception e) {
-                System.err.println("YouTube upload failed: " + e.getMessage());
+                System.err.println("Bunny CDN upload failed: " + e.getMessage());
                 e.printStackTrace();
                 
-                // Build detailed error message for user (since they don't have server log access)
-                StringBuilder errorDetails = new StringBuilder();
-                errorDetails.append("Failed to upload to YouTube:\\n\\n");
-                errorDetails.append("Error: ").append(e.getMessage()).append("\\n\\n");
-                errorDetails.append("Debug Info:\\n");
-                errorDetails.append("- Server: Production Cloud Server\\n");
-                errorDetails.append("- Time: ").append(new java.util.Date()).append("\\n");
-                errorDetails.append("- User: ").append(user.getUsername()).append("\\n\\n");
-                
-                // Check if credentials exist in classpath
-                try {
-                    java.io.InputStream credCheck = getClass().getClassLoader()
-                        .getResourceAsStream("credentials/StoredCredential");
-                    if (credCheck != null) {
-                        errorDetails.append("✓ Credentials FOUND in WAR classpath\\n");
-                        credCheck.close();
-                    } else {
-                        errorDetails.append("✗ Credentials NOT FOUND in WAR classpath\\n");
-                        errorDetails.append("  WAR needs to be rebuilt with credentials\\n");
-                    }
-                } catch (Exception ex) {
-                    errorDetails.append("✗ Error checking credentials: ").append(ex.getMessage()).append("\\n");
-                }
-                
-                // Check if client_secret.json exists
-                try {
-                    java.io.InputStream clientSecretCheck = getClass().getClassLoader()
-                        .getResourceAsStream("client_secret.json");
-                    if (clientSecretCheck != null) {
-                        errorDetails.append("✓ client_secret.json found\\n");
-                        clientSecretCheck.close();
-                    } else {
-                        errorDetails.append("✗ client_secret.json NOT found\\n");
-                    }
-                } catch (Exception ex) {
-                    errorDetails.append("✗ Error checking client_secret.json\\n");
-                }
-                
-                errorDetails.append("\\nStack Trace (first 5 lines):\\n");
-                StackTraceElement[] stackTrace = e.getStackTrace();
-                for (int i = 0; i < Math.min(5, stackTrace.length); i++) {
-                    errorDetails.append("  ").append(stackTrace[i].toString()).append("\\n");
-                }
-                
-                out.print("{\"success\": false, \"message\": \"" + errorDetails.toString().replace("\"", "\\\"") + "\"}");
-                out.flush();
+                String errorMessage = "Upload failed: " + e.getMessage();
+                out.print("{\"success\": false, \"message\": \"" + escapeJson(errorMessage) + "\"}");
                 return;
             }
             
-            // Save to database with YouTube info
-            String youtubeUrl = "https://www.youtube.com/watch?v=" + youtubeVideoId;
-            String thumbnailUrl = "https://img.youtube.com/vi/" + youtubeVideoId + "/maxresdefault.jpg";
+            // Generate thumbnail URL
+            String thumbnailUrl = BunnyCDNService.getThumbnailUrl(cdnUrl);
+            
+            System.out.println("Saving to database...");
+            
+            // Determine approval status based on user role
+            String approvalStatus = "PENDING";
+            boolean isVisible = false;
+            
+            if (user.getUserType() == User.UserType.HEAD_MASTER) {
+                // Headmaster uploads are auto-approved
+                approvalStatus = "APPROVED";
+                isVisible = true;
+                System.out.println("Headmaster upload - Auto-approved");
+            } else if (user.getUserType() == User.UserType.SCHOOL_COORDINATOR) {
+                // School coordinator uploads need approval
+                approvalStatus = "PENDING";
+                isVisible = false;
+                System.out.println("School Coordinator upload - Requires approval");
+            }
             
             boolean saved = saveVideoToDatabase(
                 Integer.parseInt(studentId),
                 subject,
                 month,
                 hasProgress,
-                youtubeUrl,
+                cdnUrl,
                 fileName,
                 fileSize,
                 user.getUserId(),
                 user.getUsername(),
                 user.getUdiseNo(),
-                youtubeVideoId,
-                thumbnailUrl
+                null, // No YouTube video ID for Bunny CDN
+                thumbnailUrl,
+                approvalStatus,
+                isVisible,
+                user.getUserType() == User.UserType.HEAD_MASTER ? user.getUserId() : null,
+                user.getUserType() == User.UserType.HEAD_MASTER ? user.getUsername() : null
             );
             
             if (saved) {
-                out.print("{\"success\": true, \"message\": \"Video uploaded to YouTube successfully!\", " +
-                         "\"youtubeUrl\": \"" + youtubeUrl + "\", \"youtubeId\": \"" + youtubeVideoId + "\"}");
+                System.out.println("✓ Video saved to database successfully!");
+                out.print("{\"success\": true, \"message\": \"Video uploaded to Bunny CDN successfully!\", " +
+                         "\"cdnUrl\": \"" + cdnUrl + "\", \"thumbnailUrl\": \"" + thumbnailUrl + "\"}");
                 out.flush();
-                System.out.println("✓ Video saved to database with YouTube URL");
             } else {
-                out.print("{\"success\": false, \"message\": \"Video uploaded to YouTube but failed to save to database\"}");
+                System.err.println("Failed to save video info to database");
+                out.print("{\"success\": false, \"message\": \"Video uploaded but failed to save to database\"}");
                 out.flush();
             }
             
@@ -266,7 +231,7 @@ public class UploadStudentVideoServlet extends HttpServlet {
                 System.err.println("ERROR in video upload: " + e.getMessage());
                 e.printStackTrace();
                 if (out != null) {
-                    out.print("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
+                    out.print("{\"success\": false, \"message\": \"Error: " + escapeJson(e.getMessage()) + "\"}");
                     out.flush();
                 }
             } finally {
@@ -289,7 +254,7 @@ public class UploadStudentVideoServlet extends HttpServlet {
                 if (out == null) {
                     out = response.getWriter();
                 }
-                out.print("{\"success\": false, \"message\": \"Server error: " + outerException.getMessage() + "\"}");
+                out.print("{\"success\": false, \"message\": \"Server error: " + escapeJson(outerException.getMessage()) + "\"}");
                 out.flush();
             } catch (Exception e) {
                 System.err.println("Failed to send error response: " + e.getMessage());
@@ -396,17 +361,37 @@ public class UploadStudentVideoServlet extends HttpServlet {
     }
     
     /**
-     * Save video information to database with YouTube URL
+     * Escape special characters for JSON string
+     */
+    private String escapeJson(String str) {
+        if (str == null) {
+            return "";
+        }
+        return str.replace("\\", "\\\\")
+                  .replace("\"", "\\\"")
+                  .replace("\n", "\\n")
+                  .replace("\r", "\\r")
+                  .replace("\t", "\\t")
+                  .replace("\b", "\\b")
+                  .replace("\f", "\\f");
+    }
+    
+    /**
+     * Save video information to database with approval status
      */
     private boolean saveVideoToDatabase(int studentId, String subject, String month, 
                                        String hasProgress, String youtubeUrl, String originalFileName,
                                        long fileSize, int uploadedBy, String uploadedByName,
-                                       String udiseNo, String youtubeVideoId, String thumbnailUrl) {
+                                       String udiseNo, String youtubeVideoId, String thumbnailUrl,
+                                       String approvalStatus, boolean isVisible,
+                                       Integer approvedBy, String approvedByName) {
         
         String sql = "INSERT INTO student_videos (student_id, subject, month, has_progress, " +
                      "file_path, original_file_name, file_size, uploaded_by, uploaded_by_name, " +
-                     "udise_no, youtube_video_id, thumbnail_url, upload_date) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                     "udise_no, youtube_video_id, thumbnail_url, upload_date, " +
+                     "approval_status, is_visible, approved_by, approved_by_name, approval_date) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, " +
+                     "CASE WHEN ? = 'APPROVED' THEN NOW() ELSE NULL END)";
         
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -419,7 +404,7 @@ public class UploadStudentVideoServlet extends HttpServlet {
             pstmt.setString(2, subject);
             pstmt.setString(3, month);
             pstmt.setString(4, hasProgress);
-            pstmt.setString(5, youtubeUrl); // Store YouTube URL instead of local path
+            pstmt.setString(5, youtubeUrl); // Store CDN URL
             pstmt.setString(6, originalFileName);
             pstmt.setLong(7, fileSize);
             pstmt.setInt(8, uploadedBy);
@@ -427,6 +412,17 @@ public class UploadStudentVideoServlet extends HttpServlet {
             pstmt.setString(10, udiseNo);
             pstmt.setString(11, youtubeVideoId);
             pstmt.setString(12, thumbnailUrl);
+            pstmt.setString(13, approvalStatus);
+            pstmt.setBoolean(14, isVisible);
+            
+            if (approvedBy != null) {
+                pstmt.setInt(15, approvedBy);
+            } else {
+                pstmt.setNull(15, java.sql.Types.INTEGER);
+            }
+            
+            pstmt.setString(16, approvedByName);
+            pstmt.setString(17, approvalStatus); // For the CASE statement
             
             int result = pstmt.executeUpdate();
             return result > 0;

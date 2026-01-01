@@ -22,8 +22,15 @@
     System.out.println("DEBUG: District = " + districtName + ", Schools found = " + (schools != null ? schools.size() : "null"));
     
     // Get existing school contacts for this district
-    List<SchoolContact> schoolContacts = contactDAO.getContactsByDistrict(districtName);
-    System.out.println("DEBUG: Contacts found = " + (schoolContacts != null ? schoolContacts.size() : "null"));
+    List<SchoolContact> allContacts = contactDAO.getContactsByDistrict(districtName);
+    System.out.println("DEBUG: Contacts found = " + (allContacts != null ? allContacts.size() : "null"));
+    
+    // No server-side pagination - send all contacts to client for filtering
+    List<SchoolContact> schoolContacts = allContacts != null ? allContacts : new ArrayList<>();
+    int totalContacts = schoolContacts.size();
+    int currentPage = 1;
+    int pageSize = 10;
+    int startIndex = 0;
 %>
 <!DOCTYPE html>
 <html>
@@ -503,7 +510,7 @@
             <div class="section">
                 <h2 class="section-title">
                     <span>📋</span>
-                    <span>School Contacts (<span id="totalContactsCount"><%= schoolContacts.size() %></span>)</span>
+                    <span>School Contacts (<span id="totalContactsCount"><%= totalContacts %></span>)</span>
                 </h2>
                 
                 <!-- Filter Section -->
@@ -585,8 +592,17 @@
                         </thead>
                         <tbody id="contactTableBody">
                             <% 
-                            int srNo = 1;
-                            for (SchoolContact contact : schoolContacts) { 
+                            if (schoolContacts == null || schoolContacts.isEmpty()) {
+                            %>
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 30px; color: #999;">
+                                    No contacts found. Add your first contact above.
+                                </td>
+                            </tr>
+                            <% 
+                            } else {
+                                int srNo = startIndex + 1;
+                                for (SchoolContact contact : schoolContacts) { 
                             %>
                             <tr>
                                 <td><%= srNo++ %></td>
@@ -620,17 +636,15 @@
                                     </div>
                                 </td>
                             </tr>
-                            <% } %>
-                            <% if (schoolContacts.isEmpty()) { %>
-                            <tr>
-                                <td colspan="9" style="text-align: center; padding: 30px; color: #999;">
-                                    No contacts found. Add your first contact above.
-                                </td>
-                            </tr>
-                            <% } %>
+                            <% 
+                                } // End for loop
+                            } // End else
+                            %>
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- All contacts loaded - filtering works on all data -->
             </div>
         </div>
     </div>
@@ -858,6 +872,8 @@
         // ==================== FILTER FUNCTIONALITY ====================
         
         // Apply filters to contacts table
+        const totalContactsInTable = <%= totalContacts %>;
+        
         function applyFilters() {
             const filterSchool = document.getElementById('filterSchool').value.toLowerCase();
             const filterType = document.getElementById('filterType').value.toLowerCase();
@@ -886,8 +902,8 @@
                 // Apply filters
                 let showRow = true;
                 
-                // School filter
-                if (filterSchool && !udise.includes(filterSchool)) {
+                // School filter - check both UDISE and school name
+                if (filterSchool && !udise.includes(filterSchool) && !schoolName.includes(filterSchool)) {
                     showRow = false;
                 }
                 
@@ -912,12 +928,12 @@
             }
             
             // Update counts
-            document.getElementById('totalContactsCount').textContent = visibleCount;
+            document.getElementById('totalContactsCount').textContent = totalContactsInTable;
             
             // Show filter result message
             const resultText = document.getElementById('filterResultText');
             if (filterSchool || filterType || filterSearch) {
-                resultText.textContent = `Showing ${visibleCount} of <%= schoolContacts.size() %> contacts`;
+                resultText.textContent = `Showing ${visibleCount} of ${totalContactsInTable} contacts`;
             } else {
                 resultText.textContent = '';
             }
@@ -941,7 +957,7 @@
                 }
             }
             
-            document.getElementById('totalContactsCount').textContent = '<%= schoolContacts.size() %>';
+            document.getElementById('totalContactsCount').textContent = totalContactsInTable;
             document.getElementById('filterResultText').textContent = '';
         }
         

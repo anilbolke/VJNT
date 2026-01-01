@@ -447,57 +447,56 @@ public class DistrictAnalyticsServlet extends HttpServlet {
     
     /**
      * Get Phase Completion statistics by school
+     * Phase is considered complete ONLY if approved by Head Master
      */
     private JSONObject getPhaseCompletionData(String districtName, int phase, String startDate, String endDate) {
         JSONObject result = new JSONObject();
         
         try (Connection conn = DatabaseConnection.getConnection()) {
             
-            // Get schools in district with their phase completion status
+            // Get schools in district with their phase approval status
+            // Phase is complete only when approved by Head Master (approval_status = 'APPROVED')
             String sql = "SELECT DISTINCT s.udise_no, s.school_name, " +
-                        "COUNT(DISTINCT st.student_id) as total_students, " +
-                        "COUNT(DISTINCT CASE WHEN st.phase" + phase + "_date IS NOT NULL THEN st.student_id END) as completed_students " +
-                        "FROM students st " +
-                        "JOIN schools s ON st.udise_no = s.udise_no " +
-                        "WHERE st.district = ? " +
-                        "GROUP BY s.udise_no, s.school_name " +
+                        "CASE WHEN pa.approval_status = 'APPROVED' THEN 1 ELSE 0 END as is_completed " +
+                        "FROM schools s " +
+                        "LEFT JOIN phase_approvals pa ON s.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci AND pa.phase_number = ? " +
+                        "WHERE s.district_name COLLATE utf8mb4_unicode_ci = ? " +
                         "ORDER BY s.school_name";
             
             PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, districtName);
+            stmt.setInt(1, phase);
+            stmt.setString(2, districtName);
             ResultSet rs = stmt.executeQuery();
             
             JSONArray schools = new JSONArray();
             int totalCompleted = 0;
-            int totalStudents = 0;
+            int totalSchools = 0;
             
             while (rs.next()) {
                 JSONObject school = new JSONObject();
                 String udiseNo = rs.getString("udise_no");
                 String schoolName = rs.getString("school_name");
-                int schoolTotalStudents = rs.getInt("total_students");
-                int schoolCompletedStudents = rs.getInt("completed_students");
+                int isCompleted = rs.getInt("is_completed");
                 
-                double completionPercentage = schoolTotalStudents > 0 ? 
-                    (schoolCompletedStudents * 100.0 / schoolTotalStudents) : 0.0;
+                double completionPercentage = isCompleted == 1 ? 100.0 : 0.0;
                 
                 school.put("udiseNo", udiseNo);
                 school.put("schoolName", schoolName);
-                school.put("totalCount", schoolTotalStudents);
-                school.put("completedCount", schoolCompletedStudents);
-                school.put("completionPercentage", Math.round(completionPercentage * 10.0) / 10.0);
+                school.put("totalCount", 1);
+                school.put("completedCount", isCompleted);
+                school.put("completionPercentage", completionPercentage);
                 
                 schools.put(school);
                 
-                totalCompleted += schoolCompletedStudents;
-                totalStudents += schoolTotalStudents;
+                totalCompleted += isCompleted;
+                totalSchools++;
             }
             
-            double overallCompletion = totalStudents > 0 ? 
-                (totalCompleted * 100.0 / totalStudents) : 0.0;
+            double overallCompletion = totalSchools > 0 ? 
+                (totalCompleted * 100.0 / totalSchools) : 0.0;
             
             result.put("schools", schools);
-            result.put("totalStudents", totalStudents);
+            result.put("totalSchools", totalSchools);
             result.put("totalCompleted", totalCompleted);
             result.put("overallCompletionPercentage", Math.round(overallCompletion * 10.0) / 10.0);
             result.put("phase", phase);

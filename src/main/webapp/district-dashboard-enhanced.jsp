@@ -348,7 +348,9 @@
                 <p>District Analytics Dashboard</p>
             </div>
             <div>
-                <a href="<%= request.getContextPath() %>/district-dashboard.jsp" class="btn btn-logout">Basic View</a>
+                <button onclick="togglePhaseCompletion()" class="btn btn-logout" style="background: #9C27B0; margin-right: 10px;" title="Show/Hide Phase Completion Status">📊 Phase Completion</button>
+<%--                 <a href="<%= request.getContextPath() %>/authorize-youtube" class="btn btn-logout" style="background: #FF0000; margin-right: 10px;" target="_blank" title="Authorize YouTube for video uploads">🎥 YouTube Setup</a>
+ --%>                <a href="<%= request.getContextPath() %>/district-dashboard.jsp" class="btn btn-logout">Basic View</a>
                 <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">📈 Activity Analysis</a>
                 <a href="<%= request.getContextPath() %>/district-teacher-report.jsp" class="btn btn-logout" style="background: #4CAF50;">👨‍🏫 Teacher Report</a>
                 <a href="<%= request.getContextPath() %>/district-teacher-assignments.jsp" class="btn btn-logout" style="background: #9C27B0;">👥 Teacher Assignments</a>
@@ -438,6 +440,9 @@
                     <canvas id="activitiesChart"></canvas>
                 </div>
             </div>
+            
+            <!-- Phase Completion Section - Hidden by default, toggle with button -->
+            <div id="phaseCompletionSection" style="display: none;">
             
             <!-- Phase 1 with Charts -->
             <div class="chart-card">
@@ -567,10 +572,13 @@
                 </div>
             </div>
             
+            </div>
+            <!-- End Phase Completion Section -->
+
         </div>
-        
+
     </div>
-    
+
     <script>
         let charts = {};
         let palakMelavaData = null;
@@ -631,10 +639,7 @@
         function loadAllData() {
             loadPalakMelavaData();
             loadStudentActivitiesData();
-            loadPhaseData(1);
-            loadPhaseData(2);
-            loadPhaseData(3);
-            loadPhaseData(4);
+            // Phase data will only be loaded when user clicks the Phase Completion button
         }
         
         function getDateParams() {
@@ -942,6 +947,29 @@
             }
         }
         
+        // Toggle Phase Completion Section
+        function togglePhaseCompletion() {
+            const section = document.getElementById('phaseCompletionSection');
+            const isHidden = section.style.display === 'none';
+            
+            if (isHidden) {
+                section.style.display = 'block';
+                // Load phase data if not already loaded
+                if (!phaseData[1]) {
+                    loadPhaseData(1);
+                    loadPhaseData(2);
+                    loadPhaseData(3);
+                    loadPhaseData(4);
+                }
+                // Scroll to section
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            } else {
+                section.style.display = 'none';
+            }
+        }
+        
         // Load Phase Completion Data
         function loadPhaseData(phaseNumber) {
             fetch(contextPath + '/district-analytics?type=phase_completion&phase=' + phaseNumber + getDateParams())
@@ -958,7 +986,8 @@
                     // Calculate statistics
                     const schools = data.schools || [];
                     const totalSchools = schools.length;
-                    const completedSchools = schools.filter(s => s.completionPercentage === 100).length;
+                    // Fix: Use >= 100 to handle both 100 and 100.0
+                    const completedSchools = schools.filter(s => s.completionPercentage >= 100).length;
                     const avgCompletion = schools.length > 0 
                         ? (schools.reduce((sum, s) => sum + s.completionPercentage, 0) / schools.length).toFixed(1) 
                         : 0;
@@ -978,7 +1007,8 @@
         function renderPhaseChart(phaseNumber, data, chartType) {
             const schools = data.schools || [];
             const totalSchools = schools.length;
-            const completedSchools = schools.filter(s => s.completionPercentage === 100).length;
+            // Fix: Use >= 100 to handle both 100 and 100.0
+            const completedSchools = schools.filter(s => s.completionPercentage >= 100).length;
             const incompleteSchools = totalSchools - completedSchools;
             
             const chartId = 'phase' + phaseNumber + 'Chart';

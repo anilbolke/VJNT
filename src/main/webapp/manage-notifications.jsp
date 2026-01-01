@@ -3,6 +3,8 @@
 <%@ page import="java.util.*" %>
 <%@ page import="java.sql.*" %>
 <%@ page import="com.vjnt.util.DatabaseConnection" %>
+<%@ page import="org.json.JSONArray" %>
+<%@ page import="org.json.JSONObject" %>
 <%
     User user = (User) session.getAttribute("user");
     if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
@@ -14,6 +16,7 @@
     
     // Fetch existing notifications created by this division head
     List<Map<String, Object>> notifications = new ArrayList<>();
+    JSONArray notificationsJSON = new JSONArray();
     Connection conn = null;
     PreparedStatement pstmt = null;
     ResultSet rs = null;
@@ -44,6 +47,27 @@
             notif.put("expiryDate", rs.getTimestamp("expiry_date"));
             notif.put("isActive", rs.getBoolean("is_active"));
             notifications.add(notif);
+            
+            // Build JSON object for JavaScript
+            JSONObject jsonNotif = new JSONObject();
+            jsonNotif.put("id", rs.getInt("notification_id"));
+            jsonNotif.put("title", rs.getString("title") != null ? rs.getString("title") : "");
+            jsonNotif.put("message", rs.getString("message") != null ? rs.getString("message") : "");
+            jsonNotif.put("type", rs.getString("notification_type"));
+            jsonNotif.put("priority", rs.getInt("priority"));
+            jsonNotif.put("targetAudience", rs.getString("target_audience"));
+            jsonNotif.put("district", rs.getString("district") != null ? rs.getString("district") : "");
+            jsonNotif.put("udiseCode", rs.getString("udise_code") != null ? rs.getString("udise_code") : "");
+            
+            // Format expiry date for datetime-local input
+            String expiryDateFormatted = "";
+            if (rs.getTimestamp("expiry_date") != null) {
+                java.text.SimpleDateFormat sdfInput = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
+                expiryDateFormatted = sdfInput.format(rs.getTimestamp("expiry_date"));
+            }
+            jsonNotif.put("expiryDate", expiryDateFormatted);
+            
+            notificationsJSON.put(jsonNotif);
         }
     } catch (Exception e) {
         e.printStackTrace();
@@ -759,39 +783,19 @@
     
     <script>
         // Store notifications data for editing
-        const notificationsData = [
-            <% for (int i = 0; i < notifications.size(); i++) {
-                Map<String, Object> notif = notifications.get(i);
-                if (i > 0) out.print(",");
-                
-                // Format dates for datetime-local input
-                String expiryDateFormatted = "";
-                if (notif.get("expiryDate") != null) {
-                    java.text.SimpleDateFormat sdfInput = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
-                    expiryDateFormatted = sdfInput.format((java.util.Date) notif.get("expiryDate"));
-                }
-            %>
-            {
-                id: <%= notif.get("id") %>,
-                title: '<%= ((String)notif.get("title")).replace("'", "\\'").replace("\n", "\\n") %>',
-                message: '<%= ((String)notif.get("message")).replace("'", "\\'").replace("\n", "\\n") %>',
-                type: '<%= notif.get("type") %>',
-                priority: <%= notif.get("priority") %>,
-                targetAudience: '<%= notif.get("targetAudience") %>',
-                district: '<%= notif.get("district") != null ? notif.get("district") : "" %>',
-                udiseCode: '<%= notif.get("udiseCode") != null ? notif.get("udiseCode") : "" %>',
-                expiryDate: '<%= expiryDateFormatted %>'
-            }
-            <% } %>
-        ];
+        const notificationsData = <%= notificationsJSON.toString() %>;
         
         // Edit notification function
         function editNotification(id) {
+            console.log('Edit notification called with ID:', id);
+            console.log('Available notifications:', notificationsData);
             const notification = notificationsData.find(n => n.id === id);
             if (!notification) {
-                alert('Notification not found');
+                alert('Notification not found. Please refresh the page and try again.');
+                console.error('Notification not found for ID:', id);
                 return;
             }
+            console.log('Found notification:', notification);
             
             // Populate form fields
             document.getElementById('edit_notificationId').value = notification.id;
@@ -803,21 +807,68 @@
             document.getElementById('edit_expiryDate').value = notification.expiryDate;
             
             // Reset all selections first
-            document.querySelectorAll('#edit_typeSelector .type-option').forEach(opt => opt.classList.remove('selected'));
-            document.querySelectorAll('#edit_prioritySelector .priority-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelectorAll('#edit_typeSelector .type-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.querySelector('input[type="radio"]').checked = false;
+            });
+            document.querySelectorAll('#edit_prioritySelector .priority-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.querySelector('input[type="radio"]').checked = false;
+            });
             
-            // Set notification type
-            const typeRadio = document.querySelector(`#edit_typeSelector input[value="${notification.type}"]`);
-            if (typeRadio) {
-                typeRadio.checked = true;
-                typeRadio.closest('.type-option').classList.add('selected');
+            // Set notification type - ensure robust selection
+            console.log('Looking for type:', notification.type, 'Type:', typeof notification.type);
+            const allTypeRadios = document.querySelectorAll('#edit_typeSelector input[name="notificationType"]');
+            console.log('All type radios:', allTypeRadios);
+            
+            let typeSet = false;
+            allTypeRadios.forEach(radio => {
+                console.log('Checking type radio value:', radio.value, 'against:', notification.type);
+                if (radio.value === notification.type) {
+                    radio.checked = true;
+                    radio.closest('.type-option').classList.add('selected');
+                    typeSet = true;
+                    console.log('✓ Type selected:', radio.value);
+                }
+            });
+            
+            if (!typeSet) {
+                console.error('❌ Could not set notification type for value:', notification.type);
+                // Force set to INFO as fallback
+                const firstType = document.querySelector('#edit_typeSelector input[value="INFO"]');
+                if (firstType) {
+                    firstType.checked = true;
+                    firstType.closest('.type-option').classList.add('selected');
+                    console.log('⚠ Set default type: INFO');
+                }
             }
             
-            // Set priority
-            const priorityRadio = document.querySelector(`#edit_prioritySelector input[value="${notification.priority}"]`);
-            if (priorityRadio) {
-                priorityRadio.checked = true;
-                priorityRadio.closest('.priority-option').classList.add('selected');
+            // Set priority - ensure we're comparing strings
+            console.log('Looking for priority:', notification.priority, 'Type:', typeof notification.priority);
+            const priorityValue = String(notification.priority); // Convert to string for comparison
+            const allPriorityRadios = document.querySelectorAll('#edit_prioritySelector input[name="priority"]');
+            console.log('All priority radios:', allPriorityRadios);
+            
+            let prioritySet = false;
+            allPriorityRadios.forEach(radio => {
+                console.log('Checking radio value:', radio.value, 'against:', priorityValue);
+                if (radio.value === priorityValue) {
+                    radio.checked = true;
+                    radio.closest('.priority-option').classList.add('selected');
+                    prioritySet = true;
+                    console.log('✓ Priority selected:', radio.value);
+                }
+            });
+            
+            if (!prioritySet) {
+                console.error('❌ Could not set priority for value:', notification.priority);
+                // Force set to first option as fallback
+                const firstPriority = document.querySelector('#edit_prioritySelector input[name="priority"]');
+                if (firstPriority) {
+                    firstPriority.checked = true;
+                    firstPriority.closest('.priority-option').classList.add('selected');
+                    console.log('⚠ Set default priority:', firstPriority.value);
+                }
             }
             
             // Show modal
@@ -879,7 +930,10 @@
         
         // Toggle notification active/inactive
         function toggleNotification(id, currentStatus) {
-            if (confirm('Are you sure you want to ' + (currentStatus ? 'deactivate' : 'activate') + ' this announcement?')) {
+            console.log('Toggle notification called - ID:', id, 'Current Status:', currentStatus);
+            const action = currentStatus ? 'deactivate' : 'activate';
+            if (confirm('Are you sure you want to ' + action + ' this announcement?')) {
+                console.log('User confirmed, submitting form...');
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '<%= request.getContextPath() %>/save-notification';
@@ -903,13 +957,18 @@
                 form.appendChild(statusInput);
                 
                 document.body.appendChild(form);
+                console.log('Form created, submitting...');
                 form.submit();
+            } else {
+                console.log('User cancelled');
             }
         }
         
         // Delete notification
         function deleteNotification(id) {
+            console.log('Delete notification called with ID:', id);
             if (confirm('⚠️ Are you sure you want to DELETE this announcement?\n\nThis action cannot be undone!')) {
+                console.log('User confirmed deletion, submitting form...');
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '<%= request.getContextPath() %>/save-notification';
@@ -927,7 +986,10 @@
                 form.appendChild(idInput);
                 
                 document.body.appendChild(form);
+                console.log('Form created, submitting...');
                 form.submit();
+            } else {
+                console.log('User cancelled deletion');
             }
         }
         
@@ -985,6 +1047,62 @@
             } else {
                 console.log('ℹ No expiry date set - notification will not expire');
             }
+        });
+        
+        // Edit form validation
+        document.getElementById('editNotificationForm').addEventListener('submit', function(e) {
+            const title = document.getElementById('edit_title').value.trim();
+            const message = document.getElementById('edit_message').value.trim();
+            const notificationType = document.querySelector('#edit_typeSelector input[name="notificationType"]:checked');
+            const priority = document.querySelector('#edit_prioritySelector input[name="priority"]:checked');
+            
+            console.log('=== EDIT FORM SUBMISSION ===');
+            console.log('Title:', title);
+            console.log('Message:', message);
+            console.log('Notification ID:', document.getElementById('edit_notificationId').value);
+            console.log('Type checked element:', notificationType);
+            console.log('Type value:', notificationType ? notificationType.value : 'NOT SELECTED');
+            console.log('Priority checked element:', priority);
+            console.log('Priority value:', priority ? priority.value : 'NOT SELECTED');
+            
+            if (title.length < 5) {
+                e.preventDefault();
+                alert('Title must be at least 5 characters long');
+                return false;
+            }
+            
+            if (message.length < 10) {
+                e.preventDefault();
+                alert('Message must be at least 10 characters long');
+                return false;
+            }
+            
+            if (!notificationType) {
+                e.preventDefault();
+                alert('Please select a notification type');
+                return false;
+            }
+            
+            if (!priority) {
+                e.preventDefault();
+                alert('Please select a priority level');
+                return false;
+            }
+            
+            console.log('Edit form validation passed, submitting...');
+        });
+        
+        // Make functions globally accessible from onclick handlers
+        window.editNotification = editNotification;
+        window.toggleNotification = toggleNotification;
+        window.deleteNotification = deleteNotification;
+        window.closeEditModal = closeEditModal;
+        
+        console.log('Notification management page loaded. Functions registered:', {
+            editNotification: typeof window.editNotification,
+            toggleNotification: typeof window.toggleNotification,
+            deleteNotification: typeof window.deleteNotification,
+            notificationsCount: notificationsData.length
         });
     </script>
 </body>

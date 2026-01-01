@@ -131,7 +131,7 @@
     
     <div class="info-box">
         <h3>📌 Current Configuration</h3>
-        <p><strong>Client ID:</strong> <code>1089840919584-d4beujl24vmilqqa7n9ivl2ae6iccbns.apps.googleusercontent.com</code></p>
+        <p><strong>Client ID:</strong> <code>526848831366-nq621mbf99mds08dhm14roh961l3bic5.apps.googleusercontent.com</code></p>
         <p><strong>Project ID:</strong> <code>analog-decoder-479414-i8</code></p>
         <p><strong>Redirect URI:</strong> <code>http://localhost:8888/Callback</code></p>
         <p><strong>Callback Port:</strong> <code>8888</code></p>

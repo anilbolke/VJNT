@@ -110,7 +110,16 @@ public class SaveNotificationServlet extends HttpServlet {
                 
             } else if ("update".equals(action)) {
                 // Update existing notification
-                int notificationId = Integer.parseInt(request.getParameter("notificationId"));
+                String notificationIdStr = request.getParameter("notificationId");
+                String priorityStr = request.getParameter("priority");
+                
+                if (notificationIdStr == null || notificationIdStr.trim().isEmpty()) {
+                    session.setAttribute("errorMessage", "✗ Error: Notification ID is required");
+                    response.sendRedirect(request.getContextPath() + "/manage-notifications.jsp");
+                    return;
+                }
+                
+                int notificationId = Integer.parseInt(notificationIdStr);
                 String title = request.getParameter("title");
                 String message = request.getParameter("message");
                 String notificationType = request.getParameter("notificationType");
@@ -118,7 +127,7 @@ public class SaveNotificationServlet extends HttpServlet {
                 String district = request.getParameter("district");
                 String udiseCode = request.getParameter("udiseCode");
                 String expiryDateStr = request.getParameter("expiryDate");
-                int priority = Integer.parseInt(request.getParameter("priority"));
+                int priority = (priorityStr != null && !priorityStr.trim().isEmpty()) ? Integer.parseInt(priorityStr) : 0;
                 
                 // Convert empty strings to null
                 if (district != null && district.trim().isEmpty()) district = null;
@@ -170,8 +179,17 @@ public class SaveNotificationServlet extends HttpServlet {
                 
             } else if ("toggle".equals(action)) {
                 // Toggle notification active/inactive
-                int notificationId = Integer.parseInt(request.getParameter("notificationId"));
-                int isActive = Integer.parseInt(request.getParameter("isActive"));
+                String notificationIdStr = request.getParameter("notificationId");
+                String isActiveStr = request.getParameter("isActive");
+                
+                if (notificationIdStr == null || isActiveStr == null) {
+                    session.setAttribute("errorMessage", "✗ Error: Missing required parameters");
+                    response.sendRedirect(request.getContextPath() + "/manage-notifications.jsp");
+                    return;
+                }
+                
+                int notificationId = Integer.parseInt(notificationIdStr);
+                int isActive = Integer.parseInt(isActiveStr);
                 
                 String sql = "UPDATE notifications SET is_active = ? WHERE notification_id = ? AND created_by = ?";
                 pstmt = conn.prepareStatement(sql);
@@ -185,7 +203,15 @@ public class SaveNotificationServlet extends HttpServlet {
                 
             } else if ("delete".equals(action)) {
                 // Delete notification
-                int notificationId = Integer.parseInt(request.getParameter("notificationId"));
+                String notificationIdStr = request.getParameter("notificationId");
+                
+                if (notificationIdStr == null || notificationIdStr.trim().isEmpty()) {
+                    session.setAttribute("errorMessage", "✗ Error: Notification ID is required");
+                    response.sendRedirect(request.getContextPath() + "/manage-notifications.jsp");
+                    return;
+                }
+                
+                int notificationId = Integer.parseInt(notificationIdStr);
                 
                 String sql = "DELETE FROM notifications WHERE notification_id = ? AND created_by = ?";
                 pstmt = conn.prepareStatement(sql);

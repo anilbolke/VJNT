@@ -658,6 +658,14 @@
                     </a>
                      <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">
                      📈 Activity Analysis</a> --%>
+                      <a href="<%= request.getContextPath() %>/phase-status.jsp" class="btn btn-analytics" style="background: #667eea;" title="View Phase Completion Status by School">
+                        <span>📊</span>
+                        <span>Phase Status</span>
+                    </a>
+                     <a href="<%= request.getContextPath() %>/palak-melava-status.jsp" class="btn btn-analytics" style="background: #ff9800;" title="View Palak Melava (Parent Meeting) Status">
+                        <span>👨‍👩‍👧‍👦</span>
+                        <span>Palak Melava</span>
+                    </a>
                       <a href="<%= request.getContextPath() %>/school-contacts.jsp" class="btn btn-analytics" style="background: #9c27b0;" title="View and manage school contacts directory">
                         <span>👥</span>
                         <span>School Contacts</span>
@@ -767,7 +775,7 @@
         
         <!-- School-wise Student Count & Subject Level Action Section -->
         <div class="section" id="subjectLevelSection" style="display: none;">
-            <h2 class="section-title">🏫 School-wise Student Count & Subject Level Actions</h2>
+            <h2 class="section-title">🏫 School(UDISE)-wise Student Count & Subject Level Actions</h2>
             
             <!-- Filter Section -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #9C27B0;">

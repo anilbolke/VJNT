@@ -50,6 +50,17 @@ public class DivisionAnalyticsServlet extends HttpServlet {
         String type = request.getParameter("type");
         String startDate = request.getParameter("startDate");
         String endDate = request.getParameter("endDate");
+        
+        // Trim date parameters
+        if (startDate != null) {
+            startDate = startDate.trim();
+            if (startDate.isEmpty()) startDate = null;
+        }
+        if (endDate != null) {
+            endDate = endDate.trim();
+            if (endDate.isEmpty()) endDate = null;
+        }
+        
         String divisionName = user.getDivisionName();
         
         response.setContentType("application/json");
@@ -106,6 +117,13 @@ public class DivisionAnalyticsServlet extends HttpServlet {
     private JSONObject getPalakMelavaData(String divisionName, String startDate, String endDate) {
         JSONObject result = new JSONObject();
         
+        // DEBUG: Log received parameters
+        System.out.println("=== PALAK MELAVA DATE FILTER DEBUG ===");
+        System.out.println("Division: " + divisionName);
+        System.out.println("Start Date: " + startDate);
+        System.out.println("End Date: " + endDate);
+        System.out.println("Date Filter Active: " + (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()));
+        
         try (Connection conn = DatabaseConnection.getConnection()) {
             
             // Get district-wise Palak Melava data
@@ -120,23 +138,31 @@ public class DivisionAnalyticsServlet extends HttpServlet {
             sql.append("INNER JOIN schools sch ON pm.udise_no = sch.udise_no ");
             sql.append("WHERE pm.udise_no IN (SELECT DISTINCT udise_no FROM students WHERE division = ? AND is_active = 1) ");
             
-            if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
-                sql.append("AND pm.meeting_date BETWEEN ? AND ? ");
+            boolean hasDateFilter = (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty());
+            if (hasDateFilter) {
+                sql.append("AND DATE(pm.meeting_date) BETWEEN ? AND ? ");
             }
             
             sql.append("GROUP BY sch.district_name ");
             sql.append("ORDER BY meeting_count DESC");
             
+            System.out.println("SQL Query: " + sql.toString());
+            
             PreparedStatement ps = conn.prepareStatement(sql.toString());
             int paramIndex = 1;
             ps.setString(paramIndex++, divisionName);
             
-            if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+            if (hasDateFilter) {
                 ps.setString(paramIndex++, startDate);
                 ps.setString(paramIndex++, endDate);
+                System.out.println("✅ DATE FILTER APPLIED: " + startDate + " to " + endDate);
+            } else {
+                System.out.println("⚠️ NO DATE FILTER - Showing all data");
             }
             
 	            ResultSet rs = ps.executeQuery();
+            
+            System.out.println("Query executed successfully");
             
             JSONArray districtData = new JSONArray();
             int totalMeetings = 0;
@@ -156,6 +182,16 @@ public class DivisionAnalyticsServlet extends HttpServlet {
                 totalParents += rs.getInt("total_parents");
                 totalSchoolsWithMeetings += rs.getInt("schools_with_meetings");
             }
+            
+            System.out.println("===========================================");
+            System.out.println("📊 FILTERED RESULTS:");
+            System.out.println("Total Meetings Found: " + totalMeetings);
+            System.out.println("Total Parents: " + totalParents);
+            System.out.println("Total Schools with Meetings: " + totalSchoolsWithMeetings);
+            if (hasDateFilter) {
+                System.out.println("🗓️ Date Range Applied: " + startDate + " to " + endDate);
+            }
+            System.out.println("===========================================");
             
             result.put("districts", districtData);
             result.put("totalMeetings", totalMeetings);
@@ -428,32 +464,56 @@ public class DivisionAnalyticsServlet extends HttpServlet {
     
     /**
      * Get Phase Completion statistics by district
-     * Calculates completion based on actual student phase data
+     * Phase is considered complete ONLY if approved by Head Master
+     * Returns count of approved SCHOOLS (not districts)
      */
     private JSONObject getPhaseCompletionData(String divisionName, int phase, String startDate, String endDate) {
         JSONObject result = new JSONObject();
         
         try (Connection conn = DatabaseConnection.getConnection()) {
             
-            // Get districts with phase completion data from students table
+            // FIXED: Query students directly to match Overview Stats count
+            // Get districts with phase approval status, school counts, and student counts
+            // Phase is complete only when approved by Head Master (approval_status = 'APPROVED')
             StringBuilder sql = new StringBuilder();
-            sql.append("SELECT st.district, ");
+            sql.append("SELECT st.district as district, ");
+            
+            // Count schools from students table (distinct UDISE numbers)
+            sql.append("COUNT(DISTINCT st.udise_no) as total_schools, ");
+            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'APPROVED' THEN st.udise_no END) as completed_schools, ");
+            
+            // Count incomplete schools based on phase
+            if (phase == 1) {
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase1_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+            } else if (phase == 2) {
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase2_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+            } else if (phase == 3) {
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase3_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+            } else if (phase == 4) {
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase4_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+            }
+            
+            // Count students directly - this matches the Overview Stats logic
             sql.append("COUNT(DISTINCT st.student_id) as total_students, ");
-            sql.append("COUNT(DISTINCT CASE WHEN st.phase").append(phase).append("_date IS NOT NULL THEN st.student_id END) as completed_students ");
+            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'APPROVED' THEN st.student_id END) as completed_students ");
+            
+            // Query from students table directly, not through schools table
             sql.append("FROM students st ");
-            sql.append("WHERE st.division = ? ");
+            sql.append("LEFT JOIN phase_approvals pa ON st.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci AND pa.phase_number = ? ");
+            sql.append("WHERE st.division = ? AND st.is_active = 1 ");
             
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
-                sql.append("AND st.phase").append(phase).append("_date BETWEEN ? AND ? ");
+                sql.append("AND pa.approved_date BETWEEN ? AND ? ");
             }
             
             sql.append("GROUP BY st.district ");
             sql.append("ORDER BY st.district");
             
             PreparedStatement stmt = conn.prepareStatement(sql.toString());
-            stmt.setString(1, divisionName);
+            stmt.setInt(1, phase);
+            stmt.setString(2, divisionName);
             
-            int paramIndex = 2;
+            int paramIndex = 3;
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 stmt.setString(paramIndex++, startDate);
                 stmt.setString(paramIndex++, endDate);
@@ -462,35 +522,63 @@ public class DivisionAnalyticsServlet extends HttpServlet {
             ResultSet rs = stmt.executeQuery();
             
             JSONArray districts = new JSONArray();
-            int totalCompletedStudents = 0;
+            int totalCompletedSchools = 0;
+            int totalIncompleteSchools = 0;
+            int totalSchools = 0;
             int totalStudents = 0;
+            int totalCompletedStudents = 0;
+            int districtsWithAllSchoolsComplete = 0; // NEW: Count districts at 100%
             
             while (rs.next()) {
                 JSONObject district = new JSONObject();
                 String districtName = rs.getString("district");
+                int districtTotalSchools = rs.getInt("total_schools");
+                int districtCompletedSchools = rs.getInt("completed_schools");
+                int districtIncompleteSchools = rs.getInt("incomplete_schools");
+                int districtNotStartedSchools = districtTotalSchools - districtCompletedSchools - districtIncompleteSchools;
                 int districtTotalStudents = rs.getInt("total_students");
                 int districtCompletedStudents = rs.getInt("completed_students");
                 
-                double completionPercentage = districtTotalStudents > 0 ? 
-                    (districtCompletedStudents * 100.0 / districtTotalStudents) : 0.0;
+                double completionPercentage = districtTotalSchools > 0 ? 
+                    (districtCompletedSchools * 100.0 / districtTotalSchools) : 0.0;
+                
+                // Count if this district has 100% completion
+                if (completionPercentage >= 100.0) {
+                    districtsWithAllSchoolsComplete++;
+                }
                 
                 district.put("districtName", districtName);
+                district.put("totalSchools", districtTotalSchools);
+                district.put("completedSchools", districtCompletedSchools);
+                district.put("incompleteSchools", districtIncompleteSchools);
+                district.put("notStartedSchools", districtNotStartedSchools);
+                district.put("schoolCount", districtTotalSchools);
                 district.put("totalStudents", districtTotalStudents);
                 district.put("completedStudents", districtCompletedStudents);
                 district.put("completionPercentage", Math.round(completionPercentage * 10.0) / 10.0);
                 
                 districts.put(district);
                 
-                totalCompletedStudents += districtCompletedStudents;
+                totalCompletedSchools += districtCompletedSchools;
+                totalIncompleteSchools += districtIncompleteSchools;
+                totalSchools += districtTotalSchools;
                 totalStudents += districtTotalStudents;
+                totalCompletedStudents += districtCompletedStudents;
             }
             
-            double overallCompletion = totalStudents > 0 ? 
-                (totalCompletedStudents * 100.0 / totalStudents) : 0.0;
+            double overallCompletion = totalSchools > 0 ? 
+                (totalCompletedSchools * 100.0 / totalSchools) : 0.0;
+            
+            int totalNotStartedSchools = totalSchools - totalCompletedSchools - totalIncompleteSchools;
             
             result.put("districts", districts);
-            result.put("totalStudents", totalStudents);
-            result.put("completedStudents", totalCompletedStudents);
+            result.put("totalSchools", totalSchools);
+            result.put("completedSchools", totalCompletedSchools); // Total SCHOOLS completed across all districts
+            result.put("incompleteSchools", totalIncompleteSchools); // Total SCHOOLS incomplete across all districts
+            result.put("notStartedSchools", totalNotStartedSchools); // Total SCHOOLS not started across all districts
+            result.put("totalStudents", totalStudents); // Total students across all districts
+            result.put("completedStudents", totalCompletedStudents); // Total students in completed schools
+            result.put("districtsComplete", districtsWithAllSchoolsComplete); // Districts at 100%
             result.put("overallCompletionPercentage", Math.round(overallCompletion * 10.0) / 10.0);
             result.put("phase", phase);
             

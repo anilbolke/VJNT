@@ -123,7 +123,7 @@
     School school = schoolDAO.getSchoolByUdise(udiseNo);
     String schoolName = school != null ? school.getSchoolName() : "Unknown School";
     List<com.vjnt.model.Student> allStudents = studentDAO.getStudentsByUdiseFOrView(udiseNo);
-    int totalStudents = studentDAO.getStudentCountByUdise(udiseNo);
+    int totalStudents = studentDAO.getStudentCountByUdiseFORDASHBOARD(udiseNo);
     int totalPages = (int) Math.ceil((double) totalStudents / pageSize);
     
     // Get paginated students
@@ -212,17 +212,25 @@
     }
     
     // Calculate phase completion percentages
+    // Calculate phase completion percentages
     int phase1Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 1);
     int phase2Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 2);
     int phase3Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 3);
     int phase4Completion = studentDAO.getPhaseCompletionPercentage(udiseNo, 4);
     
+    // Check if all students have completed their assessments for each phase
     boolean phase1Complete = studentDAO.isPhaseComplete(udiseNo, 1);
     boolean phase2Complete = studentDAO.isPhaseComplete(udiseNo, 2);
     boolean phase3Complete = studentDAO.isPhaseComplete(udiseNo, 3);
     boolean phase4Complete = studentDAO.isPhaseComplete(udiseNo, 4);
     
-    // Get phase approval status
+    // Check if phases are approved by Head Master
+    boolean phase1Approved = studentDAO.isPhaseApproved(udiseNo, 1);
+    boolean phase2Approved = studentDAO.isPhaseApproved(udiseNo, 2);
+    boolean phase3Approved = studentDAO.isPhaseApproved(udiseNo, 3);
+    boolean phase4Approved = studentDAO.isPhaseApproved(udiseNo, 4);
+    
+    // Get phase approval details
     PhaseApprovalDAO approvalDAO = new PhaseApprovalDAO();
     PhaseApproval phase1Approval = approvalDAO.getPhaseApproval(udiseNo, 1);
     PhaseApproval phase2Approval = approvalDAO.getPhaseApproval(udiseNo, 2);
@@ -234,6 +242,32 @@
     // Get Palak Melava pending count
     PalakMelavaDAO melavaDAO = new PalakMelavaDAO();
     int palakMelavaPendingCount = melavaDAO.getPendingCount(udiseNo);
+    
+    // Get pending videos count for Head Master approval
+    int pendingVideosCount = 0;
+    if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        Connection videoConn = null;
+        PreparedStatement videoPstmt = null;
+        ResultSet videoRs = null;
+        try {
+            videoConn = DatabaseConnection.getConnection();
+            String videoCountSql = "SELECT COUNT(*) as count FROM student_videos WHERE udise_no = ? AND approval_status = 'PENDING'";
+            videoPstmt = videoConn.prepareStatement(videoCountSql);
+            videoPstmt.setString(1, udiseNo);
+            videoRs = videoPstmt.executeQuery();
+            if (videoRs.next()) {
+                pendingVideosCount = videoRs.getInt("count");
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting pending videos count: " + e.getMessage());
+        } finally {
+            try {
+                if (videoRs != null) videoRs.close();
+                if (videoPstmt != null) videoPstmt.close();
+                if (videoConn != null) videoConn.close();
+            } catch (Exception e) {}
+        }
+    }
     
     // Separate students by phase completion status
     Map<Integer, List<com.vjnt.model.Student>> phaseCompletedStudents = new HashMap<>();
@@ -1742,6 +1776,198 @@
         console.log('=== SCRIPT LOADED - VERSION 12 - REORDERED ===');
         console.log('Page loaded at:', new Date());
         
+        // Global variable for selected student
+        let selectedVideoStudentData = null;
+        
+        // Define video modal functions early to prevent "not defined" errors
+        function openVideoUploadModal() {
+            const modal = document.getElementById('videoUploadModal');
+            if (modal) {
+                modal.style.display = 'block';
+                const step1 = document.getElementById('videoStep1');
+                const step2 = document.getElementById('videoStep2');
+                if (step1) step1.style.display = 'block';
+                if (step2) step2.style.display = 'none';
+                document.body.style.overflow = 'hidden';
+                
+                // Reset selections
+                const radios = document.getElementsByName('selectedVideoStudent');
+                if (radios) radios.forEach(r => r.checked = false);
+            } else {
+                console.error('Video upload modal not found!');
+            }
+        }
+        
+        function closeVideoUploadModal() {
+            const modal = document.getElementById('videoUploadModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                
+                // Reset form
+                const form = document.getElementById('videoUploadForm');
+                if (form) form.reset();
+                const fileName = document.getElementById('videoFileName');
+                if (fileName) fileName.textContent = '';
+                
+                // Reset selected student
+                selectedVideoStudentData = null;
+            }
+        }
+        
+        // Open Uploaded Videos Modal
+        function openUploadedVideosModal() {
+            console.log('Opening uploaded videos modal...');
+            const modal = document.getElementById('uploadedVideosModal');
+            if (modal) {
+                modal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                console.log('✅ Uploaded videos modal opened successfully');
+                
+                // Debug: Check if modal has content
+                const modalBody = modal.querySelector('.modal-body');
+                if (modalBody) {
+                    console.log('Modal body found, innerHTML length:', modalBody.innerHTML.length);
+                    console.log('Modal body preview:', modalBody.innerHTML.substring(0, 200));
+                } else {
+                    console.error('❌ Modal body not found!');
+                }
+                
+                // Debug: Check for video cards
+                const videoCards = modal.querySelectorAll('[style*="background: white"]');
+                console.log('Number of video cards found:', videoCards.length);
+                
+                // Debug: Check for "No Videos" message
+                const noVideosMsg = modal.querySelector('h3');
+                if (noVideosMsg) {
+                    console.log('Message in modal:', noVideosMsg.textContent);
+                }
+            } else {
+                console.error('❌ Uploaded videos modal element not found! Check if id="uploadedVideosModal" exists');
+            }
+        }
+        
+        // Close Uploaded Videos Modal
+        function closeUploadedVideosModal() {
+            const modal = document.getElementById('uploadedVideosModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                console.log('Uploaded videos modal closed');
+            }
+        }
+        
+        function filterVideoStudents() {
+            const searchText = document.getElementById('videoStudentSearch')?.value.toLowerCase() || '';
+            const classFilter = document.getElementById('videoClassFilter')?.value || '';
+            const sectionFilter = document.getElementById('videoSectionFilter')?.value || '';
+            
+            const rows = document.querySelectorAll('.video-student-row');
+            
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name')?.toLowerCase() || '';
+                const pen = row.getAttribute('data-pen')?.toLowerCase() || '';
+                const studentClass = row.getAttribute('data-class') || '';
+                const section = row.getAttribute('data-section') || '';
+                
+                const matchesSearch = name.includes(searchText) || pen.includes(searchText);
+                const matchesClass = !classFilter || studentClass === classFilter;
+                const matchesSection = !sectionFilter || section === sectionFilter;
+                
+                if (matchesSearch && matchesClass && matchesSection) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        function selectVideoStudent(radio) {
+            if (radio) {
+                selectedVideoStudentData = {
+                    id: radio.value,
+                    name: radio.getAttribute('data-name'),
+                    pen: radio.getAttribute('data-pen'),
+                    star: radio.getAttribute('data-star')
+                };
+            }
+        }
+        
+        function proceedToVideoUpload() {
+            if (!selectedVideoStudentData) {
+                alert('कृपया विद्यार्थी निवडा!\nPlease select a student!');
+                return;
+            }
+            
+            // Update student info in step 2
+            const nameEl = document.getElementById('selectedStudentName');
+            const penEl = document.getElementById('selectedStudentPEN');
+            const starEl = document.getElementById('selectedStudentStar');
+            const idEl = document.getElementById('videoStudentId');
+            
+            if (nameEl) nameEl.textContent = selectedVideoStudentData.name;
+            if (penEl) penEl.textContent = selectedVideoStudentData.pen;
+            if (starEl) starEl.innerHTML = '⭐ ' + selectedVideoStudentData.star;
+            if (idEl) idEl.value = selectedVideoStudentData.id;
+            
+            // Switch to step 2
+            const step1 = document.getElementById('videoStep1');
+            const step2 = document.getElementById('videoStep2');
+            if (step1) step1.style.display = 'none';
+            if (step2) step2.style.display = 'block';
+        }
+        
+        function backToStudentSelection() {
+            const step1 = document.getElementById('videoStep1');
+            const step2 = document.getElementById('videoStep2');
+            if (step1) step1.style.display = 'block';
+            if (step2) step2.style.display = 'none';
+        }
+        
+        function displayVideoFileName(input) {
+            if (input && input.files && input.files[0]) {
+                const file = input.files[0];
+                const fileName = file.name;
+                const fileSizeBytes = file.size;
+                const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+                const fileSizeKB = (fileSizeBytes / 1024).toFixed(2);
+                const fileNameEl = document.getElementById('videoFileName');
+                
+                // Validation: Min 100 KB (102400 bytes) and Max 15 MB (15728640 bytes)
+                const minSizeBytes = 100 * 1024; // 100 KB
+                const maxSizeBytes = 15 * 1024 * 1024; // 15 MB
+                
+                if (fileSizeBytes < minSizeBytes) {
+                    alert('❌ File too small!\nफाईल खूप लहान आहे!\n\nMinimum size: 100 KB\nYour file: ' + fileSizeKB + ' KB\n\nPlease select a larger video file.');
+                    input.value = ''; // Clear the input
+                    if (fileNameEl) {
+                        fileNameEl.textContent = '';
+                        fileNameEl.style.color = '#f44336';
+                    }
+                    return;
+                }
+                
+                if (fileSizeBytes > maxSizeBytes) {
+                    alert('❌ File too large!\nफाईल खूप मोठी आहे!\n\nMaximum size: 15 MB\nYour file: ' + fileSizeMB + ' MB\n\nPlease select a smaller video file or compress it.');
+                    input.value = ''; // Clear the input
+                    if (fileNameEl) {
+                        fileNameEl.textContent = '';
+                        fileNameEl.style.color = '#f44336';
+                    }
+                    return;
+                }
+                
+                // File size is valid
+                if (fileNameEl) {
+                    const displaySize = fileSizeMB >= 1 ? fileSizeMB + ' MB' : fileSizeKB + ' KB';
+                    fileNameEl.textContent = '✓ Selected: ' + fileName + ' (' + displaySize + ')';
+                    fileNameEl.style.color = '#4caf50';
+                }
+            }
+        }
+        
+        console.log('Video modal functions defined early');
+        
         // Helper functions to get level display text - EXACT DROPDOWN VALUES
         function getMarathiLevelText(level) {
             const levels = {
@@ -2377,6 +2603,70 @@
                 console.log('Phase 1 Students array NOT FOUND - modal will not work!');
             }
         });
+        
+        // ===== VIDEO APPROVAL FUNCTIONS (Headmaster Only) =====
+        
+        // Approve video
+        function approveSchoolVideo(videoId) {
+            if (!confirm('Are you sure you want to approve this video? It will become visible to students.')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('videoId', videoId);
+            formData.append('action', 'approve');
+            
+            fetch('approve-video', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload(); // Reload to update the video list
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Failed to approve video. Please try again.');
+            });
+        }
+        
+        // Reject video
+        function rejectSchoolVideo(videoId) {
+            const reason = prompt('Please enter the reason for rejecting this video:');
+            
+            if (!reason || reason.trim() === '') {
+                alert('Rejection reason is required!');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('videoId', videoId);
+            formData.append('action', 'reject');
+            formData.append('rejectionReason', reason.trim());
+            
+            fetch('approve-video', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload(); // Reload to update the video list
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Failed to reject video. Please try again.');
+            });
+        }
     </script>
 </head>
 <body>
@@ -2407,7 +2697,7 @@
                         </a>
                         <% } %>
                         
-                       <%--  <% if (palakMelavaPendingCount > 0) { %>
+                        <% if (palakMelavaPendingCount > 0) { %>
                         <a href="<%= request.getContextPath() %>/palak-melava-approvals.jsp" class="btn" style="background: #ff5722; color: white;">
                             👥 Palak Melava (<%= palakMelavaPendingCount %>)
                         </a>
@@ -2415,8 +2705,21 @@
                         <a href="<%= request.getContextPath() %>/palak-melava-approvals.jsp" class="btn" style="background: #4caf50; color: white;">
                             👥 Palak Melava
                         </a>
-                        <% } %> --%>
+                        <% } %>
+                        
+                        <% if (pendingVideosCount > 0) { %>
+                        <a href="<%= request.getContextPath() %>/approve-videos.jsp" class="btn" style="background: #FF9800; color: white;">
+                            🎥 Approve Videos (<%= pendingVideosCount %>)
+                        </a>
+                        <% } else { %>
+                        <a href="<%= request.getContextPath() %>/approve-videos.jsp" class="btn" style="background: #2196F3; color: white;">
+                            🎥 Approve Videos
+                        </a>
+                        <% } %>
                     <% } %>
+                    <%-- <a href="<%= request.getContextPath() %>/authorize-youtube" class="btn" style="background: #FF0000; color: white; margin-right: 10px;" target="_blank" title="Authorize YouTube for video uploads">
+                        🎥 YouTube Setup
+                    </a> --%>
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password">
                         🔐 Change Password
                     </a>
@@ -2559,7 +2862,7 @@
                  <a href="<%= request.getContextPath() %>/manage-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📚</div>
                     <div class="quick-action-title">Manage Students</div>
-                    <div class="quick-action-subtitle">विद्यार्थी व्यवस्थापन</div>
+                    <div class="quick-action-subtitle">विद्यार्थी स्तर निश्चिती</div>
                     <div class="quick-action-desc">Complete student management with view, edit, delete options. Search, filter, and export student data.</div>
                 </a>
                 
@@ -2571,13 +2874,13 @@
                     <div class="quick-action-desc">Display all student information registered against this UDISE number with filtering and search capabilities.</div>
                 </a>
                  --%>
-               <%--  <!-- 3. Palak Melava - ENABLED -->
+                <!-- 3. Palak Melava - ENABLED -->
                 <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👥</div>
                     <div class="quick-action-title">Parents Meeting</div>
                     <div class="quick-action-subtitle">पालक मेळावा</div>
-                    <div class="quick-action-desc">Register parent meetings, upload photos, and manage approvals. Track all palak melava activities.</div>
-                </a> --%>
+                    <div class="quick-action-desc">Register parent meetings, upload photos, and manage approvals. Track all Palak Melava activities.</div>
+                </a> 
                 
                 <!-- 4. Add Student - DISABLED -->
                  <a href="<%= request.getContextPath() %>/add-modify-student.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -2619,6 +2922,33 @@
                     <div class="quick-action-desc">Assign teachers to specific classes, sections and subjects. Manage teacher assignments and schedules.</div>
                 </a>
                 
+                 <a href="<%= request.getContextPath() %>/other-school-activity.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🎯</div>
+                    <div class="quick-action-title">Other School Activity</div>
+                    <div class="quick-action-subtitle">इतर शालेय उपक्रम</div>
+                    <div class="quick-action-desc">Record other school activities with date, subject, guests, description, photos and video link. Requires headmaster approval.</div>
+                </a>
+                
+                  <a href="javascript:void(0);" onclick="openVideoUploadModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🎥</div>
+                    <div class="quick-action-title">Video Upload</div>
+                    <div class="quick-action-subtitle">व्हिडिओ अपलोड</div>
+                    <div class="quick-action-desc">Upload student progress videos. Select student, subject, month and track their development journey.</div>
+                </a> 
+                
+                <!-- 12. VIEW UPLOADED VIDEOS - ENABLED -->
+                <a href="javascript:void(0);" onclick="openUploadedVideosModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📹</div>
+                    <div class="quick-action-title">View Uploaded Videos</div>
+                    <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
+                    <div class="quick-action-desc">View all uploaded student progress videos. Filter by subject, month, student and track learning progress with video playback.</div>
+                </a>
+                 <a href="<%= request.getContextPath() %>/fln-completed-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🏆</div>
+                    <div class="quick-action-title">FLN Completed Students</div>
+                    <div class="quick-action-subtitle">FLN 100% पूर्ण विद्यार्थी</div>
+                    <div class="quick-action-desc">View students who achieved 100% FLN in all subjects (Marathi=6, Math=8, English=6). These students are excluded from phase activities.</div>
+                </a>
                 <!-- 9. Student Comprehensive Report (School Coordinator) - ENABLED -->
                 <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
                <%--   <a href="<%= request.getContextPath() %>/student-comprehensive-report-new.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -2637,20 +2967,7 @@
                 </a> --%>
                 
                 <!-- 11. VIDEO UPLOAD - ENABLED -->
-                <%-- <a href="<%= request.getContextPath() %>/upload-video.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
-                    <div class="quick-action-icon">🎥</div>
-                    <div class="quick-action-title">Video Upload</div>
-                    <div class="quick-action-subtitle">व्हिडिओ अपलोड</div>
-                    <div class="quick-action-desc">Upload student progress videos. Select student, subject, month and track their development journey.</div>
-                </a> --%>
-                
-                <!-- 12. VIEW UPLOADED VIDEOS - ENABLED -->
-               <%--  <a href="<%= request.getContextPath() %>/view-videos.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
-                    <div class="quick-action-icon">📹</div>
-                    <div class="quick-action-title">View Uploaded Videos</div>
-                    <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
-                    <div class="quick-action-desc">View all uploaded student progress videos. Filter by subject, month, student and track learning progress with video playback.</div>
-                </a> --%>
+               
                 
                 <!-- 13. FLN Completed Students - DISABLED -->
                 <!-- <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
@@ -2675,6 +2992,12 @@
                     <div class="quick-action-subtitle">माझ्या अहवालांची विनंती</div>
                     <div class="quick-action-desc">Track all your report requests. View approval status and print approved reports.</div>
                 </a> --%>
+                <%-- <a href="<%= request.getContextPath() %>/phase-wise-subject-statistics.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-title">Phase-wise Subject Statistics</div>
+                    <div class="quick-action-subtitle">टप्पा-निहाय विषय आकडेवारी</div>
+                    <div class="quick-action-desc">View detailed phase-wise subject level counts for all students. Track dropdown values across all 4 phases with aggregate statistics.</div>
+                </a> --%>
                 <% } %>
                 <% } %>
                 
@@ -2688,6 +3011,19 @@
                     <div class="quick-action-desc">Review and approve pending student comprehensive reports. View student data and approve or reject requests.</div>
                 </div>
                 
+                <!-- Other School Activity Approvals (Headmaster Only) - ENABLED -->
+                <a href="<%= request.getContextPath() %>/other-school-activity-approvals.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🎯</div>
+                    <div class="quick-action-title">Approve School Activities</div>
+                    <div class="quick-action-subtitle">शालेय उपक्रम मंजूर करा</div>
+                    <div class="quick-action-desc">Review and approve pending other school activities submitted by coordinator. View details, photos and approve or reject.</div>
+                </a>
+                <a href="<%= request.getContextPath() %>/fln-completed-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🏆</div>
+                    <div class="quick-action-title">FLN Completed Students</div>
+                    <div class="quick-action-subtitle">FLN 100% पूर्ण विद्यार्थी</div>
+                    <div class="quick-action-desc">View students who achieved 100% FLN in all subjects (Marathi=6, Math=8, English=6). These students are excluded from phase activities.</div>
+                </a>
                 <!-- 12. Phase-wise Subject Statistics (Headmaster) - DISABLED -->
                <%--  <a href="<%= request.getContextPath() %>/phase-wise-stats.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
@@ -2712,9 +3048,6 @@
                     <div class="quick-action-desc">Record other school activities with date, subject, guests, description, photos and video link. Requires headmaster approval.</div>
                 </a> --%>
                 <% } %>
-                
-               
-                
             </div>
         </div>
         
@@ -2726,10 +3059,10 @@
             
             <div class="phase-reports">
                 <!-- Phase 1 -->
-                <div class="phase-card clickable <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "not-started") %>" onclick="console.log('Phase 1 card clicked!'); showPhaseDetails(1, event);" style="position: relative;">
+                <div class="phase-card clickable <%= phase1Approved ? "complete" : (phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "not-started")) %>" onclick="console.log('Phase 1 card clicked!'); showPhaseDetails(1, event);" style="position: relative;">
                     <div class="phase-header">
                         <div class="phase-title">चरण 1 (Phase 1)</div>
-                        <div class="phase-icon"><%= phase1Complete ? "✅" : (phase1Completion > 0 ? "⏳" : "🔒") %></div>
+                        <div class="phase-icon"><%= phase1Approved ? "✅" : (phase1Complete ? "✓" : (phase1Completion > 0 ? "⏳" : "🔒")) %></div>
                     </div>
                     
                     <div class="phase-progress">
@@ -2738,7 +3071,7 @@
                             <span><strong><%= phase1Completion %>%</strong></span>
                         </div>
                         <div class="progress-bar-container">
-                            <div class="progress-bar <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "") %>" 
+                            <div class="progress-bar <%= phase1Approved ? "complete" : (phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "")) %>" 
                                  style="width: <%= phase1Completion %>%">
                                 <%= phase1Completion > 10 ? phase1Completion + "%" : "" %>
                             </div>
@@ -2747,17 +3080,19 @@
                     
                     <% if (phase1Approval != null && phase1Approval.isPending()) { %>
                         <div class="phase-status pending-approval">⏳ Pending Approval</div>
-                    <% } else if (phase1Approval != null && phase1Approval.isApproved()) { %>
-                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase1Approved) { %>
+                        <div class="phase-status complete">✅ Approved by Head Master</div>
                     <% } else if (phase1Approval != null && phase1Approval.isRejected()) { %>
                         <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else if (phase1Complete) { %>
+                        <div class="phase-status complete">✓ Completed - Ready to Submit</div>
+                    <% } else if (phase1Completion > 0) { %>
+                        <div class="phase-status in-progress">⏳ In Progress (<%= phase1Completion %>%)</div>
                     <% } else { %>
-                        <div class="phase-status <%= phase1Complete ? "complete" : (phase1Completion > 0 ? "in-progress" : "not-started") %>">
-                            <%= phase1Complete ? "✓ Completed" : (phase1Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
-                        </div>
+                        <div class="phase-status not-started">🔒 Not Started</div>
                     <% } %>
                     
-                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase1Complete && (phase1Approval == null || phase1Approval.isRejected())) { %>
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase1Complete && !phase1Approved && (phase1Approval == null || phase1Approval.isRejected())) { %>
                         <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(1);">
                             📤 Submit for Approval
                         </button>
@@ -2765,10 +3100,10 @@
                 </div>
                 
                 <!-- Phase 2 -->
-                <div class="phase-card clickable <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "not-started") %>" onclick="showPhaseDetails(2, event)">
+                <div class="phase-card clickable <%= phase2Approved ? "complete" : (phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "not-started")) %>" onclick="showPhaseDetails(2, event)">
                     <div class="phase-header">
                         <div class="phase-title">चरण 2 (Phase 2)</div>
-                        <div class="phase-icon"><%= phase2Complete ? "✅" : (phase2Completion > 0 ? "⏳" : "🔒") %></div>
+                        <div class="phase-icon"><%= phase2Approved ? "✅" : (phase2Complete ? "✓" : (phase2Completion > 0 ? "⏳" : "🔒")) %></div>
                     </div>
                     
                     <div class="phase-progress">
@@ -2777,7 +3112,7 @@
                             <span><strong><%= phase2Completion %>%</strong></span>
                         </div>
                         <div class="progress-bar-container">
-                            <div class="progress-bar <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "") %>" 
+                            <div class="progress-bar <%= phase2Approved ? "complete" : (phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "")) %>" 
                                  style="width: <%= phase2Completion %>%">
                                 <%= phase2Completion > 10 ? phase2Completion + "%" : "" %>
                             </div>
@@ -2786,17 +3121,19 @@
                     
                     <% if (phase2Approval != null && phase2Approval.isPending()) { %>
                         <div class="phase-status pending-approval">⏳ Pending Approval</div>
-                    <% } else if (phase2Approval != null && phase2Approval.isApproved()) { %>
-                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase2Approved) { %>
+                        <div class="phase-status complete">✅ Approved by Head Master</div>
                     <% } else if (phase2Approval != null && phase2Approval.isRejected()) { %>
                         <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else if (phase2Complete) { %>
+                        <div class="phase-status complete">✓ Completed - Ready to Submit</div>
+                    <% } else if (phase2Completion > 0) { %>
+                        <div class="phase-status in-progress">⏳ In Progress (<%= phase2Completion %>%)</div>
                     <% } else { %>
-                        <div class="phase-status <%= phase2Complete ? "complete" : (phase2Completion > 0 ? "in-progress" : "not-started") %>">
-                            <%= phase2Complete ? "✓ Completed" : (phase2Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
-                        </div>
+                        <div class="phase-status not-started">🔒 Not Started</div>
                     <% } %>
                     
-                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase2Complete && (phase2Approval == null || phase2Approval.isRejected())) { %>
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase2Complete && !phase2Approved && (phase2Approval == null || phase2Approval.isRejected())) { %>
                         <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(2);">
                             📤 Submit for Approval
                         </button>
@@ -2804,10 +3141,10 @@
                 </div>
                 
                 <!-- Phase 3 -->
-                <div class="phase-card clickable <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "not-started") %>" onclick="showPhaseDetails(3, event)">
+                <div class="phase-card clickable <%= phase3Approved ? "complete" : (phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "not-started")) %>" onclick="showPhaseDetails(3, event)">
                     <div class="phase-header">
                         <div class="phase-title">चरण 3 (Phase 3)</div>
-                        <div class="phase-icon"><%= phase3Complete ? "✅" : (phase3Completion > 0 ? "⏳" : "🔒") %></div>
+                        <div class="phase-icon"><%= phase3Approved ? "✅" : (phase3Complete ? "✓" : (phase3Completion > 0 ? "⏳" : "🔒")) %></div>
                     </div>
                     
                     <div class="phase-progress">
@@ -2816,7 +3153,7 @@
                             <span><strong><%= phase3Completion %>%</strong></span>
                         </div>
                         <div class="progress-bar-container">
-                            <div class="progress-bar <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "") %>" 
+                            <div class="progress-bar <%= phase3Approved ? "complete" : (phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "")) %>" 
                                  style="width: <%= phase3Completion %>%">
                                 <%= phase3Completion > 10 ? phase3Completion + "%" : "" %>
                             </div>
@@ -2825,17 +3162,19 @@
                     
                     <% if (phase3Approval != null && phase3Approval.isPending()) { %>
                         <div class="phase-status pending-approval">⏳ Pending Approval</div>
-                    <% } else if (phase3Approval != null && phase3Approval.isApproved()) { %>
-                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase3Approved) { %>
+                        <div class="phase-status complete">✅ Approved by Head Master</div>
                     <% } else if (phase3Approval != null && phase3Approval.isRejected()) { %>
                         <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else if (phase3Complete) { %>
+                        <div class="phase-status complete">✓ Completed - Ready to Submit</div>
+                    <% } else if (phase3Completion > 0) { %>
+                        <div class="phase-status in-progress">⏳ In Progress (<%= phase3Completion %>%)</div>
                     <% } else { %>
-                        <div class="phase-status <%= phase3Complete ? "complete" : (phase3Completion > 0 ? "in-progress" : "not-started") %>">
-                            <%= phase3Complete ? "✓ Completed" : (phase3Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
-                        </div>
+                        <div class="phase-status not-started">🔒 Not Started</div>
                     <% } %>
                     
-                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase3Complete && (phase3Approval == null || phase3Approval.isRejected())) { %>
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase3Complete && !phase3Approved && (phase3Approval == null || phase3Approval.isRejected())) { %>
                         <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(3);">
                             📤 Submit for Approval
                         </button>
@@ -2843,10 +3182,10 @@
                 </div>
                 
                 <!-- Phase 4 -->
-                <div class="phase-card clickable <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "not-started") %>" onclick="showPhaseDetails(4, event)">
+                <div class="phase-card clickable <%= phase4Approved ? "complete" : (phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "not-started")) %>" onclick="showPhaseDetails(4, event)">
                     <div class="phase-header">
                         <div class="phase-title">चरण 4 (Phase 4)</div>
-                        <div class="phase-icon"><%= phase4Complete ? "✅" : (phase4Completion > 0 ? "⏳" : "🔒") %></div>
+                        <div class="phase-icon"><%= phase4Approved ? "✅" : (phase4Complete ? "✓" : (phase4Completion > 0 ? "⏳" : "🔒")) %></div>
                     </div>
                     
                     <div class="phase-progress">
@@ -2855,7 +3194,7 @@
                             <span><strong><%= phase4Completion %>%</strong></span>
                         </div>
                         <div class="progress-bar-container">
-                            <div class="progress-bar <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "") %>" 
+                            <div class="progress-bar <%= phase4Approved ? "complete" : (phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "")) %>" 
                                  style="width: <%= phase4Completion %>%">
                                 <%= phase4Completion > 10 ? phase4Completion + "%" : "" %>
                             </div>
@@ -2864,17 +3203,19 @@
                     
                     <% if (phase4Approval != null && phase4Approval.isPending()) { %>
                         <div class="phase-status pending-approval">⏳ Pending Approval</div>
-                    <% } else if (phase4Approval != null && phase4Approval.isApproved()) { %>
-                        <div class="phase-status complete">✓ Approved by Head Master</div>
+                    <% } else if (phase4Approved) { %>
+                        <div class="phase-status complete">✅ Approved by Head Master</div>
                     <% } else if (phase4Approval != null && phase4Approval.isRejected()) { %>
                         <div class="phase-status rejected">✗ Rejected - Resubmit Required</div>
+                    <% } else if (phase4Complete) { %>
+                        <div class="phase-status complete">✓ Completed - Ready to Submit</div>
+                    <% } else if (phase4Completion > 0) { %>
+                        <div class="phase-status in-progress">⏳ In Progress (<%= phase4Completion %>%)</div>
                     <% } else { %>
-                        <div class="phase-status <%= phase4Complete ? "complete" : (phase4Completion > 0 ? "in-progress" : "not-started") %>">
-                            <%= phase4Complete ? "✓ Completed" : (phase4Completion > 0 ? "⏳ In Progress" : "🔒 Not Started") %>
-                        </div>
+                        <div class="phase-status not-started">🔒 Not Started</div>
                     <% } %>
                     
-                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase4Complete && (phase4Approval == null || phase4Approval.isRejected())) { %>
+                    <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && phase4Complete && !phase4Approved && (phase4Approval == null || phase4Approval.isRejected())) { %>
                         <button class="btn-submit-phase" onclick="event.stopPropagation(); submitPhaseForApproval(4);">
                             📤 Submit for Approval
                         </button>
@@ -2899,34 +3240,73 @@
         </div>
         <% } %>
         
-        <%
-        // Initialize uploadedVideos variable for modal (even though main section is hidden)
-        List<Map<String, Object>> uploadedVideos = new ArrayList<>();
-        %>
-        
-        <%-- UPLOADED VIDEOS SECTION - HIDDEN (Now accessible via Quick Action modal only)
-        <div class="section" style="margin-top: 40px;">
-            <h2 class="section-title">🎥 Uploaded Videos - अपलोड केलेले व्हिडिओ</h2>
-            <p style="margin-bottom: 20px; color: #666;">View all student progress videos (विद्यार्थी प्रगती व्हिडिओ पहा)</p>
+        <!-- Uploaded Videos Modal -->
+        <div id="uploadedVideosModal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 1400px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white;">
+                    <h2>🎥 Uploaded Videos - अपलोड केलेले व्हिडिओ</h2>
+                    <span class="close" onclick="closeUploadedVideosModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 20px; color: #666;">View all student progress videos (विद्यार्थी प्रगती व्हिडिओ पहा)</p>
             
             <%
-            // Fetch uploaded videos from database
+            // Fetch uploaded videos from database with approval filtering
+            List<Map<String, Object>> uploadedVideos = new ArrayList<>();
             Connection videoConn = null;
             PreparedStatement videoPstmt = null;
             ResultSet videoRs = null;
+            String videoFetchError = null;
             
             try {
                 videoConn = DatabaseConnection.getConnection();
-                String videoSql = "SELECT v.video_id, v.student_id, s.student_name, s.student_pen, s.class, s.section, " +
-                                 "v.subject, v.month, v.has_progress, v.original_file_name, v.file_path, " +
-                                 "v.file_size, v.uploaded_by_name, v.upload_date " +
-                                 "FROM student_videos v " +
-                                 "INNER JOIN students s ON v.student_id = s.student_id " +
-                                 "WHERE v.udise_no = ? AND v.is_active = TRUE " +
-                                 "ORDER BY v.upload_date DESC";
+                
+                // First, check if student_videos table has any data at all
+                String countSql = "SELECT COUNT(*) as total FROM student_videos WHERE is_active = TRUE";
+                PreparedStatement countPstmt = videoConn.prepareStatement(countSql);
+                ResultSet countRs = countPstmt.executeQuery();
+                int totalVideosInDb = 0;
+                if (countRs.next()) {
+                    totalVideosInDb = countRs.getInt("total");
+                }
+                countRs.close();
+                countPstmt.close();
+                
+                System.out.println("=== VIDEO FETCH DEBUG START ===");
+                System.out.println("Total videos in database: " + totalVideosInDb);
+                System.out.println("User Type: " + user.getUserType());
+                System.out.println("UDISE Number: " + udiseNo);
+                
+                // Build query based on user role
+                String videoSql;
+                if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+                    // Headmaster sees ALL videos (approved, pending, rejected)
+                    videoSql = "SELECT v.video_id, v.student_id, s.student_name, s.student_pen, s.class, s.section, " +
+                              "v.subject, v.month, v.has_progress, v.original_file_name, v.file_path, " +
+                              "v.file_size, v.uploaded_by_name, v.upload_date, v.thumbnail_url, " +
+                              "COALESCE(v.approval_status, 'PENDING') as approval_status, v.is_visible " +
+                              "FROM student_videos v " +
+                              "LEFT JOIN students s ON v.student_id = s.student_id " +
+                              "WHERE v.udise_no = ? AND v.is_active = TRUE " +
+                              "ORDER BY v.upload_date DESC";
+                    System.out.println("Query: Fetching ALL videos for HEAD_MASTER");
+                } else {
+                    // School Coordinator sees only APPROVED videos
+                    videoSql = "SELECT v.video_id, v.student_id, s.student_name, s.student_pen, s.class, s.section, " +
+                              "v.subject, v.month, v.has_progress, v.original_file_name, v.file_path, " +
+                              "v.file_size, v.uploaded_by_name, v.upload_date, v.thumbnail_url, " +
+                              "COALESCE(v.approval_status, 'PENDING') as approval_status, v.is_visible " +
+                              "FROM student_videos v " +
+                              "LEFT JOIN students s ON v.student_id = s.student_id " +
+                              "WHERE v.udise_no = ? AND v.is_active = TRUE " +
+                              "AND v.approval_status = 'APPROVED' AND v.is_visible = TRUE " +
+                              "ORDER BY v.upload_date DESC";
+                    System.out.println("Query: Fetching only APPROVED videos for SCHOOL_COORDINATOR");
+                }
                 
                 videoPstmt = videoConn.prepareStatement(videoSql);
                 videoPstmt.setString(1, udiseNo);
+                System.out.println("Executing query with UDISE: " + udiseNo);
                 videoRs = videoPstmt.executeQuery();
                 
                 while (videoRs.next()) {
@@ -2945,10 +3325,27 @@
                     video.put("fileSize", videoRs.getLong("file_size"));
                     video.put("uploadedBy", videoRs.getString("uploaded_by_name"));
                     video.put("uploadDate", videoRs.getTimestamp("upload_date"));
+                    video.put("thumbnailUrl", videoRs.getString("thumbnail_url"));
+                    video.put("approvalStatus", videoRs.getString("approval_status"));
+                    video.put("isVisible", videoRs.getBoolean("is_visible"));
                     uploadedVideos.add(video);
+                    System.out.println("Added video: " + videoRs.getString("subject") + " - " + videoRs.getString("month"));
                 }
+                
+                System.out.println("Successfully fetched " + uploadedVideos.size() + " videos for this school");
+                if (uploadedVideos.isEmpty() && totalVideosInDb > 0) {
+                    System.out.println("WARNING: Database has videos but none match the filters for this UDISE/user");
+                }
+                if (!uploadedVideos.isEmpty()) {
+                    System.out.println("First video - Status: " + uploadedVideos.get(0).get("approvalStatus") + 
+                                      ", Subject: " + uploadedVideos.get(0).get("subject"));
+                }
+                System.out.println("=== VIDEO FETCH DEBUG END ===");
+                
             } catch (Exception e) {
-                System.err.println("Error fetching uploaded videos: " + e.getMessage());
+                videoFetchError = e.getMessage();
+                System.err.println("ERROR fetching uploaded videos: " + e.getMessage());
+                System.err.println("Error type: " + e.getClass().getName());
                 e.printStackTrace();
             } finally {
                 if (videoRs != null) try { videoRs.close(); } catch (SQLException e) { }
@@ -2957,187 +3354,208 @@
             }
             %>
             
-            <% if (uploadedVideos.isEmpty()) { %>
+            <% if (videoFetchError != null) { %>
+            <!-- Database Error Message -->
+            <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); border-radius: 12px; border: 2px solid #f44336;">
+                <div style="font-size: 64px; margin-bottom: 20px;">⚠️</div>
+                <h3 style="color: #c62828; margin-bottom: 10px;">Database Error</h3>
+                <p style="color: #d32f2f; margin-bottom: 10px;">Unable to fetch videos from database</p>
+                <p style="color: #666; font-size: 14px; font-family: monospace; background: white; padding: 10px; border-radius: 5px;"><%= videoFetchError %></p>
+                <p style="color: #999; font-size: 12px; margin-top: 10px;">Check server console logs for details</p>
+            </div>
+            <% } else if (uploadedVideos.isEmpty()) { %>
             <!-- No Videos Message -->
-            <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; border: 2px dashed #667eea;">
-                <div style="font-size: 64px; margin-bottom: 20px;">🎥</div>
-                <h3 style="color: #333; margin-bottom: 10px;">No Videos Uploaded Yet</h3>
-                <p style="color: #666; margin-bottom: 20px;">अद्याप कोणतेही व्हिडिओ अपलोड केलेले नाहीत</p>
-                <button onclick="openVideoUploadModal()" 
-                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
-                    🎥 Upload First Video
-                </button>
-            </div>
-            <% } else { %>
-            
-            <!-- Video Filters -->
-            <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">🔍 Search</label>
-                        <input type="text" id="videoSearchFilter" placeholder="Student name or PEN..." 
-                               onkeyup="filterVideos()"
-                               style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📚 Subject</label>
-                        <select id="videoSubjectFilter" onchange="filterVideos()" 
-                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                            <option value="">All Subjects</option>
-                            <option value="Marathi">मराठी (Marathi)</option>
-                            <option value="Math">गणित (Math)</option>
-                            <option value="English">इंग्रजी (English)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📅 Month</label>
-                        <select id="videoMonthFilter" onchange="filterVideos()" 
-                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                            <option value="">All Months</option>
-                            <option value="January">January</option>
-                            <option value="February">February</option>
-                            <option value="March">March</option>
-                            <option value="April">April</option>
-                            <option value="May">May</option>
-                            <option value="June">June</option>
-                            <option value="July">July</option>
-                            <option value="August">August</option>
-                            <option value="September">September</option>
-                            <option value="October">October</option>
-                            <option value="November">November</option>
-                            <option value="December">December</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📈 Progress</label>
-                        <select id="videoProgressFilter" onchange="filterVideos()" 
-                                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                            <option value="">All</option>
-                            <option value="yes">✅ Yes - Progress Made</option>
-                            <option value="no">❌ No - No Progress</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="margin-top: 15px; text-align: right;">
-                    <button onclick="resetVideoFilters()" 
-                            style="background: #e0e0e0; color: #333; border: none; padding: 8px 20px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                        🔄 Reset Filters
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Video Statistics -->
             <%
-            // Count videos with progress
-            int videosWithProgress = 0;
-            int videosNoProgress = 0;
-            for (Map<String, Object> video : uploadedVideos) {
-                String hasProgress = (String) video.get("hasProgress");
-                if ("yes".equals(hasProgress)) {
-                    videosWithProgress++;
-                } else if ("no".equals(hasProgress)) {
-                    videosNoProgress++;
+            // Check if there are pending videos for school coordinator
+            int pendingCount = 0;
+            if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) {
+                try (Connection checkConn = DatabaseConnection.getConnection();
+                     PreparedStatement checkPstmt = checkConn.prepareStatement(
+                         "SELECT COUNT(*) as pending FROM student_videos WHERE udise_no = ? AND is_active = TRUE AND approval_status = 'PENDING'")) {
+                    checkPstmt.setString(1, udiseNo);
+                    try (ResultSet checkRs = checkPstmt.executeQuery()) {
+                        if (checkRs.next()) {
+                            pendingCount = checkRs.getInt("pending");
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error checking pending videos: " + e.getMessage());
                 }
             }
             %>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 700;"><%= uploadedVideos.size() %></div>
-                    <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">Total Videos</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 700;"><%= videosWithProgress %></div>
-                    <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">With Progress</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: 700;"><%= videosNoProgress %></div>
-                    <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">No Progress Yet</div>
-                </div>
+            
+            <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px;">
+                <div style="font-size: 64px; margin-bottom: 20px;">🎥</div>
+                
+                <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
+                    <h3 style="color: #333; margin-bottom: 10px;">No Videos Uploaded Yet</h3>
+                    <p style="color: #666;">अद्याप कोणतेही व्हिडिओ अपलोड केलेले नाहीत</p>
+                <% } else if (pendingCount > 0) { %>
+                    <h3 style="color: #ff9800; margin-bottom: 10px;">⏳ Videos Pending Approval</h3>
+                    <p style="color: #666; margin-bottom: 10px;">तुम्ही <%= pendingCount %> व्हिडिओ अपलोड केले आहेत</p>
+                    <p style="color: #666; margin-bottom: 15px;">You have uploaded <%= pendingCount %> video(s)</p>
+                    <div style="background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 15px; margin: 20px auto; max-width: 500px;">
+                        <p style="color: #e65100; font-weight: 600; margin-bottom: 10px;">📋 Waiting for Head Master Approval</p>
+                        <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                            Your uploaded videos are pending approval from the Head Master. 
+                            Once approved, they will appear here and become visible to students.
+                        </p>
+                        <p style="color: #999; font-size: 13px; margin-top: 10px;">
+                            मुख्याध्यापकांच्या मंजुरीची प्रतीक्षा आहे
+                        </p>
+                    </div>
+                <% } else { %>
+                    <h3 style="color: #333; margin-bottom: 10px;">No Approved Videos Yet</h3>
+                    <p style="color: #666;">अद्याप कोणतेही मंजूर व्हिडिओ नाहीत</p>
+                    <p style="color: #999; font-size: 14px; margin-top: 15px;">Upload videos to see them here after Head Master approval</p>
+                <% } %>
+            </div>
+            <% } else { %>
+            
+            <!-- Video Statistics -->
+            <div style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 30px;">
+                <div style="font-size: 48px; font-weight: 700;"><%= uploadedVideos.size() %></div>
+                <div style="font-size: 18px; opacity: 0.95; margin-top: 5px;">Total Videos Uploaded</div>
             </div>
             
             <!-- Videos Grid -->
-            <div id="videosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
-                <% 
-                java.text.SimpleDateFormat videoDateFormat = new java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a");
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+                <%
+                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a");
                 for (Map<String, Object> video : uploadedVideos) {
+                    int videoId = (Integer) video.get("videoId");
+                    String studentName = (String) video.get("studentName");
+                    String subject = (String) video.get("subject");
+                    String month = (String) video.get("month");
                     String hasProgress = (String) video.get("hasProgress");
-                    String progressBadge = "yes".equals(hasProgress) ? 
-                        "<span style='background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>✅ Progress</span>" :
-                        "<span style='background: #ff9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>⏳ No Progress</span>";
+                    String cdnUrl = (String) video.get("filePath");
+                    long fileSize = (Long) video.get("fileSize");
+                    String uploadDate = dateFormat.format((java.util.Date) video.get("uploadDate"));
+                    String approvalStatus = (String) video.get("approvalStatus");
                     
-                    long fileSizeMB = (Long) video.get("fileSize") / (1024 * 1024);
-                    String uploadDate = videoDateFormat.format((java.util.Date) video.get("uploadDate"));
+                    double fileSizeMB = fileSize / (1024.0 * 1024.0);
+                    String progressBadge = "yes".equals(hasProgress) ? "✅ Progress" : "⏳ No Progress";
+                    String progressColor = "yes".equals(hasProgress) ? "#4caf50" : "#ff9800";
+                    
+                    // Approval status badge
+                    String approvalBadge = "";
+                    String approvalBgColor = "";
+                    if ("APPROVED".equals(approvalStatus)) {
+                        approvalBadge = "✅ Approved";
+                        approvalBgColor = "#4caf50";
+                    } else if ("REJECTED".equals(approvalStatus)) {
+                        approvalBadge = "❌ Rejected";
+                        approvalBgColor = "#f44336";
+                    } else {
+                        approvalBadge = "⏳ Pending";
+                        approvalBgColor = "#ff9800";
+                    }
                 %>
-                <div class="video-card" 
-                     data-name="<%= video.get("studentName") %>" 
-                     data-pen="<%= video.get("studentPen") %>"
-                     data-subject="<%= video.get("subject") %>"
-                     data-month="<%= video.get("month") %>"
-                     data-progress="<%= video.get("hasProgress") %>"
-                     style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s; cursor: pointer;"
-                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';"
-                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)';">
+                
+                <!-- Video Card -->
+                <div style="background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; transition: transform 0.3s;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
                     
-                    <!-- Video Thumbnail -->
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
-                        <div style="font-size: 48px; color: white;">🎥</div>
+                    <!-- Thumbnail -->
+                    <div style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); height: 180px; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <div style="font-size: 64px; color: white;">🎥</div>
+                        
+                        <!-- Progress Badge -->
+                        <div style="position: absolute; top: 10px; right: 10px; background: <%= progressColor %>; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            <%= progressBadge %>
+                        </div>
+                        
+                        <!-- Approval Status Badge -->
+                        <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
+                        <div style="position: absolute; top: 10px; left: 10px; background: <%= approvalBgColor %>; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            <%= approvalBadge %>
+                        </div>
+                        <% } %>
                     </div>
                     
                     <!-- Video Info -->
                     <div style="padding: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <h3 style="margin: 0; font-size: 16px; color: #333; font-weight: 700;"><%= video.get("studentName") %></h3>
-                            <%= progressBadge %>
-                        </div>
+                        <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #333;"><%= studentName %></h3>
                         
                         <div style="margin-bottom: 15px;">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                <span>🏷️</span>
-                                <span style="font-family: monospace;"><%= video.get("studentPen") %></span>
+                            <div style="color: #666; font-size: 14px; margin-bottom: 5px;">
+                                📖 <strong><%= subject %></strong>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                <span>📚</span>
-                                <span><%= video.get("studentClass") %> - <%= video.get("section") %></span>
+                            <div style="color: #666; font-size: 14px; margin-bottom: 5px;">
+                                📅 <%= month %>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                <span>📖</span>
-                                <span><strong><%= video.get("subject") %></strong></span>
+                            <div style="color: #999; font-size: 13px; margin-bottom: 5px;">
+                                📦 <%= String.format("%.2f MB", fileSizeMB) %>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                <span>📅</span>
-                                <span><%= video.get("month") %></span>
+                            <div style="color: #999; font-size: 12px;">
+                                ⏰ <%= uploadDate %>
                             </div>
                         </div>
                         
-                        <div style="padding-top: 12px; border-top: 1px solid #eee;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="font-size: 12px; color: #999;">📦 <%= fileSizeMB %> MB</span>
-                                <span style="font-size: 12px; color: #999;">👤 <%= video.get("uploadedBy") %></span>
-                            </div>
-                            <div style="font-size: 11px; color: #999; margin-bottom: 12px;">
-                                ⏰ <%= uploadDate %>
-                            </div>
-                            
-                            <button onclick="playVideo('<%= video.get("filePath") %>', '<%= video.get("studentName") %>', '<%= video.get("subject") %>', '<%= video.get("month") %>')" 
-                                    style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
-                                    onmouseover="this.style.transform='scale(1.05)'"
-                                    onmouseout="this.style.transform='scale(1)'">
-                                ▶️ Play Video
+                        <!-- Watch Video Button -->
+                        <button onclick="window.open('<%= cdnUrl %>', '_blank')"
+                                style="width: 100%; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-bottom: 10px;"
+                                onmouseover="this.style.transform='scale(1.05)'"
+                                onmouseout="this.style.transform='scale(1)'">
+                            ▶️ Watch Video
+                        </button>
+                        
+                        <!-- Approval Buttons (Headmaster Only) -->
+                        <% if (user.getUserType().equals(User.UserType.HEAD_MASTER) && "PENDING".equals(approvalStatus)) { %>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button onclick="approveSchoolVideo(<%= videoId %>)"
+                                    style="background: #4caf50; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
+                                    onmouseover="this.style.background='#45a049'"
+                                    onmouseout="this.style.background='#4caf50'">
+                                ✅ Approve
+                            </button>
+                            <button onclick="rejectSchoolVideo(<%= videoId %>)"
+                                    style="background: #f44336; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
+                                    onmouseover="this.style.background='#da190b'"
+                                    onmouseout="this.style.background='#f44336'">
+                                ❌ Reject
                             </button>
                         </div>
+                        <% } %>
                     </div>
                 </div>
                 <% } %>
             </div>
+            <% } %>
             
             <div id="noVideosMessage" style="display: none; text-align: center; padding: 40px; background: #f5f5f5; border-radius: 12px; margin-top: 20px;">
                 <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
                 <h3 style="color: #666;">No videos found matching your filters</h3>
                 <p style="color: #999;">Try adjusting your search criteria</p>
             </div>
-            <% } %>
+                </div>
+            </div>
         </div>
-        --%>
+        
+        <script>
+        // Debug: Log information about uploaded videos modal rendering
+        (function() {
+            console.log('=== UPLOADED VIDEOS MODAL DEBUG (Server-side rendering) ===');
+            console.log('Video count from server: <%= uploadedVideos.size() %>');
+            console.log('User type: <%= user.getUserType() %>');
+            console.log('UDISE Number: <%= udiseNo %>');
+            console.log('Modal element exists:', document.getElementById('uploadedVideosModal') !== null);
+            
+            const modal = document.getElementById('uploadedVideosModal');
+            if (modal) {
+                const modalBody = modal.querySelector('.modal-body');
+                if (modalBody) {
+                    const videoGrid = modalBody.querySelector('[style*="grid-template-columns"]');
+                    console.log('Video grid found:', videoGrid !== null);
+                    if (videoGrid) {
+                        console.log('Video grid children count:', videoGrid.children.length);
+                    }
+                }
+            }
+            console.log('===================================');
+        })();
+        </script>
         
         <!-- Video Player Modal -->
         <div id="videoPlayerModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9);">
@@ -3150,462 +3568,25 @@
                             <p id="videoPlayerSubtitle" style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;"></p>
                         </div>
                         <button onclick="closeVideoPlayer()" 
-                                style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 28px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 32px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                             ×
                         </button>
                     </div>
                     
                     <!-- Video Player -->
                     <div style="background: #000; padding: 0;">
-                        <video id="videoPlayer" controls style="width: 100%; max-height: 70vh; display: block;">
-                            Your browser does not support the video tag.
+                        <video id="videoPlayer"
+                               controls
+                               controlsList="nodownload"
+                               crossorigin="anonymous"
+                               preload="metadata"
+                               style="width: 100%; height: auto; max-height: 70vh; display: block;">
+                            Your browser does not support HTML5 video.
                         </video>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <script>
-        // Filter videos
-        function filterVideos() {
-            const searchText = document.getElementById('videoSearchFilter').value.toLowerCase();
-            const subjectFilter = document.getElementById('videoSubjectFilter').value;
-            const monthFilter = document.getElementById('videoMonthFilter').value;
-            const progressFilter = document.getElementById('videoProgressFilter').value;
-            
-            const videoCards = document.querySelectorAll('.video-card');
-            let visibleCount = 0;
-            
-            videoCards.forEach(card => {
-                const name = card.getAttribute('data-name').toLowerCase();
-                const pen = card.getAttribute('data-pen').toLowerCase();
-                const subject = card.getAttribute('data-subject');
-                const month = card.getAttribute('data-month');
-                const progress = card.getAttribute('data-progress');
-                
-                const matchesSearch = !searchText || name.includes(searchText) || pen.includes(searchText);
-                const matchesSubject = !subjectFilter || subject === subjectFilter;
-                const matchesMonth = !monthFilter || month === monthFilter;
-                const matchesProgress = !progressFilter || progress === progressFilter;
-                
-                if (matchesSearch && matchesSubject && matchesMonth && matchesProgress) {
-                    card.style.display = '';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-            
-            // Show/hide no results message
-            const noVideosMsg = document.getElementById('noVideosMessage');
-            if (noVideosMsg) {
-                noVideosMsg.style.display = visibleCount === 0 ? 'block' : 'none';
-            }
-        }
-        
-        // Reset filters
-        function resetVideoFilters() {
-            document.getElementById('videoSearchFilter').value = '';
-            document.getElementById('videoSubjectFilter').value = '';
-            document.getElementById('videoMonthFilter').value = '';
-            document.getElementById('videoProgressFilter').value = '';
-            filterVideos();
-        }
-        
-        // Play video in modal
-        function playVideo(filePath, studentName, subject, month) {
-            const modal = document.getElementById('videoPlayerModal');
-            const player = document.getElementById('videoPlayer');
-            const title = document.getElementById('videoPlayerTitle');
-            const subtitle = document.getElementById('videoPlayerSubtitle');
-            
-            title.textContent = studentName + ' - ' + subject;
-            subtitle.textContent = '📅 ' + month + ' | 🎥 Student Progress Video';
-            
-            player.src = '<%= request.getContextPath() %>/' + filePath;
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            
-            player.play();
-        }
-        
-        // Close video player
-        function closeVideoPlayer() {
-            const modal = document.getElementById('videoPlayerModal');
-            const player = document.getElementById('videoPlayer');
-            
-            player.pause();
-            player.src = '';
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-        
-        // Close video when clicking outside
-        document.getElementById('videoPlayerModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeVideoPlayer();
-            }
-        });
-        
-        // Open Uploaded Videos Modal
-        function openUploadedVideosModal() {
-            document.getElementById('uploadedVideosModal').style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-        
-        // Close Uploaded Videos Modal
-        function closeUploadedVideosModal() {
-            document.getElementById('uploadedVideosModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-        
-        // Close modal when clicking outside
-        document.addEventListener('DOMContentLoaded', function() {
-            const modal = document.getElementById('uploadedVideosModal');
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        closeUploadedVideosModal();
-                    }
-                });
-            }
-        });
-        </script>
-        
-        <!-- Phase Details Modal -->
-        <div id="phaseModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalPhaseTitle">Phase Student Data</h2>
-                    <span class="close" onclick="closeModal()">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <div id="modalStudentList"></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- UPLOADED VIDEOS MODAL -->
-        <div id="uploadedVideosModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);">
-            <div style="background-color: #fefefe; margin: 2% auto; padding: 0; border: 1px solid #888; border-radius: 12px; width: 95%; max-width: 1400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
-                <!-- Modal Header -->
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
-                    <div>
-                        <h2 style="margin: 0; font-size: 28px; display: flex; align-items: center; gap: 12px;">
-                            <span>📹</span>
-                            <span>Uploaded Videos - अपलोड केलेले व्हिडिओ</span>
-                        </h2>
-                        <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px;">View and play all student progress videos (सर्व विद्यार्थी प्रगती व्हिडिओ पहा)</p>
-                    </div>
-                    <button onclick="closeUploadedVideosModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 28px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">×</button>
-                </div>
-                
-                <!-- Modal Body -->
-                <div style="padding: 30px;">
-                    <%
-                    // Fetch uploaded videos from database (if not already fetched)
-                    if (uploadedVideos == null || uploadedVideos.isEmpty()) {
-                        uploadedVideos = new ArrayList<>();
-                        Connection videoModalConn = null;
-                        PreparedStatement videoModalPstmt = null;
-                        ResultSet videoModalRs = null;
-                        
-                        try {
-                            videoModalConn = DatabaseConnection.getConnection();
-                            String videoModalSql = "SELECT v.video_id, v.student_id, s.student_name, s.student_pen, s.class, s.section, " +
-                                             "v.subject, v.month, v.has_progress, v.original_file_name, v.file_path, " +
-                                             "v.file_size, v.uploaded_by_name, v.upload_date, v.youtube_video_id, v.thumbnail_url " +
-                                             "FROM student_videos v " +
-                                             "INNER JOIN students s ON v.student_id = s.student_id " +
-                                             "WHERE v.udise_no = ? AND v.is_active = TRUE " +
-                                             "ORDER BY v.upload_date DESC";
-                            
-                            videoModalPstmt = videoModalConn.prepareStatement(videoModalSql);
-                            videoModalPstmt.setString(1, udiseNo);
-                            videoModalRs = videoModalPstmt.executeQuery();
-                            
-                            while (videoModalRs.next()) {
-                                Map<String, Object> video = new HashMap<>();
-                                video.put("videoId", videoModalRs.getInt("video_id"));
-                                video.put("studentId", videoModalRs.getInt("student_id"));
-                                video.put("studentName", videoModalRs.getString("student_name"));
-                                video.put("studentPen", videoModalRs.getString("student_pen"));
-                                video.put("studentClass", videoModalRs.getString("class"));
-                                video.put("section", videoModalRs.getString("section"));
-                                video.put("subject", videoModalRs.getString("subject"));
-                                video.put("month", videoModalRs.getString("month"));
-                                video.put("hasProgress", videoModalRs.getString("has_progress"));
-                                video.put("fileName", videoModalRs.getString("original_file_name"));
-                                video.put("filePath", videoModalRs.getString("file_path"));
-                                video.put("fileSize", videoModalRs.getLong("file_size"));
-                                video.put("uploadedBy", videoModalRs.getString("uploaded_by_name"));
-                                video.put("uploadDate", videoModalRs.getTimestamp("upload_date"));
-                                video.put("youtubeVideoId", videoModalRs.getString("youtube_video_id"));
-                                video.put("thumbnailUrl", videoModalRs.getString("thumbnail_url"));
-                                uploadedVideos.add(video);
-                            }
-                        } catch (Exception e) {
-                            System.err.println("Error fetching uploaded videos in modal: " + e.getMessage());
-                            e.printStackTrace();
-                        } finally {
-                            if (videoModalRs != null) try { videoModalRs.close(); } catch (SQLException e) { }
-                            if (videoModalPstmt != null) try { videoModalPstmt.close(); } catch (SQLException e) { }
-                            if (videoModalConn != null) try { videoModalConn.close(); } catch (SQLException e) { }
-                        }
-                    }
-                    %>
-                    
-                    <% if (uploadedVideos.isEmpty()) { %>
-                    <!-- No Videos Message -->
-                    <div style="text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 12px; border: 2px dashed #667eea;">
-                        <div style="font-size: 64px; margin-bottom: 20px;">🎥</div>
-                        <h3 style="color: #333; margin-bottom: 10px;">No Videos Uploaded Yet</h3>
-                        <p style="color: #666; margin-bottom: 20px;">अद्याप कोणतेही व्हिडिओ अपलोड केलेले नाहीत</p>
-                        <button onclick="closeUploadedVideosModal(); openVideoUploadModal();" 
-                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
-                            🎥 Upload First Video
-                        </button>
-                    </div>
-                    <% } else { %>
-                    
-                    <!-- Video Filters -->
-                    <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">🔍 Search</label>
-                                <input type="text" id="modalVideoSearchFilter" placeholder="Student name or PEN..." 
-                                       onkeyup="filterModalVideos()"
-                                       style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📚 Subject</label>
-                                <select id="modalVideoSubjectFilter" onchange="filterModalVideos()" 
-                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                                    <option value="">All Subjects</option>
-                                    <option value="Marathi">मराठी (Marathi)</option>
-                                    <option value="Math">गणित (Math)</option>
-                                    <option value="English">इंग्रजी (English)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📅 Month</label>
-                                <select id="modalVideoMonthFilter" onchange="filterModalVideos()" 
-                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                                    <option value="">All Months</option>
-                                    <option value="January">January</option>
-                                    <option value="February">February</option>
-                                    <option value="March">March</option>
-                                    <option value="April">April</option>
-                                    <option value="May">May</option>
-                                    <option value="June">June</option>
-                                    <option value="July">July</option>
-                                    <option value="August">August</option>
-                                    <option value="September">September</option>
-                                    <option value="October">October</option>
-                                    <option value="November">November</option>
-                                    <option value="December">December</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">📈 Progress</label>
-                                <select id="modalVideoProgressFilter" onchange="filterModalVideos()" 
-                                        style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                                    <option value="">All</option>
-                                    <option value="yes">✅ Yes - Progress Made</option>
-                                    <option value="no">❌ No - No Progress</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div style="margin-top: 15px; text-align: right;">
-                            <button onclick="resetModalVideoFilters()" 
-                                    style="background: #e0e0e0; color: #333; border: none; padding: 8px 20px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                                🔄 Reset Filters
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Video Statistics -->
-                    <%
-                    // Count videos with progress for modal
-                    int modalVideosWithProgress = 0;
-                    int modalVideosNoProgress = 0;
-                    for (Map<String, Object> video : uploadedVideos) {
-                        String hasProgress = (String) video.get("hasProgress");
-                        if ("yes".equals(hasProgress)) {
-                            modalVideosWithProgress++;
-                        } else if ("no".equals(hasProgress)) {
-                            modalVideosNoProgress++;
-                        }
-                    }
-                    %>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-                            <div style="font-size: 32px; font-weight: 700;"><%= uploadedVideos.size() %></div>
-                            <div style="font-size: 14px; opacity: 0.95; margin-top: 5px;">Total Videos</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Videos Grid -->
-                    <div id="modalVideosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-                        <% 
-                        java.text.SimpleDateFormat modalVideoDateFormat = new java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a");
-                        for (Map<String, Object> video : uploadedVideos) {
-                            String hasProgress = (String) video.get("hasProgress");
-                            String progressBadge = "yes".equals(hasProgress) ? 
-                                "<span style='background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>✅ Progress</span>" :
-                                "<span style='background: #ff9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;'>⏳ No Progress</span>";
-                            
-                            long fileSizeMB = (Long) video.get("fileSize") / (1024 * 1024);
-                            String uploadDate = modalVideoDateFormat.format((java.util.Date) video.get("uploadDate"));
-                            
-                            String youtubeVideoId = (String) video.get("youtubeVideoId");
-                            String thumbnailUrl = (String) video.get("thumbnailUrl");
-                            String youtubeUrl = (String) video.get("filePath");
-                            
-                            // Use YouTube thumbnail if available, otherwise use default icon
-                            boolean hasYouTubeVideo = youtubeVideoId != null && !youtubeVideoId.isEmpty();
-                        %>
-                        <div class="modal-video-card" 
-                             data-name="<%= video.get("studentName") %>" 
-                             data-pen="<%= video.get("studentPen") %>"
-                             data-subject="<%= video.get("subject") %>"
-                             data-month="<%= video.get("month") %>"
-                             data-progress="<%= video.get("hasProgress") %>"
-                             style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s; cursor: pointer;"
-                             onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';"
-                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)';">
-                            
-                            <!-- Video Thumbnail -->
-                            <% if (hasYouTubeVideo && thumbnailUrl != null) { %>
-                            <div style="position: relative; background: #000; height: 180px; overflow: hidden;">
-                                <img src="<%= thumbnailUrl %>" 
-                                     alt="Video Thumbnail" 
-                                     style="width: 100%; height: 100%; object-fit: cover;"
-                                     onerror="this.parentElement.innerHTML='<div style=\'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; height: 180px; display: flex; align-items: center; justify-content: center;\'><div style=\'font-size: 48px; color: white;\'>🎥</div></div>';">
-                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
-                                    <span style="color: white; font-size: 24px; margin-left: 5px;">▶️</span>
-                                </div>
-                                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
-                                    YouTube
-                                </div>
-                            </div>
-                            <% } else { %>
-                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; height: 180px; display: flex; align-items: center; justify-content: center;">
-                                <div style="font-size: 48px; color: white;">🎥</div>
-                            </div>
-                            <% } %>
-                            
-                            <!-- Video Info -->
-                            <div style="padding: 20px;">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                    <h3 style="margin: 0; font-size: 16px; color: #333; font-weight: 700;"><%= video.get("studentName") %></h3>
-                                    <%= progressBadge %>
-                                </div>
-                                
-                                <div style="margin-bottom: 15px;">
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                        <span>🏷️</span>
-                                        <span style="font-family: monospace;"><%= video.get("studentPen") %></span>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                        <span>📚</span>
-                                        <span><%= video.get("studentClass") %> - <%= video.get("section") %></span>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                        <span>📖</span>
-                                        <span><strong><%= video.get("subject") %></strong></span>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: #666; font-size: 13px;">
-                                        <span>📅</span>
-                                        <span><%= video.get("month") %></span>
-                                    </div>
-                                </div>
-                                
-                                <div style="padding-top: 12px; border-top: 1px solid #eee;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                        <span style="font-size: 12px; color: #999;">📦 <%= fileSizeMB %> MB</span>
-                                        <span style="font-size: 12px; color: #999;">👤 <%= video.get("uploadedBy") %></span>
-                                    </div>
-                                    <div style="font-size: 11px; color: #999; margin-bottom: 12px;">
-                                        ⏰ <%= uploadDate %>
-                                    </div>
-                                    
-                                    <% if (hasYouTubeVideo) { %>
-                                    <button onclick="window.open('<%= youtubeUrl %>', '_blank')" 
-                                            style="width: 100%; background: linear-gradient(135deg, #FF0000 0%, #CC0000 100%); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
-                                            onmouseover="this.style.transform='scale(1.05)'"
-                                            onmouseout="this.style.transform='scale(1)'">
-                                        ▶️ Watch on YouTube
-                                    </button>
-                                    <% } else { %>
-                                    <button onclick="alert('Video file not available')" 
-                                            style="width: 100%; background: #999; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer;">
-                                        ❌ Video Not Available
-                                    </button>
-                                    <% } %>
-                                </div>
-                            </div>
-                        </div>
-                        <% } %>
-                    </div>
-                    
-                    <div id="modalNoVideosMessage" style="display: none; text-align: center; padding: 40px; background: #f5f5f5; border-radius: 12px; margin-top: 20px;">
-                        <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
-                        <h3 style="color: #666;">No videos found matching your filters</h3>
-                        <p style="color: #999;">Try adjusting your search criteria</p>
-                    </div>
-                    <% } %>
-                </div>
-            </div>
-        </div>
-        
-        <script>
-        // Filter videos in modal
-        function filterModalVideos() {
-            const searchText = document.getElementById('modalVideoSearchFilter').value.toLowerCase();
-            const subjectFilter = document.getElementById('modalVideoSubjectFilter').value;
-            const monthFilter = document.getElementById('modalVideoMonthFilter').value;
-            const progressFilter = document.getElementById('modalVideoProgressFilter').value;
-            
-            const videoCards = document.querySelectorAll('.modal-video-card');
-            let visibleCount = 0;
-            
-            videoCards.forEach(card => {
-                const name = card.getAttribute('data-name').toLowerCase();
-                const pen = card.getAttribute('data-pen').toLowerCase();
-                const subject = card.getAttribute('data-subject');
-                const month = card.getAttribute('data-month');
-                const progress = card.getAttribute('data-progress');
-                
-                const matchesSearch = !searchText || name.includes(searchText) || pen.includes(searchText);
-                const matchesSubject = !subjectFilter || subject === subjectFilter;
-                const matchesMonth = !monthFilter || month === monthFilter;
-                const matchesProgress = !progressFilter || progress === progressFilter;
-                
-                if (matchesSearch && matchesSubject && matchesMonth && matchesProgress) {
-                    card.style.display = '';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-            
-            // Show/hide no results message
-            const noVideosMsg = document.getElementById('modalNoVideosMessage');
-            if (noVideosMsg) {
-                noVideosMsg.style.display = visibleCount === 0 ? 'block' : 'none';
-            }
-        }
-        
-        // Reset filters in modal
-        function resetModalVideoFilters() {
-            document.getElementById('modalVideoSearchFilter').value = '';
-            document.getElementById('modalVideoSubjectFilter').value = '';
-            document.getElementById('modalVideoMonthFilter').value = '';
-            document.getElementById('modalVideoProgressFilter').value = '';
-            filterModalVideos();
-        }
-        </script>
         
         <!-- Add Teacher Modal -->
         <div id="addTeacherModal" class="modal">
@@ -3970,7 +3951,6 @@
                                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Class</th>
                                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Section</th>
                                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Gender</th>
-                                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd;">Current Star</th>
                                     </tr>
                                 </thead>
                                 <tbody id="videoStudentsBody">
@@ -3986,7 +3966,6 @@
                                         data-class="<%= s.getStudentClass() %>"
                                         data-section="<%= s.getSection() %>"
                                         data-student-id="<%= s.getStudentId() %>"
-                                        data-current-star="<%= currentStar %>"
                                         style="cursor: pointer; transition: background 0.3s;"
                                         onmouseover="this.style.background='#f0f8ff'"
                                         onmouseout="this.style.background='white'">
@@ -3995,7 +3974,6 @@
                                                    value="<%= s.getStudentId() %>"
                                                    data-name="<%= s.getStudentName() %>"
                                                    data-pen="<%= s.getStudentPen() %>"
-                                                   data-star="<%= currentStar %>"
                                                    onclick="selectVideoStudent(this)">
                                         </td>
                                         <td style="padding: 12px; border-bottom: 1px solid #eee; font-weight: 600;"><%= s.getStudentName() %></td>
@@ -4003,9 +3981,7 @@
                                         <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;"><%= s.getStudentClass() %></td>
                                         <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;"><%= s.getSection() %></td>
                                         <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;"><%= s.getGender() %></td>
-                                        <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">
-                                            <span style="background: #ffd700; color: #333; padding: 4px 12px; border-radius: 20px; font-weight: 600;">⭐ <%= currentStar %></span>
-                                        </td>
+                                        
                                     </tr>
                                     <% } %>
                                 </tbody>
@@ -4014,7 +3990,7 @@
                         
                         <div style="margin-top: 20px; text-align: right;">
                             <button onclick="proceedToVideoUpload()" 
-                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
                                 Next - पुढे जा →
                             </button>
                         </div>
@@ -4115,7 +4091,7 @@
                                        style="display: block; margin: 15px auto; padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: white; max-width: 400px;">
                                 <p id="videoFileName" style="margin-top: 10px; color: #4caf50; font-weight: 600;"></p>
                                 <p style="color: #666; font-size: 14px; margin-top: 10px;">
-                                    Supported formats: MP4, AVI, MOV, MKV (Min 2 MB and Max size: 10MB)
+                                    Supported formats: MP4, AVI, MOV, MKV (Min 100 KB and Max size: 15 MB)
                                 </p>
                             </div>
                             
@@ -4138,139 +4114,106 @@
         
         <!-- VIDEO UPLOAD JAVASCRIPT -->
         <script>
-        // Open Video Upload Modal
-        function openVideoUploadModal() {
-            document.getElementById('videoUploadModal').style.display = 'block';
-            document.getElementById('videoStep1').style.display = 'block';
-            document.getElementById('videoStep2').style.display = 'none';
-            document.body.style.overflow = 'hidden';
-            
-            // Reset selections
-            const radios = document.getElementsByName('selectedVideoStudent');
-            radios.forEach(r => r.checked = false);
-        }
-        
-        // Close Video Upload Modal
-        function closeVideoUploadModal() {
-            document.getElementById('videoUploadModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
-            
-            // Reset form
-            document.getElementById('videoUploadForm').reset();
-            document.getElementById('videoFileName').textContent = '';
-        }
-        
-        // Filter students in video modal
-        function filterVideoStudents() {
-            const searchText = document.getElementById('videoStudentSearch').value.toLowerCase();
-            const classFilter = document.getElementById('videoClassFilter').value;
-            const sectionFilter = document.getElementById('videoSectionFilter').value;
-            
-            const rows = document.querySelectorAll('.video-student-row');
-            
-            rows.forEach(row => {
-                const name = row.getAttribute('data-name').toLowerCase();
-                const pen = row.getAttribute('data-pen').toLowerCase();
-                const studentClass = row.getAttribute('data-class');
-                const section = row.getAttribute('data-section');
-                
-                const matchesSearch = name.includes(searchText) || pen.includes(searchText);
-                const matchesClass = !classFilter || studentClass === classFilter;
-                const matchesSection = !sectionFilter || section === sectionFilter;
-                
-                if (matchesSearch && matchesClass && matchesSection) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        }
-        
-        // Select student for video upload
-        let selectedVideoStudentData = null;
-        
-        function selectVideoStudent(radio) {
-            selectedVideoStudentData = {
-                id: radio.value,
-                name: radio.getAttribute('data-name'),
-                pen: radio.getAttribute('data-pen'),
-                star: radio.getAttribute('data-star')
-            };
-        }
-        
-        // Proceed to video upload form
-        function proceedToVideoUpload() {
-            if (!selectedVideoStudentData) {
-                alert('कृपया विद्यार्थी निवडा!\nPlease select a student!');
-                return;
-            }
-            
-            // Update student info in step 2
-            document.getElementById('selectedStudentName').textContent = selectedVideoStudentData.name;
-            document.getElementById('selectedStudentPEN').textContent = selectedVideoStudentData.pen;
-            document.getElementById('selectedStudentStar').innerHTML = '⭐ ' + selectedVideoStudentData.star;
-            document.getElementById('videoStudentId').value = selectedVideoStudentData.id;
-            
-            // Switch to step 2
-            document.getElementById('videoStep1').style.display = 'none';
-            document.getElementById('videoStep2').style.display = 'block';
-        }
-        
-        // Back to student selection
-        function backToStudentSelection() {
-            document.getElementById('videoStep1').style.display = 'block';
-            document.getElementById('videoStep2').style.display = 'none';
-        }
-        
-        // Display selected video file name
-        function displayVideoFileName(input) {
-            const fileName = input.files[0] ? input.files[0].name : '';
-            const fileSize = input.files[0] ? (input.files[0].size / (1024 * 1024)).toFixed(2) : 0;
-            
-            if (fileName) {
-                document.getElementById('videoFileName').textContent = 
-                    '✓ Selected: ' + fileName + ' (' + fileSize + ' MB)';
+        // Scroll to section function
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
+        
+        // Open Video Upload Modal (already defined at page start)
+        // Keeping this comment for reference - function defined at line ~1755
+        
+        // Close Video Upload Modal (already defined at page start)
+        // Keeping this comment for reference - function defined at line ~1770
+        
+        // Video functions already defined at page start (line ~1750+)
+        // - filterVideoStudents()
+        // - selectVideoStudent()
+        // - proceedToVideoUpload()
+        // - backToStudentSelection()
+        // - displayVideoFileName()
         
         // Handle video upload form submission
         document.getElementById('videoUploadForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            console.log('=== VIDEO UPLOAD STARTED ===');
+            console.log('Timestamp:', new Date().toISOString());
+            
             const formData = new FormData(this);
             const submitButton = this.querySelector('button[type="submit"]');
+            
+            // Log form data being sent
+            console.log('Form Data Contents:');
+            for (let pair of formData.entries()) {
+                if (pair[0] === 'videoFile') {
+                    const file = pair[1];
+                    console.log('  ' + pair[0] + ': ' + file.name + ' (' + (file.size / (1024*1024)).toFixed(2) + ' MB, ' + file.type + ')');
+                } else {
+                    console.log('  ' + pair[0] + ': ' + pair[1]);
+                }
+            }
             
             // Disable submit button
             submitButton.disabled = true;
             submitButton.textContent = '⏳ Uploading... कृपया प्रतीक्षा करा...';
+            
+            console.log('Sending request to: <%= request.getContextPath() %>/upload-student-video');
+            const uploadStartTime = Date.now();
             
             // Submit to backend
             fetch('<%= request.getContextPath() %>/upload-student-video', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
+                console.log('Response received after ' + uploadDuration + 's');
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries([...response.headers]));
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
+                console.log('=== VIDEO UPLOAD COMPLETED ===');
+                
                 if (data.success) {
+                    console.log('✅ Upload successful!');
+                    console.log('YouTube Video ID:', data.youtubeId);
+                    console.log('YouTube URL:', data.youtubeUrl);
                     alert('✅ Video uploaded to YouTube successfully!\nव्हिडिओ यशस्वीरित्या YouTube वर अपलोड केला!\n\nStudent: ' + selectedVideoStudentData.name + '\nYouTube URL: ' + data.youtubeUrl);
                     closeVideoUploadModal();
                     location.reload(); // Refresh to show updated data
                 } else {
-                    // Check if it's an auth expired error
-                    if (data.authExpired) {
-                        const fixUrl = '<%= request.getContextPath() %>/refresh-youtube-auth';
-                        if (confirm('❌ YouTube Authorization Expired!\n\n' + data.message + '\n\nClick OK to open the fix page in a new tab.')) {
-                            window.open(fixUrl, '_blank');
+                    console.error('❌ Upload failed!');
+                    console.error('Error message:', data.message);
+                    console.error('Auth expired:', data.authExpired);
+                    console.error('Auth required:', data.authRequired);
+                    
+                    // Check if authorization is needed
+                    if (data.authExpired || data.authRequired) {
+                        const authUrl = data.authUrl || '<%= request.getContextPath() %>/authorize-youtube';
+                        
+                        if (confirm('❌ YouTube Authorization Needed!\n\n' + data.message + 
+                                   '\n\nClick OK to open the authorization page.\n\nयूट्यूब प्राधिकरण आवश्यक आहे!')) {
+                            window.open(authUrl, '_blank');
                         }
                     } else {
-                        alert('❌ Error uploading video!\n' + (data.message || 'Unknown error'));
+                        alert('❌ Error uploading video!\n' + (data.message || 'Unknown error') + 
+                             '\n\nकृपया पुन्हा प्रयत्न करा!');
                     }
                     submitButton.disabled = false;
                     submitButton.textContent = '🎥 Upload Video - व्हिडिओ अपलोड करा';
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
+                console.error('=== VIDEO UPLOAD FAILED after ' + uploadDuration + 's ===');
+                console.error('Error type:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Full error:', error);
                 alert('❌ Error uploading video!\nकृपया पुन्हा प्रयत्न करा!\n\n' + error.message);
                 submitButton.disabled = false;
                 submitButton.textContent = '🎥 Upload Video - व्हिडिओ अपलोड करा';

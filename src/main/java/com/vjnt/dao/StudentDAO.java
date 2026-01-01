@@ -17,6 +17,14 @@ public class StudentDAO {
      * Create a new student
      */
     public boolean createStudent(Student student) {
+        // Check for duplicate PEN before insertion
+        if (student.getStudentPen() != null && !student.getStudentPen().isEmpty()) {
+            if (isPenNumberExists(student.getStudentPen())) {
+                System.err.println("✗ Cannot create student: PEN number " + student.getStudentPen() + " already exists!");
+                return false;
+            }
+        }
+        
         String sql = "INSERT INTO students (division, district, udise_no, class, section, " +
                      "class_category, student_name, gender, student_pen, marathi_level, " +
                      "math_level, english_level, is_active, created_by) " +
@@ -47,13 +55,19 @@ public class StudentDAO {
                 if (rs.next()) {
                     student.setStudentId(rs.getInt(1));
                 }
+                System.out.println("✓ Student created successfully with PEN: " + student.getStudentPen());
                 return true;
             }
             return false;
             
         } catch (SQLException e) {
-            System.err.println("Error creating student: " + e.getMessage());
-            e.printStackTrace();
+            // Check if error is due to duplicate key
+            if (e.getMessage().contains("Duplicate entry") && e.getMessage().contains("student_pen")) {
+                System.err.println("✗ Duplicate PEN number detected: " + student.getStudentPen());
+            } else {
+                System.err.println("Error creating student: " + e.getMessage());
+                e.printStackTrace();
+            }
             return false;
         }
     }
@@ -320,11 +334,11 @@ public class StudentDAO {
     }
     
     /**
-     * Get students by UDISE number (excludes FLN completed students for phase activities)
+     * Get students by UDISE number (includes all students)
      */
     public List<Student> getStudentsByUdise(String udiseNo) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE) ORDER BY class, section, student_name";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 ORDER BY class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -363,11 +377,11 @@ public class StudentDAO {
     }
     
     /**
-     * Get ALL students by UDISE for viewing (includes FLN completed students)
+     * Get ALL students by UDISE for viewing (includes all students regardless of FLN status)
      */
     public List<Student> getStudentsByUdiseFOrView(String udiseNo) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE) ORDER BY class, section, student_name";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 ORDER BY class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -541,6 +555,25 @@ public class StudentDAO {
         return 0;
     }
     
+    public int getStudentCountByUdiseFORDASHBOARD(String udiseNo) {
+        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ? AND is_active = 1 ";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting student count by UDISE: " + e.getMessage());
+        }
+        return 0;
+    }
+    
     /**
      * Update student language levels
      */
@@ -598,16 +631,23 @@ public class StudentDAO {
     }
     
     /**
-     * Check if a phase is complete for a school (all students have data for that phase)
-     * Only counts students where save button was clicked (phase_date is NOT NULL)
-     * Students with all three values as 0 (default) are counted if save was clicked
+     * Check if a phase is complete for a school
+     * Phase is complete when ALL ACTIVE students have their assessments saved (phase_date is set)
+     * Note: Only counts students where is_active = 1
      */
     public boolean isPhaseComplete(String udiseNo, int phase) {
-        String columnPrefix = "phase" + phase + "_";
-        String sql = "SELECT COUNT(*) as total, " +
-                     "SUM(CASE WHEN " + columnPrefix + "date IS NOT NULL " +
-                     "THEN 1 ELSE 0 END) as completed " +
-                     "FROM students WHERE udise_no = ? AND is_active = 1";
+        // Check if all ACTIVE students have completed their phase assessment
+        // A phase is complete when phase{N}_date is NOT NULL for all active students
+        // EXCLUDE students with fln_completed = TRUE (they are not counted in the calculation)
+        String phaseColumn = "phase" + phase + "_date";
+        
+        String sql = "SELECT " +
+                     "COUNT(*) as total_students, " +
+                     "SUM(CASE WHEN " + phaseColumn + " IS NOT NULL THEN 1 ELSE 0 END) as completed_students " +
+                     "FROM students " +
+                     "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
+                     "AND is_active = 1 " +
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -616,14 +656,48 @@ public class StudentDAO {
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
-                int total = rs.getInt("total");
-                int completed = rs.getInt("completed");
-                System.out.println("Phase " + phase + " check - Total: " + total + ", Completed: " + completed + " (based on save button action - phase_date)");
-                return total > 0 && total == completed;
+                int totalStudents = rs.getInt("total_students");
+                int completedStudents = rs.getInt("completed_students");
+                
+                // Phase is complete if there are students and all have completed
+                boolean isComplete = totalStudents > 0 && totalStudents == completedStudents;
+                
+                System.out.println("Phase " + phase + " check - UDISE: " + udiseNo + 
+                                 ", Total Active (excluding fln_completed): " + totalStudents + 
+                                 ", Completed: " + completedStudents + 
+                                 ", IsComplete: " + isComplete);
+                
+                return isComplete;
             }
             
         } catch (SQLException e) {
             System.err.println("Error checking phase completion: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    /**
+     * Check if a phase is approved by Head Master
+     */
+    public boolean isPhaseApproved(String udiseNo, int phase) {
+        String sql = "SELECT approval_status FROM phase_approvals " +
+                     "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? AND phase_number = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, udiseNo);
+            pstmt.setInt(2, phase);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                String status = rs.getString("approval_status");
+                return "APPROVED".equals(status);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking phase approval: " + e.getMessage());
             e.printStackTrace();
         }
         return false;
@@ -776,15 +850,20 @@ public class StudentDAO {
     
     /**
      * Get phase completion percentage for a school
-     * Only counts students where save button was clicked (phase_date is NOT NULL)
-     * Students with all three values as 0 (default) are counted if save was clicked
+     * Phase is complete ONLY if approved by Head Master
      */
     public int getPhaseCompletionPercentage(String udiseNo, int phase) {
-        String columnPrefix = "phase" + phase + "_";
-        String sql = "SELECT COUNT(*) as total, " +
-                     "SUM(CASE WHEN " + columnPrefix + "date IS NOT NULL " +
-                     "THEN 1 ELSE 0 END) as completed " +
-                     "FROM students WHERE udise_no = ? AND is_active = 1";
+        // Calculate percentage of ACTIVE students who have completed the phase
+        // EXCLUDE students with fln_completed = TRUE (they are not counted in the calculation)
+        String phaseColumn = "phase" + phase + "_date";
+        
+        String sql = "SELECT " +
+                     "COUNT(*) as total_students, " +
+                     "SUM(CASE WHEN " + phaseColumn + " IS NOT NULL THEN 1 ELSE 0 END) as completed_students " +
+                     "FROM students " +
+                     "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
+                     "AND is_active = 1 " +
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -793,11 +872,22 @@ public class StudentDAO {
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
-                int total = rs.getInt("total");
-                int completed = rs.getInt("completed");
-                if (total > 0) {
-                    return (completed * 100) / total;
+                int totalStudents = rs.getInt("total_students");
+                int completedStudents = rs.getInt("completed_students");
+                
+                if (totalStudents == 0) {
+                    return 0;
                 }
+                
+                // Calculate percentage
+                int percentage = (int) Math.round((completedStudents * 100.0) / totalStudents);
+                
+                System.out.println("Phase " + phase + " percentage - UDISE: " + udiseNo + 
+                                 ", Active Students (excluding fln_completed): " + totalStudents + 
+                                 ", Completed: " + completedStudents + 
+                                 ", Percentage: " + percentage + "%");
+                
+                return percentage;
             }
             
         } catch (SQLException e) {
@@ -878,8 +968,20 @@ public class StudentDAO {
      * Returns summary of how many students have each dropdown value for each phase/subject
      */
     public java.util.Map<String, Object> getPhaseWiseSubjectCounts(String udiseNo) {
+        return getPhaseWiseSubjectCounts(udiseNo, null);
+    }
+    
+    /**
+     * Get aggregate phase-wise subject counts by UDISE with class filter
+     * Returns summary of how many students have each dropdown value for each phase/subject
+     * @param udiseNo School UDISE number
+     * @param studentClass Optional class filter (e.g., "1", "2", "3", etc.)
+     */
+    public java.util.Map<String, Object> getPhaseWiseSubjectCounts(String udiseNo, String studentClass) {
         java.util.Map<String, Object> counts = new java.util.HashMap<>();
         
+        System.out.println("DEBUG: Getting phase-wise counts for UDISE: " + udiseNo + ", Class: " + studentClass);
+
         String sql = "SELECT " +
                      // Phase 1 counts - Marathi (0-6)
                      "SUM(CASE WHEN phase1_marathi = 0 THEN 1 ELSE 0 END) as p1_marathi_0, " +
@@ -987,22 +1089,34 @@ public class StudentDAO {
                      "SUM(CASE WHEN phase4_english = 6 THEN 1 ELSE 0 END) as p4_english_6, " +
                      "COUNT(*) as total_students " +
                      "FROM students " +
-                     "WHERE udise_no = ? AND is_active = 1";
-        
+                     "WHERE udise_no = ? AND is_active = 1" +
+                     (studentClass != null && !studentClass.isEmpty() ? " AND class = ?" : "");
+
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
+
             pstmt.setString(1, udiseNo);
+            if (studentClass != null && !studentClass.isEmpty()) {
+                pstmt.setString(2, studentClass);
+                System.out.println("DEBUG: Filtering by class: " + studentClass);
+            }
+            
+            System.out.println("DEBUG: Executing SQL: " + sql);
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
+                int totalStudents = rs.getInt("total_students");
+                System.out.println("DEBUG: Found " + totalStudents + " students for UDISE: " + udiseNo + 
+                                 (studentClass != null && !studentClass.isEmpty() ? ", Class: " + studentClass : ""));
+                
                 // Store all counts in the map
                 for (int phase = 1; phase <= 4; phase++) {
                     // Marathi counts (0-6)
                     java.util.Map<String, Integer> marathiCounts = new java.util.HashMap<>();
                     for (int level = 0; level <= 6; level++) {
                         String columnName = "p" + phase + "_marathi_" + level;
-                        marathiCounts.put(String.valueOf(level), rs.getInt(columnName));
+                        int count = rs.getInt(columnName);
+                        marathiCounts.put(String.valueOf(level), count);
                     }
                     counts.put("phase" + phase + "_marathi", marathiCounts);
                     
@@ -1010,7 +1124,8 @@ public class StudentDAO {
                     java.util.Map<String, Integer> mathCounts = new java.util.HashMap<>();
                     for (int level = 0; level <= 8; level++) {
                         String columnName = "p" + phase + "_math_" + level;
-                        mathCounts.put(String.valueOf(level), rs.getInt(columnName));
+                        int count = rs.getInt(columnName);
+                        mathCounts.put(String.valueOf(level), count);
                     }
                     counts.put("phase" + phase + "_math", mathCounts);
                     
@@ -1018,11 +1133,17 @@ public class StudentDAO {
                     java.util.Map<String, Integer> englishCounts = new java.util.HashMap<>();
                     for (int level = 0; level <= 6; level++) {
                         String columnName = "p" + phase + "_english_" + level;
-                        englishCounts.put(String.valueOf(level), rs.getInt(columnName));
+                        int count = rs.getInt(columnName);
+                        englishCounts.put(String.valueOf(level), count);
                     }
                     counts.put("phase" + phase + "_english", englishCounts);
+                    
+                    System.out.println("DEBUG: Phase " + phase + " - Total students: " + totalStudents);
                 }
-                counts.put("totalStudents", rs.getInt("total_students"));
+                counts.put("totalStudents", totalStudents);
+            } else {
+                System.out.println("DEBUG: No students found for UDISE: " + udiseNo + 
+                                 (studentClass != null && !studentClass.isEmpty() ? ", Class: " + studentClass : ""));
             }
             
         } catch (SQLException e) {
@@ -1038,6 +1159,38 @@ public class StudentDAO {
      * @return Next PEN number (e.g., TEMP00001, TEMP00002, etc.)
      */
     public String generateNextPenNumber() {
+        int maxRetries = 10;
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            String candidatePen = generateCandidatePenNumber();
+            
+            // Check if this PEN already exists
+            if (!isPenNumberExists(candidatePen)) {
+                System.out.println("✓ Generated unique PEN: " + candidatePen + (attempt > 0 ? " (after " + (attempt + 1) + " attempts)" : ""));
+                return candidatePen;
+            }
+            
+            System.out.println("⚠ PEN " + candidatePen + " already exists, generating new one...");
+            
+            // Small delay to avoid rapid collision in concurrent scenarios
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        // Fallback: use timestamp-based PEN if we couldn't generate unique one after retries
+        String fallbackPen = "TEMP" + String.format("%05d", (int)(System.currentTimeMillis() % 100000));
+        System.err.println("⚠ Using fallback PEN after " + maxRetries + " attempts: " + fallbackPen);
+        return fallbackPen;
+    }
+    
+    /**
+     * Generate a candidate PEN number based on the last used PEN
+     * @return Candidate PEN number
+     */
+    private String generateCandidatePenNumber() {
         String sql = "SELECT student_pen FROM students WHERE student_pen LIKE 'TEMP%' ORDER BY student_pen DESC LIMIT 1";
         
         try (Connection conn = DatabaseConnection.getConnection();
@@ -1057,11 +1210,36 @@ public class StudentDAO {
             }
             
         } catch (SQLException | NumberFormatException e) {
-            System.err.println("Error generating PEN number: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error generating candidate PEN number: " + e.getMessage());
             // Fallback: use timestamp-based PEN
             return "TEMP" + String.format("%05d", (int)(System.currentTimeMillis() % 100000));
         }
+    }
+    
+    /**
+     * Check if a PEN number already exists in the database
+     * @param penNumber The PEN number to check
+     * @return true if PEN exists, false otherwise
+     */
+    public boolean isPenNumberExists(String penNumber) {
+        String sql = "SELECT COUNT(*) FROM students WHERE student_pen = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, penNumber);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking PEN number existence: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false; // Assume doesn't exist on error (safe default for generation)
     }
     
     /**

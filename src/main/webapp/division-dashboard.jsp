@@ -618,7 +618,39 @@
                         <span>📊</span>
                         <span>Analytics</span>
                     </a>
+                    <%-- <a href="<%= request.getContextPath() %>/authorize-youtube" class="btn" style="background: #FF0000; color: white;" target="_blank" title="Authorize YouTube for video uploads">
+                        <span>🎥</span>
+                        <span>YouTube Setup</span>
+                    </a> --%>
+                    <button onclick="togglePhaseCompletion()" class="btn" style="background: #9C27B0; color: white;" title="Show/Hide Phase Completion Status">
+                        <span>📊</span>
+                        <span>Phase Completion Status</span>
+                    </button>
                     <a href="<%= request.getContextPath() %>/division-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">📈 Activity Analysis</a>
+                    <a href="<%= request.getContextPath() %>/division-phase-wise-statistics.jsp" class="btn" style="background: #2196F3; color: white;" title="View phase-wise subject statistics by district and school">
+                        <span>📚</span>
+                        <span>Phase Levels Statistics</span>
+                    </a>
+                    
+                    <a href="<%= request.getContextPath() %>/division-student-level-details.jsp" class="btn" style="background: #4CAF50; color: white;" title="View individual student level details with filters">
+                        <span>👨‍🎓</span>
+                        <span>Student Level Details</span>
+                    </a>
+                    
+                    <a href="<%= request.getContextPath() %>/division-student-levels-percentage.jsp" class="btn" style="background: #673AB7; color: white;" title="View student levels percentage bar graph by district and school">
+                        <span>📊</span>
+                        <span>Subjects Percentage Graph</span>
+                    </a>
+                    
+                    <a href="<%= request.getContextPath() %>/division-student-level-distribution.jsp" class="btn" style="background: #E91E63; color: white;" title="View detailed level-wise student distribution with percentage bars">
+                        <span>📈</span>
+                        <span>Level Distribution Graph</span>
+                    </a>
+                    
+                    <a href="<%= request.getContextPath() %>/division-analytics-dashboard.jsp" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: 2px solid white;" title="View all analytics in one comprehensive dashboard">
+                        <span>📊</span>
+                        <span>Complete Analytics Dashboard</span>
+                    </a>
                     
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password" title="Change your password">
                         <span>🔐</span>
@@ -947,7 +979,7 @@
             html += '<div style="margin-bottom: 20px;">';
             html += '<div style="background: #fff3e0; padding: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px;">';
             html += '<span style="font-size: 18px;">🏫</span>';
-            html += '<span style="font-weight: bold; color: #e65100;">Total Schools: ' + schools.length + '</span>';
+            html += '<span style="font-weight: bold; color: #e65100;">Total Schools(UDISE): ' + schools.length + '</span>';
             html += '</div>';
             html += '</div>';
             
@@ -1159,11 +1191,11 @@
                     <tr>
                         <th>District Name</th>
                         <th>Student Count</th>
-                        <th>School Count</th>
+                        <th>School(UDISE) Count</th>
                         <th>Teacher Count</th>
                         <th>Male</th>
                         <th>Female</th>
-                        <th>Percentage</th>
+                       <!--  <th>Percentage</th> -->
                     </tr>
                 </thead>
                 <tbody>
@@ -1211,12 +1243,12 @@
                         </td>
                         <td><%= districtMale %></td>
                         <td><%= districtFemale %></td>
-                        <td>
+                        <%-- <td>
                             <%= String.format("%.1f", percentage) %>%
                             <div class="progress-bar">
                                 <div class="progress-fill" style="width: <%= percentage %>%;"></div>
                             </div>
-                        </td>
+                        </td> --%>
                     </tr>
                     <% } %>
                 </tbody>
@@ -1245,6 +1277,384 @@
             <% } %>
         </div>
         
+        <!-- School Contacts Section -->
+        <div class="section-card" style="margin-top: 30px;">
+            <h2 style="margin-bottom: 20px; color: #333;">📞 School Contacts Directory</h2>
+            <p style="color: #666; margin-bottom: 25px;">Complete contact information for all schools across districts</p>
+            
+            <!-- Statistics Cards -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;" id="totalContactSchools">-</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Schools with Contacts</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;" id="totalContactCount">-</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Total Contacts</div>
+                </div>
+                <div style="display:none; linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;" id="totalPrincipals">-</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Principals</div>
+                </div>
+                <div style="display:none;background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;" id="totalTeachers">-</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Teachers</div>
+                </div>
+            </div>
+            
+            <!-- Contacts Table -->
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <!-- Search and Filter Controls -->
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+                    <input type="text" id="contactSearchBox" placeholder="Search by school, name, mobile..." 
+                           style="flex: 1; min-width: 250px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" 
+                           onkeyup="filterContacts()">
+                    
+                    <select id="contactTypeFilter" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="filterContacts()">
+                        <option value="">All Contact Types</option>
+                        <option value="School Coordinator">School Coordinator</option>
+                        <option value="Head Master">Head Master</option>
+                    </select>
+                    
+                    <select id="districtFilter" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="filterContacts()">
+                        <option value="">All Districts</option>
+                    </select>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 14px; color: #666;">Show:</span>
+                        <select id="contactsPerPage" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="changeContactsPerPage()">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="250">250</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Table -->
+                <div style="overflow-x: auto;">
+                    <table id="schoolContactsTable" class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">District</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">UDISE No</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">School Name</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Contact Type</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Full Name</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Mobile</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">WhatsApp</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schoolContactsTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                                    <div class="spinner" style="margin: 0 auto 15px;"></div>
+                                    Loading contacts...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div id="contactsPaginationContainer" style="margin-top: 20px; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="color: #666; font-size: 14px;" id="contactsPageInfo">
+                            Showing 0 - 0 of 0 contacts
+                        </div>
+                        
+                        <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                            <button onclick="goToContactsPage('first')" id="contactsFirstBtn" 
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                « First
+                            </button>
+                            <button onclick="goToContactsPage('prev')" id="contactsPrevBtn" 
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                ‹ Previous
+                            </button>
+                            
+                            <div id="contactsPageNumbers" style="display: flex; gap: 5px;">
+                                <!-- Page numbers will be inserted here -->
+                            </div>
+                            
+                            <button onclick="goToContactsPage('next')" id="contactsNextBtn" 
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                Next ›
+                            </button>
+                            <button onclick="goToContactsPage('last')" id="contactsLastBtn" 
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                Last »
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Phase Completion Status Section - Hidden by default -->
+        <div id="phaseCompletionSection" style="display: none;">
+        <div class="section-card" style="margin-top: 30px;">
+            <h2 style="margin-bottom: 20px; color: #333;">📊 Phase Completion Status - District-wise</h2>
+            <p style="color: #666; margin-bottom: 25px;">Click on any district bar to view school-wise completion details</p>
+            
+            <!-- Phase 1 -->
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
+                <h3 style="margin: 0 0 15px 0;">📝 चरण 1 (Phase 1) - District Completion Status</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase1TotalDistricts">-</div>
+                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase1Completed">-</div>
+                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase1AvgCompletion">-</div>
+                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    </div>
+                </div>
+                <div style="height: 400px; position: relative;">
+                    <canvas id="phase1Chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Phase 2 -->
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
+                <h3 style="margin: 0 0 15px 0;">📝 चरण 2 (Phase 2) - District Completion Status</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase2TotalDistricts">-</div>
+                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase2Completed">-</div>
+                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase2AvgCompletion">-</div>
+                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    </div>
+                </div>
+                <div style="height: 400px; position: relative;">
+                    <canvas id="phase2Chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Phase 3 -->
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
+                <h3 style="margin: 0 0 15px 0;">📝 चरण 3 (Phase 3) - District Completion Status</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase3TotalDistricts">-</div>
+                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase3Completed">-</div>
+                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase3AvgCompletion">-</div>
+                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    </div>
+                </div>
+                <div style="height: 400px; position: relative;">
+                    <canvas id="phase3Chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Phase 4 -->
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
+                <h3 style="margin: 0 0 15px 0;">📝 चरण 4 (Phase 4) - District Completion Status</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase4TotalDistricts">-</div>
+                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase4Completed">-</div>
+                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase4AvgCompletion">-</div>
+                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    </div>
+                </div>
+                <div style="height: 400px; position: relative;">
+                    <canvas id="phase4Chart"></canvas>
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- End Phase Completion Section -->
+        
+    </div>
+    
+    <!-- District Schools Modal -->
+    <div id="districtSchoolsModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);">
+        <div style="position: relative; margin: 2% auto; max-width: 1400px; background: white; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.3);">
+            <!-- Modal Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">🏫 <span id="modalDistrictName"></span> - Phase <span id="modalPhaseNumber"></span></h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95;">School-wise Phase Completion Status</p>
+                </div>
+                <button onclick="closeDistrictSchoolsModal()" 
+                        style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 32px; cursor: pointer; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-weight: 300;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    ×
+                </button>
+            </div>
+            
+            <!-- Statistics Bar -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 25px 30px; background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                <div style="text-align: center; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="font-size: 32px; font-weight: 700; color: #667eea;" id="modalDistrictTotalSchools">-</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">Total Schools</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="font-size: 32px; font-weight: 700; color: #4caf50;" id="modalDistrictCompletedSchools">-</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">Approved Schools</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="font-size: 32px; font-weight: 700; color: #ff9800;" id="modalDistrictCompletionPercentage">-</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">Completion %</div>
+                </div>
+            </div>
+            
+            <!-- Schools Table -->
+            <div style="padding: 30px; max-height: 600px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">#</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">School Name</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">UDISE No</th>
+                            <th style="padding: 15px; text-align: center; font-weight: 600;">Status</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">Approved Date</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">Approved By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="districtSchoolsTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px;">
+                                <div class="spinner"></div>
+                                Loading schools...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div style="padding: 20px 30px; background: #f8f9fa; border-top: 1px solid #e0e0e0; border-radius: 0 0 12px 12px; text-align: right;">
+                <button onclick="closeDistrictSchoolsModal()" 
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
+                        onmouseover="this.style.transform='scale(1.05)'"
+                        onmouseout="this.style.transform='scale(1)'">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #districtSchoolsModal tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        #schoolContactsModal tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+    
+    <!-- School Contacts Modal -->
+    <div id="schoolContactsModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);">
+        <div style="position: relative; margin: 2% auto; max-width: 1600px; background: white; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.3);">
+            <!-- Modal Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">📞 <span id="modalContactDistrictName"></span> - School Contacts</h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95;">Complete contact directory for all schools</p>
+                </div>
+                <button onclick="closeSchoolContactsModal()" 
+                        style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 32px; cursor: pointer; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-weight: 300;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    ×
+                </button>
+            </div>
+            
+            <!-- Statistics Bar -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 25px 30px; background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                <div style="text-align: center; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="font-size: 32px; font-weight: 700; color: #667eea;" id="modalContactSchools">-</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">Schools with Contacts</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="font-size: 32px; font-weight: 700; color: #4caf50;" id="modalTotalContacts">-</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">Total Contacts</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="font-size: 32px; font-weight: 700; color: #ff9800;" id="modalDistrictName">-</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 5px;">District</div>
+                </div>
+            </div>
+            
+            <!-- Contacts Table -->
+            <div style="padding: 30px; max-height: 600px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">#</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">School Name</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">UDISE No</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">Contact Type</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">Full Name</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">Mobile</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">WhatsApp</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600;">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schoolContactsTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px;">
+                                <div class="spinner"></div>
+                                Loading contacts...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div style="padding: 20px 30px; background: #f8f9fa; border-top: 1px solid #e0e0e0; border-radius: 0 0 12px 12px; text-align: right;">
+                <button onclick="closeSchoolContactsModal()" 
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;"
+                        onmouseover="this.style.transform='scale(1.05)'"
+                        onmouseout="this.style.transform='scale(1)'">
+                    Close
+                </button>
+            </div>
+        </div>
     </div>
     
     <!-- Student Details Modal -->
@@ -1345,8 +1755,19 @@
                 <span onclick="closeTeacherModal()" style="cursor: pointer; font-size: 28px; font-weight: bold;">&times;</span>
             </div>
             
+            <!-- Search Filter inside Modal -->
+            <div style="padding: 20px 25px 0 25px; background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                <input type="text" id="teacherModalSearchInput" 
+                       placeholder="🔍 Search teachers by name, mobile, subject, or UDISE..." 
+                       onkeyup="filterTeachersInModal()"
+                       style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; margin-bottom: 15px; transition: all 0.3s;">
+                <div id="teacherModalResultCount" style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                    Loading teachers...
+                </div>
+            </div>
+            
             <!-- Modal Body -->
-            <div style="padding: 25px; max-height: 70vh; overflow-y: auto;">
+            <div style="padding: 25px; max-height: 60vh; overflow-y: auto;">
                 <div id="modalTeacherDistrictInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
                     <h3 style="margin: 0 0 5px 0; color: #333;">Loading...</h3>
                     <p style="margin: 0; color: #666;">Please wait...</p>
@@ -1367,7 +1788,7 @@
         <div style="background-color: #fefefe; margin: 2% auto; padding: 0; border-radius: 10px; width: 90%; max-width: 1200px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <!-- Modal Header -->
             <div style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin: 0; font-size: 24px;">🏫 School Details</h2>
+                <h2 style="margin: 0; font-size: 24px;">🏫 School(UDISE) Details</h2>
                 <span onclick="closeSchoolModal()" style="cursor: pointer; font-size: 28px; font-weight: bold;">&times;</span>
             </div>
             
@@ -1391,6 +1812,9 @@
     <script>
         // Global variable to store students data
         let currentStudentsData = [];
+        let originalStudentsData = []; // Store original unfiltered data
+        let currentPage = 1;
+        const studentsPerPage = 50; // Show 50 students per page for optimal performance
         
         // Helper function to escape HTML - defined early so it's available everywhere
         function escapeHtml(text) {
@@ -1474,112 +1898,187 @@
         function displayStudents(students) {
             // Store students data globally for access by other functions
             currentStudentsData = students;
+            originalStudentsData = students; // Keep original data for filter reset
+            currentPage = 1; // Reset to first page
             
+            // Display pagination info
+            const totalPages = Math.ceil(students.length / studentsPerPage);
+            console.log('Total students:', students.length, 'Pages:', totalPages);
+            
+            // Render first page
+            renderStudentsPage(currentPage);
+        }
+        
+        function renderStudentsPage(page) {
             const content = document.getElementById('studentDetailsContent');
-            let html = '';
+            const totalStudents = currentStudentsData.length;
+            const totalPages = Math.ceil(totalStudents / studentsPerPage);
             
-            // Create table
-              html += '<div style="overflow-x: auto;">';
-            html += '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
-            html += '<thead>';
-            html += '<tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Sr No</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Student Name</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">PEN Number</th>';
-            html += '<th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Class</th>';
-            html += '<th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Gender</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Marathi Levels</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Math Levels</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">English Level</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Activities</th>';
-            html += '<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Videos</th>';
-            html += '<th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Phases</th>';
-            html += '</tr>';
-            html += '</thead>';
-            html += '<tbody>';
+            // Calculate start and end index for current page
+            const startIndex = (page - 1) * studentsPerPage;
+            const endIndex = Math.min(startIndex + studentsPerPage, totalStudents);
+            const studentsToShow = currentStudentsData.slice(startIndex, endIndex);
             
-            students.forEach((student, index) => {
-            	  html += '<tr style="background: ' + (index % 2 === 0 ? '#f8f9fa' : '#ffffff') + ';">';
-                  
-                  // Sr No
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">' + (index + 1) + '</td>';
-                  
-                  // Student Name
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; font-weight: 600; color: #333;">' + escapeHtml(student.name) + '</td>';
-                  
-                  // PEN Number
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; color: #666;">' + escapeHtml(student.penNumber || 'N/A') + '</td>';
-                  
-                  // Class
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; text-align: center;">' + escapeHtml(student.studentClass || 'N/A') + '</td>';
-                  
-                  // Gender
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; text-align: center;">' + escapeHtml(student.gender || 'N/A') + '</td>';
-                  
-                  // Marathi Levels
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; font-size: 11px;">';
-                  let marathiLevels = [];
-                  if (student.marathiAksharaLevelText && student.marathiAksharaLevelText !== 'स्तर निश्चित केला नाही') marathiLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #e3f2fd; color: #1976d2; border-radius: 3px;"> ' + escapeHtml(student.marathiAksharaLevelText) + '</div>');
-                 /*  if (student.marathiShabdaLevelText && student.marathiShabdaLevelText !== 'स्तर निश्चित केला नाही') marathiLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #e3f2fd; color: #1976d2; border-radius: 3px;"><strong>शब्द:</strong> ' + escapeHtml(student.marathiShabdaLevelText) + '</div>');
-                  if (student.marathiVakyaLevelText && student.marathiVakyaLevelText !== 'स्तर निश्चित केला नाही') marathiLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #e3f2fd; color: #1976d2; border-radius: 3px;"><strong>वाक्य:</strong> ' + escapeHtml(student.marathiVakyaLevelText) + '</div>');
-                  if (student.marathiSamajpurvakLevelText && student.marathiSamajpurvakLevelText !== 'स्तर निश्चित केला नाही') marathiLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #e3f2fd; color: #1976d2; border-radius: 3px;"><strong>समजपूर्वक:</strong> ' + escapeHtml(student.marathiSamajpurvakLevelText) + '</div>');
-             */      html += marathiLevels.length > 0 ? marathiLevels.join('') : '<span style="color: #999;">-</span>';
-                  html += '</td>';
-                  
-                  // Math Levels
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; font-size: 11px;">';
-                  let mathLevels = [];
-                  if (student.mathAksharaLevelText && student.mathAksharaLevelText !== 'स्तर निश्चित केला नाही') mathLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px;"> ' + escapeHtml(student.mathAksharaLevelText) + '</div>');
-                 /*  if (student.mathShabdaLevelText && student.mathShabdaLevelText !== 'स्तर निश्चित केला नाही') mathLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px;"><strong>शब्द:</strong> ' + escapeHtml(student.mathShabdaLevelText) + '</div>');
-                  if (student.mathVakyaLevelText && student.mathVakyaLevelText !== 'स्तर निश्चित केला नाही') mathLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px;"><strong>वाक्य:</strong> ' + escapeHtml(student.mathVakyaLevelText) + '</div>');
-                  if (student.mathSamajpurvakLevelText && student.mathSamajpurvakLevelText !== 'स्तर निश्चित केला नाही') mathLevels.push('<div style="margin: 3px 0; padding: 4px 6px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px;"><strong>समजपूर्वक:</strong> ' + escapeHtml(student.mathSamajpurvakLevelText) + '</div>');
-           */        html += mathLevels.length > 0 ? mathLevels.join('') : '<span style="color: #999;">-</span>';
-                  html += '</td>';
-                  
-                  // English Level
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; font-size: 11px;">';
-                  if (student.englishAksharaLevelText && student.englishAksharaLevelText !== 'स्तर निश्चित केला नाही') {
-                      html += '<div style="padding: 4px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 3px;">' + escapeHtml(student.englishAksharaLevelText) + '</div>';
-                  } else {
-                      html += '<span style="color: #999;">-</span>';
-                  }
-                  html += '</td>';
-                  
-                  // Activities - Lazy loading
-                  html += '<td style="padding: 10px; border: 1px solid #ddd;">';
-                  html += '<button class="load-activities-btn" data-index="' + index + '" data-student-id="' + student.studentId + '" style="background: #2196f3; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">📋 Load Activities</button>';
-                  html += '</td>';
-                  
-                  // Videos - Lazy loading
-                  html += '<td style="padding: 10px; border: 1px solid #ddd;">';
-                  html += '<button class="load-videos-btn" data-index="' + index + '" data-student-id="' + student.studentId + '" style="background: #0277bd; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">🎬 Load Videos</button>';
-                  html += '</td>';
-                  
-                  // Phases
-                  html += '<td style="padding: 10px; border: 1px solid #ddd; text-align: center;">';
-                  html += '<div style="display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; margin-bottom: 5px;">';
-                  html += '<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase1Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P1' + (student.phase1Date ? '✓' : '✗') + '</span>';
-                  html += '<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase2Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P2' + (student.phase2Date ? '✓' : '✗') + '</span>';
-                  html += '<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase3Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P3' + (student.phase3Date ? '✓' : '✗') + '</span>';
-                  html += '<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase4Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P4' + (student.phase4Date ? '✓' : '✗') + '</span>';
-                  html += '</div>';
-                  html += '<button onclick="showAllPhases(' + index + ')" style="background: #7b1fa2; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; width: 100%;">📊 View All Phases</button>';
-                  html += '</td>';
-                  
-                  html += '</tr>';
-            });
+            // Show loading indicator briefly
+            content.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div><p style="margin-top: 10px;">Rendering page ' + page + '...</p></div>';
             
-            html += '</tbody>';
-            html += '</table>';
-            html += '</div>';
-            
-            content.innerHTML = html;
-            
-            // Show search container
-            document.getElementById('studentSearchContainer').style.display = 'block';
-            
-            // Attach event listeners to dynamically created buttons
-            attachButtonEventListeners();
+            // Use setTimeout to allow UI to update with loading message
+            setTimeout(() => {
+                // Create pagination controls HTML
+                let paginationHtml = '';
+                if (totalPages > 1) {
+                    paginationHtml = '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">';
+                    paginationHtml += '<div style="font-weight: 600; color: #333;">Showing ' + (startIndex + 1) + ' - ' + endIndex + ' of ' + totalStudents + ' students</div>';
+                    paginationHtml += '<div style="display: flex; gap: 8px; align-items: center;">';
+                    
+                    // Previous button
+                    paginationHtml += '<button onclick="changePage(' + (page - 1) + ')" ' + (page === 1 ? 'disabled' : '') + ' style="padding: 8px 16px; border: none; border-radius: 4px; background: ' + (page === 1 ? '#ccc' : '#667eea') + '; color: white; cursor: ' + (page === 1 ? 'not-allowed' : 'pointer') + '; font-weight: 600;">← Previous</button>';
+                    
+                    // Page numbers (show 5 pages at a time)
+                    const pageStart = Math.max(1, page - 2);
+                    const pageEnd = Math.min(totalPages, page + 2);
+                    
+                    if (pageStart > 1) {
+                        paginationHtml += '<button onclick="changePage(1)" style="padding: 8px 12px; border: 1px solid #667eea; border-radius: 4px; background: white; color: #667eea; cursor: pointer; font-weight: 600;">1</button>';
+                        if (pageStart > 2) paginationHtml += '<span style="padding: 0 5px;">...</span>';
+                    }
+                    
+                    for (let i = pageStart; i <= pageEnd; i++) {
+                        paginationHtml += '<button onclick="changePage(' + i + ')" style="padding: 8px 12px; border: ' + (i === page ? 'none' : '1px solid #667eea') + '; border-radius: 4px; background: ' + (i === page ? '#667eea' : 'white') + '; color: ' + (i === page ? 'white' : '#667eea') + '; cursor: pointer; font-weight: 600;">' + i + '</button>';
+                    }
+                    
+                    if (pageEnd < totalPages) {
+                        if (pageEnd < totalPages - 1) paginationHtml += '<span style="padding: 0 5px;">...</span>';
+                        paginationHtml += '<button onclick="changePage(' + totalPages + ')" style="padding: 8px 12px; border: 1px solid #667eea; border-radius: 4px; background: white; color: #667eea; cursor: pointer; font-weight: 600;">' + totalPages + '</button>';
+                    }
+                    
+                    // Next button
+                    paginationHtml += '<button onclick="changePage(' + (page + 1) + ')" ' + (page === totalPages ? 'disabled' : '') + ' style="padding: 8px 16px; border: none; border-radius: 4px; background: ' + (page === totalPages ? '#ccc' : '#667eea') + '; color: white; cursor: ' + (page === totalPages ? 'not-allowed' : 'pointer') + '; font-weight: 600;">Next →</button>';
+                    
+                    paginationHtml += '</div>';
+                    paginationHtml += '</div>';
+                }
+                
+                // Build table efficiently using array join (faster than string concatenation)
+                const tableRows = [];
+                
+                // Table header
+                tableRows.push('<div style="overflow-x: auto;">');
+                tableRows.push('<table style="width: 100%; border-collapse: collapse; font-size: 13px;">');
+                tableRows.push('<thead>');
+                tableRows.push('<tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Sr No</th>');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Student Name</th>');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">PEN Number</th>');
+                tableRows.push('<th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Class</th>');
+                tableRows.push('<th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Gender</th>');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Marathi Levels</th>');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Math Levels</th>');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">English Level</th>');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Activities</th>');
+                tableRows.push('<th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Videos</th>');
+                tableRows.push('<th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Phases</th>');
+                tableRows.push('</tr>');
+                tableRows.push('</thead>');
+                tableRows.push('<tbody>');
+                
+                // Build rows for current page
+                studentsToShow.forEach((student, pageIndex) => {
+                    const globalIndex = startIndex + pageIndex;
+                    const rowBg = pageIndex % 2 === 0 ? '#f8f9fa' : '#ffffff';
+                    
+                    tableRows.push('<tr style="background: ' + rowBg + ';">');
+                    
+                    // Sr No
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">' + (globalIndex + 1) + '</td>');
+                    
+                    // Student Name
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; font-weight: 600; color: #333;">' + escapeHtml(student.name) + '</td>');
+                    
+                    // PEN Number
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; color: #666;">' + escapeHtml(student.penNumber || 'N/A') + '</td>');
+                    
+                    // Class
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; text-align: center;">' + escapeHtml(student.studentClass || 'N/A') + '</td>');
+                    
+                    // Gender
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; text-align: center;">' + escapeHtml(student.gender || 'N/A') + '</td>');
+                    
+                    // Marathi Levels
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; font-size: 11px;">');
+                    if (student.marathiAksharaLevelText && student.marathiAksharaLevelText !== 'स्तर निश्चित केला नाही') {
+                        tableRows.push('<div style="margin: 3px 0; padding: 4px 6px; background: #e3f2fd; color: #1976d2; border-radius: 3px;">' + escapeHtml(student.marathiAksharaLevelText) + '</div>');
+                    } else {
+                        tableRows.push('<span style="color: #999;">-</span>');
+                    }
+                    tableRows.push('</td>');
+                    
+                    // Math Levels
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; font-size: 11px;">');
+                    if (student.mathAksharaLevelText && student.mathAksharaLevelText !== 'स्तर निश्चित केला नाही') {
+                        tableRows.push('<div style="margin: 3px 0; padding: 4px 6px; background: #f3e5f5; color: #7b1fa2; border-radius: 3px;">' + escapeHtml(student.mathAksharaLevelText) + '</div>');
+                    } else {
+                        tableRows.push('<span style="color: #999;">-</span>');
+                    }
+                    tableRows.push('</td>');
+                    
+                    // English Level
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; font-size: 11px;">');
+                    if (student.englishAksharaLevelText && student.englishAksharaLevelText !== 'स्तर निश्चित केला नाही') {
+                        tableRows.push('<div style="padding: 4px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 3px;">' + escapeHtml(student.englishAksharaLevelText) + '</div>');
+                    } else {
+                        tableRows.push('<span style="color: #999;">-</span>');
+                    }
+                    tableRows.push('</td>');
+                    
+                    // Activities - Lazy loading
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd;">');
+                    tableRows.push('<button class="load-activities-btn" data-index="' + globalIndex + '" data-student-id="' + student.studentId + '" style="background: #2196f3; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">📋 Load Activities</button>');
+                    tableRows.push('</td>');
+                    
+                    // Videos - Lazy loading
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd;">');
+                    tableRows.push('<button class="load-videos-btn" data-index="' + globalIndex + '" data-student-id="' + student.studentId + '" style="background: #0277bd; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">🎬 Load Videos</button>');
+                    tableRows.push('</td>');
+                    
+                    // Phases
+                    tableRows.push('<td style="padding: 10px; border: 1px solid #ddd; text-align: center;">');
+                    tableRows.push('<div style="display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; margin-bottom: 5px;">');
+                    tableRows.push('<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase1Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P1' + (student.phase1Date ? '✓' : '✗') + '</span>');
+                    tableRows.push('<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase2Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P2' + (student.phase2Date ? '✓' : '✗') + '</span>');
+                    tableRows.push('<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase3Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P3' + (student.phase3Date ? '✓' : '✗') + '</span>');
+                    tableRows.push('<span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; ' + (student.phase4Date ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;') + '">P4' + (student.phase4Date ? '✓' : '✗') + '</span>');
+                    tableRows.push('</div>');
+                    tableRows.push('<button onclick="showAllPhases(' + globalIndex + ')" style="background: #7b1fa2; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; width: 100%;">📊 View All Phases</button>');
+                    tableRows.push('</td>');
+                    
+                    tableRows.push('</tr>');
+                });
+                
+                tableRows.push('</tbody>');
+                tableRows.push('</table>');
+                tableRows.push('</div>');
+                
+                // Set content with pagination + table (using join is much faster than +=)
+                content.innerHTML = paginationHtml + tableRows.join('');
+                
+                // Show search container
+                document.getElementById('studentSearchContainer').style.display = 'block';
+                
+                // Attach event listeners to dynamically created buttons
+                attachButtonEventListeners();
+                
+                // Scroll to top of modal content
+                content.scrollTop = 0;
+            }, 10); // Small delay to show loading indicator
+        }
+        
+        function changePage(newPage) {
+            const totalPages = Math.ceil(currentStudentsData.length / studentsPerPage);
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderStudentsPage(currentPage);
+            }
         }
         
         // Attach event listeners to load activities and videos buttons
@@ -1999,57 +2498,57 @@
         function filterStudents() {
             const searchInput = document.getElementById('studentSearchInput');
             const filter = searchInput.value.toUpperCase();
-            const table = document.querySelector('#studentDetailsContent table');
-            const tbody = table.getElementsByTagName('tbody')[0];
-            const tr = tbody.getElementsByTagName('tr');
             
             // Show/hide clear button
             const clearBtn = document.getElementById('clearSearchBtn');
-            clearBtn.style.display = filter ? 'block' : 'none';
+            if (clearBtn) {
+                clearBtn.style.display = filter ? 'block' : 'none';
+            }
             
-            let visibleCount = 0;
+            if (!filter) {
+                // No filter - restore original data and show all students with pagination
+                currentStudentsData = originalStudentsData;
+                currentPage = 1;
+                renderStudentsPage(currentPage);
+                return;
+            }
             
-            // Loop through all table rows and hide those that don't match the search query
-            for (let i = 0; i < tr.length; i++) {
-                const tdName = tr[i].getElementsByTagName('td')[1]; // Student Name
-                const tdPEN = tr[i].getElementsByTagName('td')[2];  // PEN Number
-                const tdClass = tr[i].getElementsByTagName('td')[3]; // Class
-                
-                if (tdName || tdPEN || tdClass) {
-                    const nameValue = tdName.textContent || tdName.innerText;
-                    const penValue = tdPEN.textContent || tdPEN.innerText;
-                    const classValue = tdClass.textContent || tdClass.innerText;
-                    
-                    if (nameValue.toUpperCase().indexOf(filter) > -1 || 
-                        penValue.toUpperCase().indexOf(filter) > -1 || 
-                        classValue.toUpperCase().indexOf(filter) > -1) {
-                        tr[i].style.display = '';
-                        visibleCount++;
-                    } else {
-                        tr[i].style.display = 'none';
-                    }
+            // Filter students from the ORIGINAL data (not the current data which may already be filtered)
+            const filteredStudents = originalStudentsData.filter(student => {
+                const nameMatch = (student.name || '').toUpperCase().indexOf(filter) > -1;
+                const penMatch = (student.penNumber || '').toUpperCase().indexOf(filter) > -1;
+                const classMatch = (student.studentClass || '').toUpperCase().indexOf(filter) > -1;
+                return nameMatch || penMatch || classMatch;
+            });
+            
+            // Update current data to filtered data
+            currentStudentsData = filteredStudents;
+            currentPage = 1;
+            
+            // Render filtered results
+            renderStudentsPage(currentPage);
+            
+            // Add search info banner after rendering
+            setTimeout(() => {
+                const content = document.getElementById('studentDetailsContent');
+                const existingInfo = content.querySelector('.search-info-banner');
+                if (existingInfo) {
+                    existingInfo.remove();
                 }
-            }
-            
-            // Update search results info
-            updateSearchResultsInfo(visibleCount, tr.length);
-        }
-        
-        // Update search results info
-        function updateSearchResultsInfo(visibleCount, totalCount) {
-            const infoDiv = document.getElementById('searchResultsInfo');
-            if (visibleCount === totalCount) {
-                infoDiv.innerHTML = '<span style="color: #666;">Showing all ' + totalCount + ' students</span>';
-            } else {
-                infoDiv.innerHTML = '<span style="color: #2196f3; font-weight: 600;">Found ' + visibleCount + ' of ' + totalCount + ' students</span>';
-            }
+                
+                const searchInfo = document.createElement('div');
+                searchInfo.className = 'search-info-banner';
+                searchInfo.style.cssText = 'background: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px; color: #856404;';
+                searchInfo.innerHTML = '<strong>🔍 Search Results:</strong> Showing ' + filteredStudents.length + ' of ' + originalStudentsData.length + ' students';
+                content.insertBefore(searchInfo, content.firstChild);
+            }, 50);
         }
         
         // Clear search input and reset filter
         function clearStudentSearch() {
             const searchInput = document.getElementById('studentSearchInput');
             searchInput.value = '';
-            filterStudents();
+            filterStudents(); // This will trigger the "no filter" path above and restore original data
         }
         
         // Close modal when clicking outside
@@ -2172,6 +2671,716 @@
             
             content.innerHTML = html;
             modal.style.display = 'block';
+        }
+    </script>
+    
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- School Contacts JavaScript -->
+    <script>
+        let contactsData = null;
+        let allContactsList = [];
+        let filteredContactsList = [];
+        let currentContactsPage = 1;
+        let contactsPerPage = 10;
+        let uniqueDistricts = [];
+        
+        // Load school contacts on page load
+        window.addEventListener('load', function() {
+            loadSchoolContacts();
+        });
+        
+        // Load School Contacts Data
+        function loadSchoolContacts() {
+            // Update statistics
+            document.getElementById('totalContactSchools').textContent = '-';
+            document.getElementById('totalContactCount').textContent = '-';
+            document.getElementById('totalPrincipals').textContent = '-';
+            document.getElementById('totalTeachers').textContent = '-';
+            
+            // Show loading in table
+            document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;"><div class="spinner" style="margin: 0 auto 15px;"></div>Loading contacts...</td></tr>';
+            
+            // Fetch all contacts from all districts
+            fetch(contextPath + '/division-contacts-analytics')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: red;">Error: ' + data.error + '</td></tr>';
+                        return;
+                    }
+                    
+                    // Store data
+                    contactsData = data;
+                    
+                    // Update statistics
+                    document.getElementById('totalContactSchools').textContent = data.totalSchools || 0;
+                    document.getElementById('totalContactCount').textContent = data.totalContacts || 0;
+                    document.getElementById('totalPrincipals').textContent = data.totalPrincipals || 0;
+                    document.getElementById('totalTeachers').textContent = data.totalTeachers || 0;
+                    
+                    // Load all contacts from all districts
+                    loadAllDistrictContacts(data.districts || []);
+                })
+                .catch(error => {
+                    console.error('Error loading school contacts:', error);
+                    document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: red;">Failed to load contacts</td></tr>';
+                });
+        }
+        
+        // Load all contacts from all districts
+        function loadAllDistrictContacts(districts) {
+            if (districts.length === 0) {
+                document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No contacts found</td></tr>';
+                return;
+            }
+            
+            // Populate district filter
+            uniqueDistricts = districts.map(d => d.districtName).sort();
+            const districtFilter = document.getElementById('districtFilter');
+            districtFilter.innerHTML = '<option value="">All Districts</option>';
+            uniqueDistricts.forEach(district => {
+                districtFilter.innerHTML += '<option value="' + escapeHtml(district) + '">' + escapeHtml(district) + '</option>';
+            });
+            
+            // Fetch contacts for all districts
+            const promises = districts.map(district => 
+                fetch(contextPath + '/division-district-contacts?district=' + encodeURIComponent(district.districtName))
+                    .then(response => response.json())
+                    .then(data => ({
+                        districtName: district.districtName,
+                        contacts: data.contacts || []
+                    }))
+            );
+            
+            Promise.all(promises)
+                .then(results => {
+                    // Flatten all contacts
+                    allContactsList = [];
+                    results.forEach(result => {
+                        result.contacts.forEach(contact => {
+                            allContactsList.push({
+                                ...contact,
+                                districtName: result.districtName
+                            });
+                        });
+                    });
+                    
+                    if (allContactsList.length === 0) {
+                        document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No contacts found</td></tr>';
+                        return;
+                    }
+                    
+                    // Sort by district, then school name
+                    allContactsList.sort((a, b) => {
+                        if (a.districtName !== b.districtName) {
+                            return a.districtName.localeCompare(b.districtName);
+                        }
+                        return a.schoolName.localeCompare(b.schoolName);
+                    });
+                    
+                    // Initialize filtered list
+                    filteredContactsList = [...allContactsList];
+                    
+                    // Render first page
+                    currentContactsPage = 1;
+                    renderContactsTable();
+                })
+                .catch(error => {
+                    console.error('Error loading all contacts:', error);
+                    document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: red;">Failed to load contacts</td></tr>';
+                });
+        }
+        
+        // Render contacts table with pagination
+        function renderContactsTable() {
+            const tbody = document.getElementById('schoolContactsTableBody');
+            const totalContacts = filteredContactsList.length;
+            
+            if (totalContacts === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No contacts match the filter criteria</td></tr>';
+                document.getElementById('contactsPaginationContainer').style.display = 'none';
+                return;
+            }
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(totalContacts / contactsPerPage);
+            const startIndex = (currentContactsPage - 1) * contactsPerPage;
+            const endIndex = Math.min(startIndex + contactsPerPage, totalContacts);
+            const pageContacts = filteredContactsList.slice(startIndex, endIndex);
+            
+            // Render table rows
+            let html = '';
+            pageContacts.forEach((contact, index) => {
+                const typeBadge = getContactTypeBadge(contact.contactType);
+                const whatsapp = contact.whatsappNumber || '-';
+                const remarks = contact.remarks || '-';
+                const mobile = contact.mobile || '-';
+                const actualIndex = startIndex + index;
+                
+                html += '<tr style="border-bottom: 1px solid #e0e0e0; ' + (actualIndex % 2 === 0 ? 'background: #f9f9f9;' : '') + '">';
+                html += '<td style="padding: 12px;">' + escapeHtml(contact.districtName) + '</td>';
+                html += '<td style="padding: 12px; font-family: monospace; color: #666;">' + escapeHtml(contact.udiseNo) + '</td>';
+                html += '<td style="padding: 12px; font-weight: 500;">' + escapeHtml(contact.schoolName) + '</td>';
+                html += '<td style="padding: 12px;">' + typeBadge + '</td>';
+                html += '<td style="padding: 12px;">' + escapeHtml(contact.fullName) + '</td>';
+                
+                if (mobile !== '-') {
+                    html += '<td style="padding: 12px;"><a href="tel:' + mobile + '" style="color: #667eea; text-decoration: none;">📞 ' + mobile + '</a></td>';
+                } else {
+                    html += '<td style="padding: 12px;">-</td>';
+                }
+                
+                if (whatsapp !== '-') {
+                    html += '<td style="padding: 12px;"><a href="https://wa.me/' + whatsapp.replace(/[^0-9]/g, '') + '" target="_blank" style="color: #25D366; text-decoration: none;">💬 ' + whatsapp + '</a></td>';
+                } else {
+                    html += '<td style="padding: 12px;">-</td>';
+                }
+                
+                html += '<td style="padding: 12px; font-size: 12px; color: #666;">' + escapeHtml(remarks) + '</td>';
+                html += '</tr>';
+            });
+            
+            tbody.innerHTML = html;
+            
+            // Update pagination info
+            document.getElementById('contactsPageInfo').textContent = 
+                'Showing ' + (startIndex + 1) + ' - ' + endIndex + ' of ' + totalContacts + ' contacts';
+            
+            // Render pagination controls
+            renderContactsPagination(totalPages);
+            
+            // Show pagination container
+            document.getElementById('contactsPaginationContainer').style.display = 'block';
+        }
+        
+        // Render pagination controls
+        function renderContactsPagination(totalPages) {
+            const pageNumbersDiv = document.getElementById('contactsPageNumbers');
+            const firstBtn = document.getElementById('contactsFirstBtn');
+            const prevBtn = document.getElementById('contactsPrevBtn');
+            const nextBtn = document.getElementById('contactsNextBtn');
+            const lastBtn = document.getElementById('contactsLastBtn');
+            
+            // Disable/enable buttons
+            firstBtn.disabled = currentContactsPage === 1;
+            prevBtn.disabled = currentContactsPage === 1;
+            nextBtn.disabled = currentContactsPage === totalPages;
+            lastBtn.disabled = currentContactsPage === totalPages;
+            
+            firstBtn.style.opacity = currentContactsPage === 1 ? '0.5' : '1';
+            prevBtn.style.opacity = currentContactsPage === 1 ? '0.5' : '1';
+            nextBtn.style.opacity = currentContactsPage === totalPages ? '0.5' : '1';
+            lastBtn.style.opacity = currentContactsPage === totalPages ? '0.5' : '1';
+            
+            firstBtn.style.cursor = currentContactsPage === 1 ? 'not-allowed' : 'pointer';
+            prevBtn.style.cursor = currentContactsPage === 1 ? 'not-allowed' : 'pointer';
+            nextBtn.style.cursor = currentContactsPage === totalPages ? 'not-allowed' : 'pointer';
+            lastBtn.style.cursor = currentContactsPage === totalPages ? 'not-allowed' : 'pointer';
+            
+            // Render page numbers
+            let pageNumbersHtml = '';
+            const maxPageButtons = 5;
+            let startPage = Math.max(1, currentContactsPage - Math.floor(maxPageButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+            
+            if (endPage - startPage < maxPageButtons - 1) {
+                startPage = Math.max(1, endPage - maxPageButtons + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentContactsPage;
+                pageNumbersHtml += '<button onclick="goToContactsPage(' + i + ')" ';
+                pageNumbersHtml += 'style="padding: 8px 12px; background: ' + (isActive ? '#667eea' : '#f5f5f5') + '; ';
+                pageNumbersHtml += 'color: ' + (isActive ? 'white' : '#333') + '; ';
+                pageNumbersHtml += 'border: 1px solid ' + (isActive ? '#667eea' : '#ddd') + '; ';
+                pageNumbersHtml += 'border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: ' + (isActive ? '600' : '400') + ';">';
+                pageNumbersHtml += i;
+                pageNumbersHtml += '</button>';
+            }
+            
+            pageNumbersDiv.innerHTML = pageNumbersHtml;
+        }
+        
+        // Navigate to page
+        function goToContactsPage(page) {
+            const totalPages = Math.ceil(filteredContactsList.length / contactsPerPage);
+            
+            if (page === 'first') {
+                currentContactsPage = 1;
+            } else if (page === 'prev') {
+                currentContactsPage = Math.max(1, currentContactsPage - 1);
+            } else if (page === 'next') {
+                currentContactsPage = Math.min(totalPages, currentContactsPage + 1);
+            } else if (page === 'last') {
+                currentContactsPage = totalPages;
+            } else {
+                currentContactsPage = page;
+            }
+            
+            renderContactsTable();
+            
+            // Scroll to table
+            document.getElementById('schoolContactsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Change contacts per page
+        function changeContactsPerPage() {
+            contactsPerPage = parseInt(document.getElementById('contactsPerPage').value);
+            currentContactsPage = 1;
+            renderContactsTable();
+        }
+        
+        // Filter contacts
+        function filterContacts() {
+            const searchTerm = document.getElementById('contactSearchBox').value.toLowerCase();
+            const contactTypeFilter = document.getElementById('contactTypeFilter').value;
+            const districtFilter = document.getElementById('districtFilter').value;
+            
+            filteredContactsList = allContactsList.filter(contact => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    contact.schoolName.toLowerCase().includes(searchTerm) ||
+                    contact.fullName.toLowerCase().includes(searchTerm) ||
+                    (contact.mobile && contact.mobile.includes(searchTerm)) ||
+                    (contact.udiseNo && contact.udiseNo.toLowerCase().includes(searchTerm)) ||
+                    (contact.districtName && contact.districtName.toLowerCase().includes(searchTerm));
+                
+                // Contact type filter
+                const matchesType = !contactTypeFilter || contact.contactType === contactTypeFilter;
+                
+                // District filter
+                const matchesDistrict = !districtFilter || contact.districtName === districtFilter;
+                
+                return matchesSearch && matchesType && matchesDistrict;
+            });
+            
+            currentContactsPage = 1;
+            renderContactsTable();
+        }
+        
+        // Get contact type badge
+        function getContactTypeBadge(type) {
+            const badges = {
+                'School Coordinator': '<span style="background: #E91E63; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🎓 School Coordinator</span>',
+                'Head Master': '<span style="background: #3F51B5; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">👨‍💼 Head Master</span>',
+                'Principal': '<span style="background: #2196F3; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">👔 Principal</span>',
+                'Vice Principal': '<span style="background: #9C27B0; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">👔 Vice Principal</span>',
+                'Teacher': '<span style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">👨‍🏫 Teacher</span>',
+                'Office Staff': '<span style="background: #FF9800; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">📋 Staff</span>',
+                'Other': '<span style="background: #607D8B; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">👤 Other</span>'
+            };
+            return badges[type] || '<span style="background: #607D8B; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">👤 ' + escapeHtml(type) + '</span>';
+        }
+        
+        // Close School Contacts Modal
+        function closeSchoolContactsModal() {
+            document.getElementById('schoolContactsModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    </script>
+    
+    <!-- Phase Completion JavaScript -->
+    <script>
+        const contextPath = '<%= request.getContextPath() %>';
+        const charts = {};
+        const phaseData = {};
+        
+        // Load all phases on page load - REMOVED, will load on button click
+        // window.addEventListener('load', function() {
+        //     loadPhaseData(1);
+        //     loadPhaseData(2);
+        //     loadPhaseData(3);
+        //     loadPhaseData(4);
+        // });
+        
+        // Toggle Phase Completion Section
+        function togglePhaseCompletion() {
+            const section = document.getElementById('phaseCompletionSection');
+            const isHidden = section.style.display === 'none';
+            
+            if (isHidden) {
+                section.style.display = 'block';
+                // Load phase data if not already loaded
+                if (!charts['phase1Chart']) {
+                    loadPhaseData(1);
+                    loadPhaseData(2);
+                    loadPhaseData(3);
+                    loadPhaseData(4);
+                }
+                // Scroll to section
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            } else {
+                section.style.display = 'none';
+            }
+        }
+        
+        // Load Phase Completion Data
+        function loadPhaseData(phaseNumber) {
+            fetch(contextPath + '/division-analytics?type=phase_completion&phase=' + phaseNumber)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+                    
+                    // Store data
+                    phaseData[phaseNumber] = data;
+                    
+                    // Calculate statistics
+                    const districts = data.districts || [];
+                    const totalDistricts = districts.length;
+                    const completedSchools = data.completedSchools || 0;
+                    const avgCompletion = districts.length > 0 
+                        ? (districts.reduce((sum, s) => sum + s.completionPercentage, 0) / districts.length).toFixed(1) 
+                        : 0;
+                    
+                    // Update statistics
+                    document.getElementById('phase' + phaseNumber + 'TotalDistricts').textContent = totalDistricts;
+                    document.getElementById('phase' + phaseNumber + 'Completed').textContent = completedSchools;
+                    document.getElementById('phase' + phaseNumber + 'AvgCompletion').textContent = avgCompletion + '%';
+                    
+                    // Render chart
+                    renderPhaseChart(phaseNumber, data);
+                })
+                .catch(error => console.error('Error loading phase ' + phaseNumber + ' data:', error));
+        }
+        
+        // Render Phase Chart - District-wise Stacked Bar Chart
+        function renderPhaseChart(phaseNumber, data) {
+            const districts = data.districts || [];
+            const districtNames = districts.map(d => d.districtName);
+            const completedData = districts.map(d => d.completedSchools);
+            const incompleteData = districts.map(d => d.incompleteSchools || 0);
+            const notStartedData = districts.map(d => d.notStartedSchools || 0);
+            
+            const chartId = 'phase' + phaseNumber + 'Chart';
+            
+            // Destroy existing chart
+            if (charts[chartId]) {
+                charts[chartId].destroy();
+            }
+            
+            const ctx = document.getElementById(chartId).getContext('2d');
+            
+            charts[chartId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: districtNames,
+                    datasets: [
+                        {
+                            label: 'Approved Schools',
+                            data: completedData,
+                            backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                            borderColor: 'rgba(76, 175, 80, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Incomplete Schools',
+                            data: incompleteData,
+                            backgroundColor: 'rgba(255, 152, 0, 0.8)',
+                            borderColor: 'rgba(255, 152, 0, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Not Started',
+                            data: notStartedData,
+                            backgroundColor: 'rgba(244, 67, 54, 0.8)',
+                            borderColor: 'rgba(244, 67, 54, 1)',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function(event, elements) {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const districtName = districtNames[index];
+                            openDistrictSchoolsModal(districtName, phaseNumber, districts[index]);
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                font: { size: 11 }
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { size: 14 },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const district = districts[context.dataIndex];
+                                    const label = context.dataset.label;
+                                    const value = context.parsed.y;
+                                    const percentage = district.completionPercentage;
+                                    
+                                    if (label === 'Approved Schools') {
+                                        return label + ': ' + value + ' (' + percentage + '% complete)';
+                                    } else if (label === 'Incomplete Schools') {
+                                        return label + ': ' + value + ' (Started but not approved)';
+                                    } else {
+                                        return label + ': ' + value + ' (Not yet started)';
+                                    }
+                                },
+                                afterLabel: function(context) {
+                                    return 'Click to view schools';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Open District Schools Modal
+        function openDistrictSchoolsModal(districtName, phaseNumber, districtData) {
+            document.getElementById('modalDistrictName').textContent = districtName;
+            document.getElementById('modalPhaseNumber').textContent = phaseNumber;
+            document.getElementById('modalDistrictTotalSchools').textContent = districtData.totalSchools;
+            document.getElementById('modalDistrictCompletedSchools').textContent = districtData.completedSchools;
+            document.getElementById('modalDistrictCompletionPercentage').textContent = districtData.completionPercentage + '%';
+            
+            // Show loading
+            document.getElementById('districtSchoolsTableBody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;"><div class="spinner"></div>Loading schools...</td></tr>';
+            
+            // Show modal
+            document.getElementById('districtSchoolsModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Fetch school-wise data
+            fetch(contextPath + '/division-district-phase-details?district=' + encodeURIComponent(districtName) + '&phase=' + phaseNumber)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('districtSchoolsTableBody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: red;">Error: ' + data.error + '</td></tr>';
+                        return;
+                    }
+                    
+                    const schools = data.schools || [];
+                    if (schools.length === 0) {
+                        document.getElementById('districtSchoolsTableBody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No schools found</td></tr>';
+                        return;
+                    }
+                    
+                    // Populate table
+                    let html = '';
+                    schools.forEach((school, index) => {
+                        const statusBadge = school.isApproved 
+                            ? '<span style="background: #4caf50; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">✅ Approved</span>'
+                            : '<span style="background: #ff9800; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">⏳ Pending</span>';
+                        
+                        const approvedDate = school.approvedDate || '-';
+                        const approvedBy = school.approvedBy || '-';
+                        
+                        html += '<tr style="border-bottom: 1px solid #e0e0e0;">';
+                        html += '<td style="padding: 12px;">' + (index + 1) + '</td>';
+                        html += '<td style="padding: 12px; font-weight: 600;">' + school.schoolName + '</td>';
+                        html += '<td style="padding: 12px; font-family: monospace; color: #666;">' + school.udiseNo + '</td>';
+                        html += '<td style="padding: 12px; text-align: center;">' + statusBadge + '</td>';
+                        html += '<td style="padding: 12px;">' + approvedDate + '</td>';
+                        html += '<td style="padding: 12px;">' + approvedBy + '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    document.getElementById('districtSchoolsTableBody').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading schools:', error);
+                    document.getElementById('districtSchoolsTableBody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: red;">Failed to load schools</td></tr>';
+                });
+        }
+        
+        // Close District Schools Modal
+        function closeDistrictSchoolsModal() {
+            document.getElementById('districtSchoolsModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Show teacher details for a district
+        function showDistrictTeachers(districtName, udiseCode, schoolName) {
+            const modal = document.getElementById('teacherDetailsModal');
+            const modalDistrictInfo = document.getElementById('modalTeacherDistrictInfo');
+            const content = document.getElementById('teacherDetailsContent');
+            const searchInput = document.getElementById('teacherModalSearchInput');
+            const resultCount = document.getElementById('teacherModalResultCount');
+            
+            // Show modal
+            modal.style.display = 'block';
+            
+            // Update district/school info
+            if (schoolName) {
+                modalDistrictInfo.innerHTML = '<h3 style="margin: 0 0 5px 0; color: #333;">🏫 ' + escapeHtml(schoolName) + '</h3>' +
+                    '<p style="margin: 0; color: #666;">UDISE: ' + escapeHtml(udiseCode) + ' | District: ' + escapeHtml(districtName) + '</p>';
+            } else {
+                modalDistrictInfo.innerHTML = '<h3 style="margin: 0 0 5px 0; color: #333;">🏛️ ' + escapeHtml(districtName) + '</h3>' +
+                    '<p style="margin: 0; color: #666;">District</p>';
+            }
+            
+            // Clear search and show loading
+            searchInput.value = '';
+            resultCount.textContent = 'Loading teachers...';
+            content.innerHTML = '<div style="text-align: center; padding: 50px;">' +
+                '<div style="border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>' +
+                '<p style="margin-top: 15px; color: #666;">Loading teacher details...</p>' +
+                '</div>';
+            
+            // Fetch teacher details
+            fetch('getTeachersBySchool.jsp?udiseCode=' + encodeURIComponent(udiseCode))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.teachers && data.teachers.length > 0) {
+                        let html = '';
+                        data.teachers.forEach((teacher, index) => {
+                            // Escape HTML to prevent XSS
+                            const safeName = escapeHtml(teacher.name);
+                            const safeMobile = escapeHtml(teacher.mobile);
+                            const safeSubjects = escapeHtml(teacher.subjects);
+                            const safeDate = escapeHtml(teacher.createdDate);
+                            const safeUdise = escapeHtml(udiseCode);
+                            const safeDescription = teacher.description ? escapeHtml(teacher.description) : null;
+                            
+                            // Build teacher card with data attributes for filtering
+                            html += '<div class="teacher-card" ' +
+                                'data-teacher-name="' + safeName.toLowerCase() + '" ' +
+                                'data-teacher-mobile="' + safeMobile + '" ' +
+                                'data-teacher-subjects="' + safeSubjects.toLowerCase() + '" ' +
+                                'data-teacher-udise="' + safeUdise + '" ' +
+                                'style="background: #ffffff; border: 1px solid #e0e0e0; border-left: 5px solid #28a745; padding: 20px; margin-bottom: 15px; border-radius: 10px; transition: all 0.3s;">' +
+                                
+                                '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">' +
+                                '<div style="font-size: 18px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px;">' +
+                                '<span>👤</span><span>' + safeName + '</span>' +
+                                '</div>' +
+                                '<span style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 5px 12px; border-radius: 15px; font-size: 12px; font-weight: 700;">ID: ' + teacher.id + '</span>' +
+                                '</div>' +
+                                
+                                '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">' +
+                                
+                                '<div style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #555; background: #f8f9fa; padding: 8px 10px; border-radius: 6px;">' +
+                                '<span style="font-size: 16px;">🏫</span>' +
+                                '<span style="flex: 1;"><span style="font-weight: 600; color: #28a745;">UDISE:</span> ' + safeUdise + '</span>' +
+                                '</div>' +
+                                
+                                '<div style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #555; background: #f8f9fa; padding: 8px 10px; border-radius: 6px;">' +
+                                '<span style="font-size: 16px;">📱</span>' +
+                                '<span style="flex: 1;"><span style="font-weight: 600; color: #28a745;">Mobile:</span> ' + safeMobile + '</span>' +
+                                '</div>' +
+                                
+                                '<div style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #555; background: #f8f9fa; padding: 8px 10px; border-radius: 6px;">' +
+                                '<span style="font-size: 16px;">📚</span>' +
+                                '<span style="flex: 1;"><span style="font-weight: 600; color: #28a745;">Subjects:</span> ' + safeSubjects + '</span>' +
+                                '</div>' +
+                                
+                                '<div style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #555; background: #f8f9fa; padding: 8px 10px; border-radius: 6px;">' +
+                                '<span style="font-size: 16px;">📅</span>' +
+                                '<span style="flex: 1;"><span style="font-weight: 600; color: #28a745;">Added:</span> ' + safeDate + '</span>' +
+                                '</div>' +
+                                
+                                '</div>';
+                            
+                            if (safeDescription) {
+                                html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e0e0e0; font-size: 13px; color: #666; line-height: 1.6; background: #f8f9fa; padding: 12px; border-radius: 6px;">' +
+                                    '<strong style="color: #28a745; display: block; margin-bottom: 6px;">📝 Description:</strong>' +
+                                    '<div>' + safeDescription + '</div>' +
+                                    '</div>';
+                            }
+                            
+                            html += '</div>';
+                        });
+                        
+                        content.innerHTML = html;
+                        updateTeacherModalResultCount();
+                    } else {
+                        content.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">' +
+                            '<div style="font-size: 64px; margin-bottom: 15px;">👨‍🏫</div>' +
+                            '<p style="font-size: 16px;">No teachers found for this school.</p>' +
+                            '</div>';
+                        resultCount.textContent = '0 teachers';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;">' +
+                        '<div style="font-size: 64px; margin-bottom: 15px;">❌</div>' +
+                        '<p>Error loading teacher details. Please try again.</p>' +
+                        '</div>';
+                    resultCount.textContent = 'Error loading';
+                });
+        }
+        
+        // Filter teachers in modal
+        function filterTeachersInModal() {
+            const input = document.getElementById('teacherModalSearchInput');
+            const filter = input.value.toLowerCase();
+            const content = document.getElementById('teacherDetailsContent');
+            const teacherCards = content.getElementsByClassName('teacher-card');
+            
+            let visibleCount = 0;
+            
+            for (let i = 0; i < teacherCards.length; i++) {
+                const card = teacherCards[i];
+                const name = card.getAttribute('data-teacher-name') || '';
+                const mobile = card.getAttribute('data-teacher-mobile') || '';
+                const subjects = card.getAttribute('data-teacher-subjects') || '';
+                const udise = card.getAttribute('data-teacher-udise') || '';
+                
+                // Search in name, mobile, subjects, or UDISE
+                if (name.indexOf(filter) > -1 || 
+                    mobile.indexOf(filter) > -1 || 
+                    subjects.indexOf(filter) > -1 ||
+                    udise.indexOf(filter) > -1) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+            
+            // Update result count
+            const resultCount = document.getElementById('teacherModalResultCount');
+            resultCount.textContent = 'Showing ' + visibleCount + ' of ' + teacherCards.length + ' teacher' + (teacherCards.length !== 1 ? 's' : '');
+        }
+        
+        // Update teacher modal result count
+        function updateTeacherModalResultCount() {
+            const content = document.getElementById('teacherDetailsContent');
+            const teacherCards = content.getElementsByClassName('teacher-card');
+            const resultCount = document.getElementById('teacherModalResultCount');
+            
+            const totalCount = teacherCards.length;
+            resultCount.textContent = 'Showing ' + totalCount + ' teacher' + (totalCount !== 1 ? 's' : '');
+        }
+        
+        // Close Teacher Modal
+        function closeTeacherModal() {
+            document.getElementById('teacherDetailsModal').style.display = 'none';
+            // Clear search when closing
+            document.getElementById('teacherModalSearchInput').value = '';
         }
     </script>
 </body>

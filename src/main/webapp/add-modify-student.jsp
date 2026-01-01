@@ -70,7 +70,7 @@
             student.setClassCategory(request.getParameter("classCategory"));
             student.setStudentName(request.getParameter("studentName"));
             student.setGender(request.getParameter("gender"));
-            student.setStudentPen(request.getParameter("studentPen"));
+            String submittedPen = request.getParameter("studentPen");
             
             // Active/Inactive status (default to active if not specified)
             String isActiveParam = request.getParameter("isActive");
@@ -78,34 +78,72 @@
             student.setActive(isActive);
             
             if (isEdit && editStudent != null) {
-                student.setCreatedDate(editStudent.getCreatedDate());
-                student.setCreatedBy(editStudent.getCreatedBy());
-                student.setUpdatedDate(new Date());
-                student.setUpdatedBy(user.getUsername());
-                // Update existing student
-                if (studentDAO.updateStudent(student)) {
-                    successMessage = "✓ Student record updated successfully!";
-                    // Refresh the student data
-                    editStudent = studentDAO.getStudentById(student.getStudentId());
-                } else {
-                    errorMessage = "✗ Error updating student. Please check the details and try again.";
+                // For updates, check if PEN is being changed
+                if (!submittedPen.equals(editStudent.getStudentPen())) {
+                    // Check if new PEN already exists
+                    if (studentDAO.isPenNumberExists(submittedPen)) {
+                        errorMessage = "✗ Cannot update: PEN number " + submittedPen + " is already assigned to another student!";
+                        student = null;
+                    }
+                }
+                
+                if (student != null) {
+                    student.setStudentPen(submittedPen);
+                    student.setCreatedDate(editStudent.getCreatedDate());
+                    student.setCreatedBy(editStudent.getCreatedBy());
+                    student.setUpdatedDate(new Date());
+                    student.setUpdatedBy(user.getUsername());
+                    // Update existing student
+                    if (studentDAO.updateStudent(student)) {
+                        successMessage = "✓ Student record updated successfully!";
+                        // Refresh the student data
+                        editStudent = studentDAO.getStudentById(student.getStudentId());
+                    } else {
+                        errorMessage = "✗ Error updating student. Please check the details and try again.";
+                    }
                 }
             } else {
-                student.setCreatedDate(new Date());
-                student.setCreatedBy(user.getUsername());
-                student.setUpdatedDate(new Date());
-                student.setUpdatedBy(user.getUsername());
-                // Add new student
-                if (studentDAO.createStudent(student)) {
-                    successMessage = "✓ Student record added successfully!";
-                    // Reset form for next entry
-                    editStudent = null;
+                // For new students, verify PEN doesn't exist and regenerate if needed
+                int maxPenRetries = 5;
+                boolean penAssigned = false;
+                String finalPen = submittedPen;
+                
+                for (int i = 0; i < maxPenRetries && !penAssigned; i++) {
+                    if (!studentDAO.isPenNumberExists(finalPen)) {
+                        penAssigned = true;
+                        student.setStudentPen(finalPen);
+                    } else {
+                        // PEN collision detected, generate a new one
+                        finalPen = studentDAO.generateNextPenNumber();
+                        if (i > 0) {
+                            System.out.println("⚠ PEN collision detected, regenerated: " + finalPen);
+                        }
+                    }
+                }
+                
+                if (!penAssigned) {
+                    errorMessage = "✗ Unable to generate unique PEN number after multiple attempts. Please try again.";
                 } else {
-                    errorMessage = "✗ Error adding student. Please check the details and try again.";
+                    student.setCreatedDate(new Date());
+                    student.setCreatedBy(user.getUsername());
+                    student.setUpdatedDate(new Date());
+                    student.setUpdatedBy(user.getUsername());
+                    
+                    // Add new student
+                    if (studentDAO.createStudent(student)) {
+                        successMessage = "✓ Student record added successfully with PEN: " + finalPen;
+                        // Reset form for next entry
+                        editStudent = null;
+                        // Generate new PEN for next student
+                        autoGeneratedPen = studentDAO.generateNextPenNumber();
+                    } else {
+                        errorMessage = "✗ Error adding student. The PEN number may already exist. Please try again.";
+                    }
                 }
             }
         } catch (Exception e) {
             errorMessage = "✗ Error saving student: " + e.getMessage();
+            e.printStackTrace();
         }
     }
 %>

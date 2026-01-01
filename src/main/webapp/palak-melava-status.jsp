@@ -16,19 +16,6 @@
     // Get statistics for this district
     String districtName = user.getDistrictName();
     
-    // Pagination parameters
-    int pageSize = 10; // Schools per page
-    int currentPage = 1;
-    String pageParam = request.getParameter("page");
-    if (pageParam != null) {
-        try {
-            currentPage = Integer.parseInt(pageParam);
-            if (currentPage < 1) currentPage = 1;
-        } catch (NumberFormatException e) {
-            currentPage = 1;
-        }
-    }
-    
     // Get Palak Melava status data for all schools in district
     List<Map<String, Object>> allSchools = palakMelavaDAO.getPalakMelavaStatusByDistrict(districtName);
     
@@ -58,16 +45,10 @@
         totalApprovedMeetings += approvedMeetings;
     }
     
-    // Calculate pagination
     int totalSchools = allSchools.size();
-    int totalPages = (int) Math.ceil((double) totalSchools / pageSize);
-    if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
     
-    int startIndex = (currentPage - 1) * pageSize;
-    int endIndex = Math.min(startIndex + pageSize, totalSchools);
-    
-    // Get paginated schools for current page
-    List<Map<String, Object>> palakMelavaStatus = allSchools.subList(startIndex, endIndex);
+    // Use all schools - no server-side pagination
+    List<Map<String, Object>> palakMelavaStatus = allSchools;
 %>
 <!DOCTYPE html>
 <html>
@@ -398,21 +379,18 @@
                                onchange="applyPalakMelavaFilters()">
                     </div>
                     
-                    <!-- Sort By -->
+                    <!-- Status Filter Dropdown -->
                     <div>
                         <label style="display: block; margin-bottom: 5px; color: #555; font-weight: 500; font-size: 13px;">
-                            🔄 Sort By
+                            📊 Status Filter
                         </label>
-                        <select id="pmSortBy" 
+                        <select id="pmStatusFilter" 
                                 style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; cursor: pointer;"
                                 onchange="applyPalakMelavaFilters()">
-                            <option value="school_asc">School Name (A-Z)</option>
-                            <option value="school_desc">School Name (Z-A)</option>
-                            <option value="meetings_desc" selected>Most Meetings First</option>
-                            <option value="meetings_asc">Least Meetings First</option>
-                            <option value="date_desc">Latest Meeting First</option>
-                            <option value="date_asc">Oldest Meeting First</option>
-                            <option value="parents_desc">Most Parents Attended</option>
+                            <option value="ALL">All Schools</option>
+                            <option value="NO_MEETING">No Meetings</option>
+                            <option value="PENDING_APPROVAL">Pending Approval</option>
+                            <option value="COMPLETED">Completed</option>
                         </select>
                     </div>
                 </div>
@@ -484,7 +462,7 @@
                             }
                         %>
                         <tr class="palak-melava-row <%= rowClass %>" data-status="<%= status %>">
-                            <td><strong><%= srNo++ %></strong></td>
+                            <td class="sr-no-cell"><strong>-</strong></td>
                             <td><strong><%= udise %></strong></td>
                             <td><strong style="color: #667eea;"><%= schoolName %></strong></td>
                             <td>
@@ -563,74 +541,11 @@
                 </table>
             </div>
             
-            <!-- Pagination Info and Controls -->
-            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <!-- Total Schools Info -->
+            <div id="pmTotalInfo" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
                 <div style="color: #666; font-size: 14px;">
-                    Showing <%= startIndex + 1 %> - <%= endIndex %> of <%= totalSchools %> schools
+                    Total: <strong style="color: #2196f3; font-size: 16px;"><%= totalSchools %></strong> schools loaded
                 </div>
-                
-                <% if (totalPages > 1) { %>
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <!-- Previous Button -->
-                    <% if (currentPage > 1) { %>
-                        <a href="?page=<%= currentPage - 1 %>" style="padding: 8px 14px; background: white; color: #2196f3; border: 1px solid #e0e0e0; border-radius: 5px; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.3s;">
-                            « Previous
-                        </a>
-                    <% } else { %>
-                        <span style="padding: 8px 14px; background: #f5f5f5; color: #ccc; border: 1px solid #e0e0e0; border-radius: 5px; font-size: 14px; font-weight: 500;">
-                            « Previous
-                        </span>
-                    <% } %>
-                    
-                    <!-- Page Numbers -->
-                    <% 
-                    int startPage = Math.max(1, currentPage - 2);
-                    int endPage = Math.min(totalPages, currentPage + 2);
-                    
-                    // Show first page if not in range
-                    if (startPage > 1) { %>
-                        <a href="?page=1" style="padding: 8px 14px; background: white; color: #2196f3; border: 1px solid #e0e0e0; border-radius: 5px; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.3s;">
-                            1
-                        </a>
-                        <% if (startPage > 2) { %>
-                            <span style="padding: 8px 14px; color: #999;">...</span>
-                        <% } %>
-                    <% } %>
-                    
-                    <% for (int i = startPage; i <= endPage; i++) { 
-                        if (i == currentPage) { %>
-                            <span style="padding: 8px 14px; background: #2196f3; color: white; border: 1px solid #2196f3; border-radius: 5px; font-size: 14px; font-weight: bold;">
-                                <%= i %>
-                            </span>
-                        <% } else { %>
-                            <a href="?page=<%= i %>" style="padding: 8px 14px; background: white; color: #2196f3; border: 1px solid #e0e0e0; border-radius: 5px; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.3s;">
-                                <%= i %>
-                            </a>
-                        <% } %>
-                    <% } %>
-                    
-                    <!-- Show last page if not in range -->
-                    <% if (endPage < totalPages) { 
-                        if (endPage < totalPages - 1) { %>
-                            <span style="padding: 8px 14px; color: #999;">...</span>
-                        <% } %>
-                        <a href="?page=<%= totalPages %>" style="padding: 8px 14px; background: white; color: #2196f3; border: 1px solid #e0e0e0; border-radius: 5px; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.3s;">
-                            <%= totalPages %>
-                        </a>
-                    <% } %>
-                    
-                    <!-- Next Button -->
-                    <% if (currentPage < totalPages) { %>
-                        <a href="?page=<%= currentPage + 1 %>" style="padding: 8px 14px; background: white; color: #2196f3; border: 1px solid #e0e0e0; border-radius: 5px; text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.3s;">
-                            Next »
-                        </a>
-                    <% } else { %>
-                        <span style="padding: 8px 14px; background: #f5f5f5; color: #ccc; border: 1px solid #e0e0e0; border-radius: 5px; font-size: 14px; font-weight: 500;">
-                            Next »
-                        </span>
-                    <% } %>
-                </div>
-                <% } %>
             </div>
         </div>
     </div>
@@ -642,7 +557,13 @@
         function filterPalakMelavaStatus(status) {
             currentPMStatus = status;
             
-            // Apply all filters without changing button colors
+            // Update dropdown to match button click
+            const statusFilter = document.getElementById('pmStatusFilter');
+            if (statusFilter) {
+                statusFilter.value = status;
+            }
+            
+            // Apply all filters
             applyPalakMelavaFilters();
         }
         
@@ -653,7 +574,13 @@
             const minMeetings = parseInt(document.getElementById('pmMinMeetings').value) || 0;
             const dateFrom = document.getElementById('pmDateFrom').value;
             const dateTo = document.getElementById('pmDateTo').value;
-            const sortBy = document.getElementById('pmSortBy').value;
+            const statusFilter = document.getElementById('pmStatusFilter').value;
+            
+            // Update currentPMStatus based on dropdown
+            currentPMStatus = statusFilter;
+            
+            // Update button states
+            updateStatusButtonStates();
             
             const table = document.getElementById('palakMelavaTable');
             if (!table) return;
@@ -699,12 +626,8 @@
                 }
             });
             
-            // Sort visible rows
-            const visibleRows = rows.filter(row => row.style.display !== 'none');
-            sortPalakMelavaRows(visibleRows, sortBy);
-            
-            // Re-append sorted rows
-            visibleRows.forEach(row => tbody.appendChild(row));
+            // Update serial numbers for visible rows
+            updateSerialNumbers();
             
             // Update filter info
             const filterInfo = document.getElementById('pmFilterResultsInfo');
@@ -719,40 +642,73 @@
             }
         }
         
-        // Sort Palak Melava Rows
-        function sortPalakMelavaRows(rows, sortBy) {
-            rows.sort((a, b) => {
-                switch(sortBy) {
-                    case 'school_asc':
-                        return a.cells[2].textContent.localeCompare(b.cells[2].textContent);
-                    case 'school_desc':
-                        return b.cells[2].textContent.localeCompare(a.cells[2].textContent);
-                    case 'meetings_desc':
-                        return parseInt(b.cells[4].textContent) - parseInt(a.cells[4].textContent);
-                    case 'meetings_asc':
-                        return parseInt(a.cells[4].textContent) - parseInt(b.cells[4].textContent);
-                    case 'date_desc':
-                        const dateA = a.cells[9].textContent.trim();
-                        const dateB = b.cells[9].textContent.trim();
-                        if (dateA === '-') return 1;
-                        if (dateB === '-') return -1;
-                        return new Date(dateB) - new Date(dateA);
-                    case 'date_asc':
-                        const dateA2 = a.cells[9].textContent.trim();
-                        const dateB2 = b.cells[9].textContent.trim();
-                        if (dateA2 === '-') return 1;
-                        if (dateB2 === '-') return -1;
-                        return new Date(dateA2) - new Date(dateB2);
-                    case 'parents_desc':
-                        const parentsA = a.cells[10].textContent.trim();
-                        const parentsB = b.cells[10].textContent.trim();
-                        const numA = parentsA === '-' ? 0 : parseInt(parentsA);
-                        const numB = parentsB === '-' ? 0 : parseInt(parentsB);
-                        return numB - numA;
-                    default:
-                        return 0;
+        // Update serial numbers for visible rows
+        function updateSerialNumbers() {
+            const table = document.getElementById('palakMelavaTable');
+            if (!table) return;
+            
+            const tbody = table.querySelector('tbody');
+            const rows = tbody.querySelectorAll('.palak-melava-row');
+            let srNo = 1;
+            
+            rows.forEach(row => {
+                const srNoCell = row.querySelector('.sr-no-cell strong');
+                if (row.style.display !== 'none') {
+                    if (srNoCell) {
+                        srNoCell.textContent = srNo++;
+                    }
                 }
             });
+        }
+        
+        // Update status button states to match dropdown
+        function updateStatusButtonStates() {
+            const buttons = {
+                'ALL': document.getElementById('pmFilterAll'),
+                'NO_MEETING': document.getElementById('pmFilterNoMeeting'),
+                'PENDING_APPROVAL': document.getElementById('pmFilterPending'),
+                'COMPLETED': document.getElementById('pmFilterCompleted')
+            };
+            
+            // Remove active class from all buttons
+            Object.values(buttons).forEach(btn => {
+                if (btn) {
+                    btn.classList.remove('active');
+                    const status = Object.keys(buttons).find(key => buttons[key] === btn);
+                    if (status === 'ALL') {
+                        btn.style.background = 'white';
+                        btn.style.color = '#667eea';
+                    } else if (status === 'NO_MEETING') {
+                        btn.style.background = 'white';
+                        btn.style.color = '#f44336';
+                    } else if (status === 'PENDING_APPROVAL') {
+                        btn.style.background = 'white';
+                        btn.style.color = '#ff9800';
+                    } else if (status === 'COMPLETED') {
+                        btn.style.background = 'white';
+                        btn.style.color = '#4caf50';
+                    }
+                }
+            });
+            
+            // Add active class to current button
+            const activeBtn = buttons[currentPMStatus];
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                if (currentPMStatus === 'ALL') {
+                    activeBtn.style.background = '#667eea';
+                    activeBtn.style.color = 'white';
+                } else if (currentPMStatus === 'NO_MEETING') {
+                    activeBtn.style.background = '#f44336';
+                    activeBtn.style.color = 'white';
+                } else if (currentPMStatus === 'PENDING_APPROVAL') {
+                    activeBtn.style.background = '#ff9800';
+                    activeBtn.style.color = 'white';
+                } else if (currentPMStatus === 'COMPLETED') {
+                    activeBtn.style.background = '#4caf50';
+                    activeBtn.style.color = 'white';
+                }
+            }
         }
         
         // Clear All Palak Melava Filters
@@ -762,7 +718,7 @@
             document.getElementById('pmMinMeetings').value = '';
             document.getElementById('pmDateFrom').value = '';
             document.getElementById('pmDateTo').value = '';
-            document.getElementById('pmSortBy').value = 'meetings_desc';
+            document.getElementById('pmStatusFilter').value = 'ALL';
             
             currentPMStatus = 'ALL';
             filterPalakMelavaStatus('ALL');
@@ -775,6 +731,11 @@
             const url = '<%= request.getContextPath() %>/palak-melava-details.jsp?udise=' + encodeURIComponent(udise) + '&schoolName=' + encodeURIComponent(schoolName);
             window.open(url, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
         }
+        
+        // Initialize serial numbers on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            updateSerialNumbers();
+        });
     </script>
 </body>
 </html>

@@ -157,11 +157,15 @@ public class SchoolDAO {
     }
     
     /**
-     * Get schools by division
+     * Get schools by division (based on students' division)
      */
     public List<School> getSchoolsByDivision(String divisionName) {
         List<School> schools = new ArrayList<>();
-        String sql = "SELECT * FROM schools WHERE division_name = ? ORDER BY district_name, school_name";
+        // Get distinct UDISE codes from students table for the given division
+        String sql = "SELECT DISTINCT s.* FROM schools s " +
+                     "INNER JOIN students st ON s.udise_no = st.udise_no " +
+                     "WHERE st.division = ? AND st.is_active = 1 " +
+                     "ORDER BY s.district_name, s.school_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {

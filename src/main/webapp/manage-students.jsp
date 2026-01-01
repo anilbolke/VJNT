@@ -41,6 +41,7 @@
     // Declare phase variables at top level so they're accessible throughout the JSP
     int selectedPhase = 1;
     boolean currentPhaseComplete = false;
+    boolean isReadOnly = false;
 %>
 <!DOCTYPE html>
 <html>
@@ -273,6 +274,12 @@
             color: #666;
         }
         
+        .phase-rejected {
+            background: #dc3545;
+            color: white;
+            font-weight: 600;
+        }
+        
         .alert {
             padding: 15px 20px;
             border-radius: 8px;
@@ -468,6 +475,12 @@
             boolean phase3Approved = phase3Approval != null && phase3Approval.isApproved();
             boolean phase4Approved = phase4Approval != null && phase4Approval.isApproved();
             
+            // Check if phases are rejected by headmaster
+            boolean phase1Rejected = phase1Approval != null && phase1Approval.isRejected();
+            boolean phase2Rejected = phase2Approval != null && phase2Approval.isRejected();
+            boolean phase3Rejected = phase3Approval != null && phase3Approval.isRejected();
+            boolean phase4Rejected = phase4Approval != null && phase4Approval.isRejected();
+            
             // Get current selected phase from request parameter (default to Phase 1)
             String selectedPhaseStr = request.getParameter("phase");
             if (selectedPhaseStr != null) {
@@ -485,6 +498,19 @@
                 case 3: currentPhaseComplete = phase3Complete; break;
                 case 4: currentPhaseComplete = phase4Complete; break;
             }
+            
+            // Check if current phase is rejected
+            boolean currentPhaseRejected = false;
+            switch(selectedPhase) {
+                case 1: currentPhaseRejected = phase1Rejected; break;
+                case 2: currentPhaseRejected = phase2Rejected; break;
+                case 3: currentPhaseRejected = phase3Rejected; break;
+                case 4: currentPhaseRejected = phase4Rejected; break;
+            }
+            
+            // Phase is read-only ONLY if complete AND approved (not if rejected)
+            // If rejected, coordinator can edit and resubmit
+            isReadOnly = currentPhaseComplete && !currentPhaseRejected;
             %>
             
             <!-- Phase Selection -->
@@ -495,10 +521,10 @@
                             📊 Select Phase (चरण निवडा):
                         </label>
                         <select id="phaseSelector" onchange="changePhase()" style="padding: 10px 15px; border: 2px solid #43e97b; border-radius: 5px; font-size: 14px; font-weight: 500; min-width: 150px;">
-                            <option value="1" <%= selectedPhase == 1 ? "selected" : "" %> <%= phase1Complete ? "disabled" : "" %>>Phase 1 <%= phase1Complete ? "✓ Completed" : "" %></option>
-                            <option value="2" <%= selectedPhase == 2 ? "selected" : "" %> <%= !phase1Approved || phase2Complete ? "disabled" : "" %>>Phase 2 <%= phase2Complete ? "✓ Completed" : (!phase1Approved ? "🔒 Awaiting Approval" : "") %></option>
-                            <option value="3" <%= selectedPhase == 3 ? "selected" : "" %> <%= !phase2Approved || phase3Complete ? "disabled" : "" %>>Phase 3 <%= phase3Complete ? "✓ Completed" : (!phase2Approved ? "🔒 Awaiting Approval" : "") %></option>
-                            <option value="4" <%= selectedPhase == 4 ? "selected" : "" %> <%= !phase3Approved || phase4Complete ? "disabled" : "" %>>Phase 4 <%= phase4Complete ? "✓ Completed" : (!phase3Approved ? "🔒 Awaiting Approval" : "") %></option>
+                            <option value="1" <%= selectedPhase == 1 ? "selected" : "" %> <%= (phase1Complete && !phase1Rejected) ? "disabled" : "" %>>Phase 1 <%= phase1Rejected ? "❌ Rejected - Edit & Resubmit" : (phase1Complete ? "✓ Completed" : "") %></option>
+                            <option value="2" <%= selectedPhase == 2 ? "selected" : "" %> <%= (!phase1Approved || (phase2Complete && !phase2Rejected)) ? "disabled" : "" %>>Phase 2 <%= phase2Rejected ? "❌ Rejected - Edit & Resubmit" : (phase2Complete ? "✓ Completed" : (!phase1Approved ? "🔒 Awaiting Approval" : "")) %></option>
+                            <option value="3" <%= selectedPhase == 3 ? "selected" : "" %> <%= (!phase2Approved || (phase3Complete && !phase3Rejected)) ? "disabled" : "" %>>Phase 3 <%= phase3Rejected ? "❌ Rejected - Edit & Resubmit" : (phase3Complete ? "✓ Completed" : (!phase2Approved ? "🔒 Awaiting Approval" : "")) %></option>
+                            <option value="4" <%= selectedPhase == 4 ? "selected" : "" %> <%= (!phase3Approved || (phase4Complete && !phase4Rejected)) ? "disabled" : "" %>>Phase 4 <%= phase4Rejected ? "❌ Rejected - Edit & Resubmit" : (phase4Complete ? "✓ Completed" : (!phase3Approved ? "🔒 Awaiting Approval" : "")) %></option>
                         </select>
                     </div>
                     <div>
@@ -510,22 +536,38 @@
                 
                 <!-- Phase Status Indicators -->
                 <div class="phase-status">
-                    <span class="phase-badge <%= phase1Complete ? "phase-complete" : "phase-progress" %>">
-                        Phase 1: <%= phase1Complete ? "✓ Complete" : "⏳ In Progress" %>
+                    <span class="phase-badge <%= phase1Rejected ? "phase-rejected" : (phase1Complete ? "phase-complete" : "phase-progress") %>">
+                        Phase 1: <%= phase1Rejected ? "❌ Rejected" : (phase1Complete ? "✓ Complete" : "⏳ In Progress") %>
                     </span>
-                    <span class="phase-badge <%= phase2Complete ? "phase-complete" : (phase1Approved ? "phase-progress" : "phase-locked") %>">
-                        Phase 2: <%= phase2Complete ? "✓ Complete" : (phase1Approved ? "⏳ Available" : "🔒 Awaiting P1 Approval") %>
+                    <span class="phase-badge <%= phase2Rejected ? "phase-rejected" : (phase2Complete ? "phase-complete" : (phase1Approved ? "phase-progress" : "phase-locked")) %>">
+                        Phase 2: <%= phase2Rejected ? "❌ Rejected" : (phase2Complete ? "✓ Complete" : (phase1Approved ? "⏳ Available" : "🔒 Awaiting P1 Approval")) %>
                     </span>
-                    <span class="phase-badge <%= phase3Complete ? "phase-complete" : (phase2Approved ? "phase-progress" : "phase-locked") %>">
-                        Phase 3: <%= phase3Complete ? "✓ Complete" : (phase2Approved ? "⏳ Available" : "🔒 Awaiting P2 Approval") %>
+                    <span class="phase-badge <%= phase3Rejected ? "phase-rejected" : (phase3Complete ? "phase-complete" : (phase2Approved ? "phase-progress" : "phase-locked")) %>">
+                        Phase 3: <%= phase3Rejected ? "❌ Rejected" : (phase3Complete ? "✓ Complete" : (phase2Approved ? "⏳ Available" : "🔒 Awaiting P2 Approval")) %>
                     </span>
-                    <span class="phase-badge <%= phase4Complete ? "phase-complete" : (phase3Approved ? "phase-progress" : "phase-locked") %>">
-                        Phase 4: <%= phase4Complete ? "✓ Complete" : (phase3Approved ? "⏳ Available" : "🔒 Awaiting P3 Approval") %>
+                    <span class="phase-badge <%= phase4Rejected ? "phase-rejected" : (phase4Complete ? "phase-complete" : (phase3Approved ? "phase-progress" : "phase-locked")) %>">
+                        Phase 4: <%= phase4Rejected ? "❌ Rejected" : (phase4Complete ? "✓ Complete" : (phase3Approved ? "⏳ Available" : "🔒 Awaiting P3 Approval")) %>
                     </span>
                 </div>
             </div>
             
-            <% if (currentPhaseComplete) { %>
+            <% if (currentPhaseRejected) { 
+                PhaseApproval currentApproval = approvalDAO.getPhaseApproval(udiseNo, selectedPhase);
+            %>
+            <!-- Phase Rejected Notification -->
+            <div class="alert" style="background: #dc3545; color: white; border-left: 4px solid #a02622;">
+                <strong style="font-size: 18px;">❌ Phase <%= selectedPhase %> Rejected by Headmaster</strong>
+                <p style="margin: 10px 0 5px 0; font-size: 14px;">
+                    <strong>Rejection Remarks:</strong> <%= currentApproval != null && currentApproval.getApprovalRemarks() != null ? currentApproval.getApprovalRemarks() : "No remarks provided" %>
+                </p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">
+                    ⚠️ <strong>Action Required:</strong> You can now edit the student levels below based on the headmaster's feedback. After making corrections, save the changes and re-submit for approval.
+                </p>
+                <p style="margin: 10px 0 0 0; font-size: 13px; background: rgba(255,255,255,0.15); padding: 8px; border-radius: 5px;">
+                    ✏️ <strong>Editing Enabled:</strong> All student level dropdowns are now unlocked. Make your changes, click "Save" for each student, then submit the phase again when ready.
+                </p>
+            </div>
+            <% } else if (currentPhaseComplete) { %>
             <!-- Phase Complete Notification -->
             <div class="alert alert-success">
                 <strong style="font-size: 16px;">✓ Phase <%= selectedPhase %> Completed!</strong>
@@ -641,7 +683,7 @@
                             <td><%= s.getSection() %></td>
                             <!-- Marathi Levels -->
                             <td>
-                                <select name="marathi_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
+                                <select name="marathi_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
                                     <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>स्थर निश्चित केला नाही</option>
                                     <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
                                     <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>अक्षर स्तर</option>
@@ -653,7 +695,7 @@
                             </td>
                             <!-- Math Levels -->
                             <td>
-                                <select name="math_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
+                                <select name="math_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
                                     <option value="0" <%= s.getMathAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
                                     <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
                                     <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक ज्ञान स्तर</option>
@@ -667,7 +709,7 @@
                             </td>
                             <!-- English Levels -->
                             <td>
-                                <select name="english_akshara" class="level-select" <%= currentPhaseComplete ? "disabled" : "" %>>
+                                <select name="english_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
                                     <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
                                     <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>Beginner level</option>
                                     <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>Alphabet level</option>
@@ -678,7 +720,7 @@
                                 </select>
                             </td>
                             <td style="text-align: center;">
-                                <% if (!currentPhaseComplete) { %>
+                                <% if (!isReadOnly) { %>
                                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                                     <button class="btn btn-save" onclick="saveStudent(<%= s.getStudentId() %>)">💾 Save</button>
                                     <div id="msg-<%= s.getStudentId() %>" style="font-size: 11px; font-weight: 600; display: inline-block;"></div>
@@ -847,6 +889,7 @@
         ];
         
         var isFiltering = false;
+        var isReadOnly = <%= isReadOnly %>;
         
         function changePhase() {
             var phase = document.getElementById('phaseSelector').value;
@@ -887,8 +930,6 @@
             var tbody = document.querySelector('table tbody');
             tbody.innerHTML = '';
             
-            var currentPhaseComplete = <%= currentPhaseComplete %>;
-            
             filteredStudents.forEach(function(student) {
                 var row = document.createElement('tr');
                 row.id = 'row-' + student.id;
@@ -899,7 +940,7 @@
                     '<td>' + student.studentClass + '</td>' +
                     '<td>' + student.section + '</td>' +
                     '<td>' +
-                        '<select name="marathi_akshara" class="level-select" ' + (currentPhaseComplete ? 'disabled' : '') + '>' +
+                        '<select name="marathi_akshara" class="level-select" ' + (isReadOnly ? 'disabled' : '') + '>' +
                             '<option value="0" ' + (student.marathiLevel == 0 ? 'selected' : '') + '>स्थर निश्चित केला नाही</option>' +
                             '<option value="1" ' + (student.marathiLevel == 1 ? 'selected' : '') + '>प्रारंभिक स्तर</option>' +
                             '<option value="2" ' + (student.marathiLevel == 2 ? 'selected' : '') + '>अक्षर स्तर</option>' +
@@ -910,7 +951,7 @@
                         '</select>' +
                     '</td>' +
                     '<td>' +
-                        '<select name="math_akshara" class="level-select" ' + (currentPhaseComplete ? 'disabled' : '') + '>' +
+                        '<select name="math_akshara" class="level-select" ' + (isReadOnly ? 'disabled' : '') + '>' +
                             '<option value="0" ' + (student.mathLevel == 0 ? 'selected' : '') + '>स्तर निश्चित केला नाही</option>' +
                             '<option value="1" ' + (student.mathLevel == 1 ? 'selected' : '') + '>प्रारंभिक स्तर</option>' +
                             '<option value="2" ' + (student.mathLevel == 2 ? 'selected' : '') + '>अंक ज्ञान स्तर</option>' +
@@ -923,7 +964,7 @@
                         '</select>' +
                     '</td>' +
                     '<td>' +
-                        '<select name="english_akshara" class="level-select" ' + (currentPhaseComplete ? 'disabled' : '') + '>' +
+                        '<select name="english_akshara" class="level-select" ' + (isReadOnly ? 'disabled' : '') + '>' +
                             '<option value="0" ' + (student.englishLevel == 0 ? 'selected' : '') + '>स्तर निश्चित केला नाही</option>' +
                             '<option value="1" ' + (student.englishLevel == 1 ? 'selected' : '') + '>Beginner level</option>' +
                             '<option value="2" ' + (student.englishLevel == 2 ? 'selected' : '') + '>Alphabet level</option>' +
@@ -933,7 +974,7 @@
                         '</select>' +
                     '</td>' +
                     '<td style="text-align: center;">' +
-                        (!currentPhaseComplete ? 
+                        (!isReadOnly ? 
                             '<button class="btn btn-save" onclick="saveStudent(' + student.id + ')">💾 Save</button>' +
                             '<div id="msg-' + student.id + '" style="font-size: 11px; margin-top: 4px; font-weight: 600;"></div>' :
                             '<span style="color: #28a745;">✓ Complete</span>'

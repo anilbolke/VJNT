@@ -179,6 +179,113 @@ public class YouTubeUploader {
      * Get credentials using OAuth (for local development with browser)
      */
     private static Credential getOAuthCredentials(final NetHttpTransport httpTransport) throws IOException {
+        // Check if we're on a headless server FIRST to avoid port binding attempts
+        String displayEnv = System.getenv("DISPLAY");
+        String osName = System.getProperty("os.name", "").toLowerCase();
+        boolean isWindows = osName.contains("win");
+        boolean isHeadless = !isWindows && ((displayEnv == null || displayEnv.isEmpty()) || 
+                            System.getProperty("java.awt.headless", "false").equals("true"));
+        
+        System.out.println("=== Environment Check ===");
+        System.out.println("OS: " + osName);
+        System.out.println("Is Windows: " + isWindows);
+        System.out.println("Is Headless: " + isHeadless);
+        
+        // PRIORITY 0: Try database credentials FIRST (for production servers)
+        System.out.println("=== Checking database for stored credentials ===");
+        try {
+            YouTubeCredentialManager.YouTubeCredential dbCred = YouTubeCredentialManager.getCredentials();
+            if (dbCred != null && dbCred.getRefreshToken() != null) {
+                System.out.println("✓ Found credentials in database!");
+                System.out.println("  Access token: " + (dbCred.getAccessToken() != null ? "Present" : "Missing"));
+                System.out.println("  Refresh token: " + (dbCred.getRefreshToken() != null ? "Present" : "Missing"));
+                
+                // Create credential from database values
+                GoogleCredential credential = new GoogleCredential.Builder()
+                    .setTransport(httpTransport)
+                    .setJsonFactory(JSON_FACTORY)
+                    .setClientSecrets(dbCred.getClientId(), dbCred.getClientSecret())
+                    .build()
+                    .setAccessToken(dbCred.getAccessToken())
+                    .setRefreshToken(dbCred.getRefreshToken());
+                
+                // Check if token needs refresh
+                if (dbCred.getTokenExpiry() != null) {
+                    long now = System.currentTimeMillis();
+                    long expiry = dbCred.getTokenExpiry().getTime();
+                    
+                    if (expiry - now < 300000) { // Less than 5 minutes
+                        System.out.println("⚠ Token expires soon, refreshing...");
+                        try {
+                            credential.refreshToken();
+                            // Update database with new token
+                            Long expiresIn = credential.getExpiresInSeconds();
+                            if (expiresIn != null) {
+                                YouTubeCredentialManager.updateAccessToken(
+                                    credential.getAccessToken(), 
+                                    expiresIn
+                                );
+                                System.out.println("✓ Token refreshed and updated in database");
+                            }
+                        } catch (Exception e) {
+                            System.err.println("⚠ Token refresh failed: " + e.getMessage());
+                        }
+                    }
+                }
+                
+                System.out.println("✓ SUCCESS: Using database credentials (no port binding needed)");
+                return credential;
+            } else {
+                System.out.println("✗ No valid credentials in database");
+                if (isHeadless) {
+                    System.err.println("\n╔════════════════════════════════════════════════════════════════════╗");
+                    System.err.println("║  ERROR: No database credentials found on production server        ║");
+                    System.err.println("╚════════════════════════════════════════════════════════════════════╝");
+                    System.err.println("");
+                    System.err.println("This is a PRODUCTION SERVER (headless environment).");
+                    System.err.println("Cannot start OAuth flow - no browser available.");
+                    System.err.println("");
+                    System.err.println("SOLUTION:");
+                    System.err.println("  1. On local machine with browser:");
+                    System.err.println("     - Run video upload once to authorize via OAuth");
+                    System.err.println("     - Credentials will be saved to database automatically");
+                    System.err.println("  2. Verify database credentials table has data:");
+                    System.err.println("     - Check youtube_credentials table");
+                    System.err.println("     - Ensure refresh_token is not null");
+                    System.err.println("  3. Production server will then use database credentials");
+                    System.err.println("");
+                    throw new IOException("No database credentials available on production server. " +
+                        "Please authorize on local machine first to save credentials to database.");
+                }
+            }
+        } catch (IOException ioe) {
+            // Re-throw IOException (e.g., from headless check above)
+            throw ioe;
+        } catch (Exception e) {
+            System.err.println("⚠ Database credential check failed: " + e.getMessage());
+            e.printStackTrace();
+            
+            // If headless and database check failed, don't proceed to OAuth
+            if (isHeadless) {
+                System.err.println("\n╔════════════════════════════════════════════════════════════════════╗");
+                System.err.println("║  ERROR: Database check failed on production server                ║");
+                System.err.println("╚════════════════════════════════════════════════════════════════════╝");
+                System.err.println("");
+                System.err.println("Cannot fall back to OAuth on production server (no browser).");
+                System.err.println("");
+                System.err.println("Database error: " + e.getMessage());
+                System.err.println("");
+                System.err.println("SOLUTION:");
+                System.err.println("  1. Check database connection");
+                System.err.println("  2. Verify youtube_credentials table exists");
+                System.err.println("  3. Ensure database credentials are configured correctly");
+                System.err.println("");
+                throw new IOException("Database credentials check failed on production server: " + e.getMessage(), e);
+            }
+            
+            System.err.println("  Falling back to file-based credentials...");
+        }
+        
         InputStream in = null;
         String foundLocation = null;
         String clientSecretsFile = YouTubeConfig.getClientSecretsFile();
@@ -337,6 +444,12 @@ public class YouTubeUploader {
             e.printStackTrace();
         }
         
+        // NEW: Try fetching from Hiox server or local backup if not in WAR
+        if (!extractedFromWAR) {
+            System.out.println("=== ATTEMPTING TO FETCH CREDENTIALS FROM ALTERNATIVE SOURCES ===");
+            extractedFromWAR = fetchCredentialsFromAlternativeSources(credentialsFolder);
+        }
+        
         // Build flow and trigger user authorization request
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 httpTransport, JSON_FACTORY, clientSecrets, SCOPES)
@@ -426,10 +539,26 @@ public class YouTubeUploader {
         
         System.out.println("=== ALL PACKAGED CREDENTIAL METHODS FAILED ===");
         
-        // Check if we're on a headless server (no display)
-        String displayEnv = System.getenv("DISPLAY");
-        boolean isHeadless = (displayEnv == null || displayEnv.isEmpty()) || 
-                            System.getProperty("java.awt.headless", "false").equals("true");
+        // Log environment for debugging
+        YouTubeUploadLogger.logEnvironmentInfo();
+        YouTubeUploadLogger.checkCredentialLocations();
+        
+        // Attempt auto-fix: extract credentials from WAR to user home
+        YouTubeUploadLogger.info("Attempting auto-fix...");
+        boolean autoFixSuccess = YouTubeUploadLogger.attemptAutoFix();
+        
+        if (autoFixSuccess) {
+            YouTubeUploadLogger.success("Auto-fix successful! Retrying credential load...");
+            credential = flow.loadCredential("user");
+            if (credential != null && credential.getRefreshToken() != null) {
+                YouTubeUploadLogger.success("Credentials loaded successfully after auto-fix!");
+                return credential;
+            }
+        }
+        
+        // Re-check if we're on a headless server before starting OAuth
+        // (Already checked at start of method, but checking again for safety)
+        YouTubeUploadLogger.info("Re-checking environment before OAuth...");
         
         if (isHeadless) {
             // We're on a production server without a display
@@ -462,14 +591,101 @@ public class YouTubeUploader {
         
         // Use configured port or -1 to automatically find an available port
         int oauthPort = YouTubeConfig.getOAuthReceiverPort();
-        LocalServerReceiver receiver = new LocalServerReceiver.Builder()
-                .setPort(oauthPort) // -1 means use any available port
-                .build();
+        LocalServerReceiver receiver = null;
         
-        System.out.println("OAuth receiver using port: " + receiver.getPort());
-        System.out.println("A browser window will open for authorization...");
-        
-        return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+        try {
+            // Try creating receiver with configured/automatic port
+            receiver = new LocalServerReceiver.Builder()
+                    .setPort(oauthPort) // -1 means use any available port
+                    .build();
+            
+            System.out.println("OAuth receiver using port: " + receiver.getPort());
+            System.out.println("Redirect URI: " + receiver.getRedirectUri());
+            System.out.println("A browser window will open for authorization...");
+            
+            Credential authCredential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+            
+            // Ensure receiver is stopped after authorization
+            if (receiver != null) {
+                try {
+                    receiver.stop();
+                    System.out.println("✓ OAuth receiver stopped successfully");
+                } catch (Exception e) {
+                    System.err.println("Warning: Could not stop OAuth receiver: " + e.getMessage());
+                }
+            }
+            
+            // CRITICAL: Save credentials to database for production use
+            try {
+                saveCredentialsToDatabase(authCredential, clientSecrets);
+            } catch (Exception dbEx) {
+                System.err.println("⚠ Warning: Could not save credentials to database: " + dbEx.getMessage());
+            }
+            
+            return authCredential;
+            
+        } catch (java.net.BindException e) {
+            // Port is already in use
+            System.err.println("❌ Port binding failed: " + e.getMessage());
+            System.err.println("Trying with automatic port selection...");
+            
+            // Force automatic port selection
+            receiver = new LocalServerReceiver.Builder()
+                    .setPort(-1) // Force automatic port
+                    .build();
+            
+            System.out.println("OAuth receiver using fallback port: " + receiver.getPort());
+            
+            try {
+                Credential fallbackCredential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+                
+                // Cleanup
+                if (receiver != null) {
+                    try {
+                        receiver.stop();
+                    } catch (Exception ex) {
+                        System.err.println("Warning: Could not stop fallback receiver");
+                    }
+                }
+                
+                // Save to database
+                try {
+                    saveCredentialsToDatabase(fallbackCredential, clientSecrets);
+                } catch (Exception dbEx) {
+                    System.err.println("⚠ Warning: Could not save credentials to database: " + dbEx.getMessage());
+                }
+                
+                return fallbackCredential;
+            } finally {
+                // Ensure cleanup in finally block
+                if (receiver != null) {
+                    try {
+                        receiver.stop();
+                    } catch (Exception ex) {
+                        // Ignore
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Other errors
+            System.err.println("❌ OAuth authorization failed: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Cleanup
+            if (receiver != null) {
+                try {
+                    receiver.stop();
+                } catch (Exception ex) {
+                    // Ignore
+                }
+            }
+            
+            throw new IOException("OAuth authorization failed. Please ensure:\n" +
+                    "1. client_secret.json is properly configured\n" +
+                    "2. No other OAuth process is running\n" +
+                    "3. Firewall allows local connections\n" +
+                    "Error: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -816,5 +1032,130 @@ public class YouTubeUploader {
         }
         
         return null;
+    }
+    
+    /**
+     * Fetch StoredCredential from alternative sources (Hiox server, local backup, etc.)
+     */
+    private static boolean fetchCredentialsFromAlternativeSources(File credentialsFolder) {
+        YouTubeUploadLogger.info("Trying alternative credential sources...");
+        
+        // Priority 1: Try fetching from Hiox server (remote backup)
+        String hioxUrl = "https://www.hiox.in/youtube-credentials/StoredCredential";
+        try {
+            YouTubeUploadLogger.info("Attempting to fetch from Hiox server: " + hioxUrl);
+            java.net.URL url = new java.net.URL(hioxUrl);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(10000); // 10 seconds
+            conn.setReadTimeout(10000);
+            
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                // Ensure credentials folder exists
+                if (!credentialsFolder.exists()) {
+                    credentialsFolder.mkdirs();
+                    YouTubeUploadLogger.info("Created credentials folder: " + credentialsFolder.getAbsolutePath());
+                }
+                
+                // Download and save
+                File targetFile = new File(credentialsFolder, "StoredCredential");
+                try (InputStream in = conn.getInputStream();
+                     FileOutputStream out = new FileOutputStream(targetFile)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    long totalBytes = 0;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                        totalBytes += bytesRead;
+                    }
+                    YouTubeUploadLogger.success("Downloaded StoredCredential from Hiox server!");
+                    YouTubeUploadLogger.info("Saved to: " + targetFile.getAbsolutePath());
+                    YouTubeUploadLogger.info("Size: " + totalBytes + " bytes");
+                    return true;
+                }
+            } else {
+                YouTubeUploadLogger.warn("Hiox server returned: " + responseCode);
+            }
+        } catch (Exception e) {
+            YouTubeUploadLogger.warn("Could not fetch from Hiox server: " + e.getMessage());
+        }
+        
+        // Priority 2: Try local backup location
+        String[] localBackupPaths = {
+            "C:/youtube-credentials/StoredCredential",
+            "/root/youtube-credentials/StoredCredential",
+            System.getProperty("user.home") + "/youtube-credentials/StoredCredential",
+            System.getProperty("user.home") + "/Desktop/youtube-credentials/StoredCredential"
+        };
+        
+        for (String backupPath : localBackupPaths) {
+            try {
+                File backupFile = new File(backupPath);
+                if (backupFile.exists() && backupFile.canRead()) {
+                    YouTubeUploadLogger.info("Found local backup: " + backupPath);
+                    
+                    // Ensure credentials folder exists
+                    if (!credentialsFolder.exists()) {
+                        credentialsFolder.mkdirs();
+                    }
+                    
+                    // Copy to credentials folder
+                    File targetFile = new File(credentialsFolder, "StoredCredential");
+                    java.nio.file.Files.copy(backupFile.toPath(), targetFile.toPath(), 
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    
+                    YouTubeUploadLogger.success("Copied from local backup!");
+                    YouTubeUploadLogger.info("Source: " + backupFile.getAbsolutePath());
+                    YouTubeUploadLogger.info("Target: " + targetFile.getAbsolutePath());
+                    YouTubeUploadLogger.info("Size: " + targetFile.length() + " bytes");
+                    return true;
+                }
+            } catch (Exception e) {
+                // Continue to next location
+            }
+        }
+        
+        YouTubeUploadLogger.error("No alternative credential sources found");
+        return false;
+    }
+    
+    /**
+     * Save OAuth credentials to database for production server use
+     */
+    private static void saveCredentialsToDatabase(Credential credential, GoogleClientSecrets clientSecrets) {
+        try {
+            String clientId = clientSecrets.getDetails().getClientId();
+            String clientSecret = clientSecrets.getDetails().getClientSecret();
+            String accessToken = credential.getAccessToken();
+            String refreshToken = credential.getRefreshToken();
+            Long expiresIn = credential.getExpiresInSeconds();
+            
+            if (refreshToken != null && !refreshToken.isEmpty()) {
+                long expirySeconds = (expiresIn != null) ? expiresIn : 3600;
+                
+                boolean saved = YouTubeCredentialManager.storeCredentials(
+                    accessToken,
+                    refreshToken,
+                    clientId,
+                    clientSecret,
+                    expirySeconds
+                );
+                
+                if (saved) {
+                    System.out.println("✓ SUCCESS: Credentials saved to database");
+                    System.out.println("  Access token: " + (accessToken != null ? "Saved" : "Missing"));
+                    System.out.println("  Refresh token: " + (refreshToken != null ? "Saved" : "Missing"));
+                    System.out.println("  Production server can now use database credentials");
+                } else {
+                    System.err.println("✗ Failed to save credentials to database");
+                }
+            } else {
+                System.err.println("✗ No refresh token available - cannot save to database");
+            }
+        } catch (Exception e) {
+            System.err.println("✗ Error saving credentials to database: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

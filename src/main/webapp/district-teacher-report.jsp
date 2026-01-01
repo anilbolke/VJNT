@@ -671,6 +671,16 @@
                 </div>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
+            <!-- Search Filter inside Modal -->
+            <div style="padding: 20px 30px 0 30px; background: #f8f9fa; border-bottom: 2px solid #e0e0e0;">
+                <input type="text" id="modalSearchInput" class="search-input" 
+                       placeholder="🔍 Search teachers by name, mobile, or subject..." 
+                       onkeyup="filterModalTeachers()"
+                       style="width: 100%; margin-bottom: 15px;">
+                <div id="modalResultCount" style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                    Loading teachers...
+                </div>
+            </div>
             <div class="modal-body" id="modalBody">
                 <div style="text-align: center; padding: 40px;">
                     <div style="font-size: 48px; margin-bottom: 15px;">⏳</div>
@@ -723,9 +733,13 @@
             const modalBody = document.getElementById('modalBody');
             const modalSchoolName = document.getElementById('modalSchoolName');
             const modalUdiseCode = document.getElementById('modalUdiseCode');
+            const modalSearchInput = document.getElementById('modalSearchInput');
+            const modalResultCount = document.getElementById('modalResultCount');
             
             modalSchoolName.textContent = schoolName;
             modalUdiseCode.textContent = udiseCode;
+            modalSearchInput.value = ''; // Clear search
+            modalResultCount.textContent = 'Loading teachers...';
             
             // Show loading state
             modalBody.innerHTML = '<div style="text-align: center; padding: 40px;">' +
@@ -747,9 +761,13 @@
                             const safeMobile = escapeHtml(teacher.mobile);
                             const safeSubjects = escapeHtml(teacher.subjects);
                             const safeDate = escapeHtml(teacher.createdDate);
+                            const safeUdise = escapeHtml(udiseCode);
                             const safeDescription = teacher.description ? escapeHtml(teacher.description) : null;
                             
-                            html += '<div class="teacher-card">' +
+                            html += '<div class="teacher-card" data-teacher-name="' + safeName.toLowerCase() + '" ' +
+                                'data-teacher-mobile="' + safeMobile + '" ' +
+                                'data-teacher-subjects="' + safeSubjects.toLowerCase() + '" ' +
+                                'data-teacher-udise="' + safeUdise + '">' +
                                 '<div class="teacher-header">' +
                                 '<div class="teacher-name">' +
                                 '<span>👤</span>' +
@@ -758,6 +776,10 @@
                                 '<span class="badge">ID: ' + teacher.id + '</span>' +
                                 '</div>' +
                                 '<div class="teacher-info">' +
+                                '<div class="info-item">' +
+                                '<span class="info-icon">🏫</span>' +
+                                '<span><span class="info-label">UDISE:</span>' + safeUdise + '</span>' +
+                                '</div>' +
                                 '<div class="info-item">' +
                                 '<span class="info-icon">📱</span>' +
                                 '<span><span class="info-label">Mobile:</span>' + safeMobile + '</span>' +
@@ -782,11 +804,13 @@
                             html += '</div>';
                         });
                         modalBody.innerHTML = html;
+                        updateModalResultCount();
                     } else {
                         modalBody.innerHTML = '<div class="no-teachers">' +
                             '<div class="no-teachers-icon">👨‍🏫</div>' +
                             '<p>No teachers found for this school.</p>' +
                             '</div>';
+                        modalResultCount.textContent = '0 teachers';
                     }
                 })
                 .catch(error => {
@@ -795,7 +819,51 @@
                         '<div class="no-teachers-icon">❌</div>' +
                         '<p>Error loading teacher details. Please try again.</p>' +
                         '</div>';
+                    modalResultCount.textContent = 'Error loading';
                 });
+        }
+        
+        // Filter teachers in modal
+        function filterModalTeachers() {
+            const input = document.getElementById('modalSearchInput');
+            const filter = input.value.toLowerCase();
+            const modalBody = document.getElementById('modalBody');
+            const teacherCards = modalBody.getElementsByClassName('teacher-card');
+            
+            let visibleCount = 0;
+            
+            for (let i = 0; i < teacherCards.length; i++) {
+                const card = teacherCards[i];
+                const name = card.getAttribute('data-teacher-name') || '';
+                const mobile = card.getAttribute('data-teacher-mobile') || '';
+                const subjects = card.getAttribute('data-teacher-subjects') || '';
+                const udise = card.getAttribute('data-teacher-udise') || '';
+                
+                // Search in name, mobile, subjects, or UDISE
+                if (name.indexOf(filter) > -1 || 
+                    mobile.indexOf(filter) > -1 || 
+                    subjects.indexOf(filter) > -1 ||
+                    udise.indexOf(filter) > -1) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+            
+            // Update result count
+            const modalResultCount = document.getElementById('modalResultCount');
+            modalResultCount.textContent = 'Showing ' + visibleCount + ' of ' + teacherCards.length + ' teacher' + (teacherCards.length !== 1 ? 's' : '');
+        }
+        
+        // Update modal result count
+        function updateModalResultCount() {
+            const modalBody = document.getElementById('modalBody');
+            const teacherCards = modalBody.getElementsByClassName('teacher-card');
+            const modalResultCount = document.getElementById('modalResultCount');
+            
+            const totalCount = teacherCards.length;
+            modalResultCount.textContent = 'Showing ' + totalCount + ' teacher' + (totalCount !== 1 ? 's' : '');
         }
         
         // Escape HTML to prevent XSS attacks
@@ -808,6 +876,8 @@
         // Close modal
         function closeModal() {
             document.getElementById('teacherModal').style.display = 'none';
+            // Clear search when closing
+            document.getElementById('modalSearchInput').value = '';
         }
 
         // Close modal when clicking outside
