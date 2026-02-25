@@ -173,17 +173,17 @@
         }
         
         .assessment-section {
-            border: 2px solid #000;
-            margin-top: 20px;
+            border: 1px solid #aaa;
+            margin-top: 8px;
         }
         
         .assessment-header {
             background-color: #90EE90;
-            padding: 10px;
+            padding: 5px 10px;
             font-weight: bold;
             text-align: center;
-            border-bottom: 2px solid #000;
-            font-size: 15px;
+            border-bottom: 1px solid #aaa;
+            font-size: 12px;
         }
         
         .assessment-grid {
@@ -193,9 +193,9 @@
         }
         
         .assessment-box {
-            border-right: 1px solid #000;
-            border-bottom: 1px solid #000;
-            padding: 20px;
+            border-right: 1px solid #aaa;
+            border-bottom: 1px solid #aaa;
+            padding: 6px 8px;
             text-align: center;
         }
         
@@ -210,17 +210,25 @@
         }
         
         .assessment-label {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 8px;
-            font-weight: 600;
+            font-size: 11px;
+            color: #444;
+            margin-bottom: 3px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .assessment-teacher {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 3px;
+            font-style: italic;
         }
         
         .assessment-value {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             color: #333;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         
         .assessment-value.level-1 { color: #dc3545; }
@@ -231,13 +239,13 @@
         
         .overall-progress {
             background-color: #e7f3ff;
-            padding: 15px;
+            padding: 5px 10px;
             text-align: center;
-            font-size: 16px;
+            font-size: 12px;
             font-weight: bold;
             color: #004085;
-            border: 2px solid #007bff;
-            margin-top: 15px;
+            border: 1px solid #007bff;
+            margin-top: 6px;
         }
         
         /* ── Compact 3-column activity table ── */
@@ -616,28 +624,39 @@
             
             // Assessment Levels
             if (data.assessmentLevels) {
+                // Collect teacher per subject from activities
+                const teacherByLang = {};
+                if (data.allActivities) {
+                    data.allActivities.forEach(a => {
+                        if (a.assignedBy) teacherByLang[a.language] = a.assignedBy;
+                    });
+                }
+                const engTeacher  = teacherByLang['English']  || teacherByLang['english']  || '';
+                const marTeacher  = teacherByLang['Marathi']  || teacherByLang['marathi']  || '';
+                const mathTeacher = teacherByLang['Math']     || teacherByLang['math']     || '';
+
                 html += `
-                    <div class="section-title">📊 मूल्यांकन स्तर</div>
+                    <div class="section-title">📊 विषयनिहाय शिक्षण मूल्यांकन</div>
                     <div class="assessment-section">
-                        <div class="assessment-header">विषयनिहाय शिक्षण मूल्यांकन</div>
                         <div class="assessment-grid">
                             <div class="assessment-box">
-                                <div class="assessment-label">ENGLISH</div>
+                                <div class="assessment-label">इंग्रजी (English)</div>
+                                \${engTeacher ? `<div class="assessment-teacher">🧑‍🏫 \${engTeacher}</div>` : ''}
                                 <div class="assessment-value level-\${data.assessmentLevels.englishLevelNum}">\${data.assessmentLevels.english}</div>
                             </div>
                             <div class="assessment-box">
                                 <div class="assessment-label">मराठी</div>
+                                \${marTeacher ? `<div class="assessment-teacher">🧑‍🏫 \${marTeacher}</div>` : ''}
                                 <div class="assessment-value level-\${data.assessmentLevels.marathiLevelNum}">\${data.assessmentLevels.marathi}</div>
                             </div>
                             <div class="assessment-box">
                                 <div class="assessment-label">गणित</div>
+                                \${mathTeacher ? `<div class="assessment-teacher">🧑‍🏫 \${mathTeacher}</div>` : ''}
                                 <div class="assessment-value level-\${data.assessmentLevels.mathLevelNum}">\${data.assessmentLevels.math}</div>
                             </div>
                         </div>
                     </div>
-                    <div class="overall-progress">
-                        ⭐ एकूण प्रगती: \${data.assessmentLevels.overall || 'Assessment in progress'}
-                    </div>
+                    <div class="overall-progress">⭐ एकूण प्रगती: \${data.assessmentLevels.overall || 'Assessment in progress'}</div>
                 `;
             }
             
@@ -662,12 +681,14 @@
                     </div>
                 `;
 
-                // Group by language → unique activityText → count
+                // Group by language → unique activityText → count; also track teacher per subject
                 const bySubject = {};
+                const teacherPerSubject = {};
                 data.allActivities.forEach(a => {
                     if (!bySubject[a.language]) bySubject[a.language] = {};
                     const txt = a.activityText || 'N/A';
                     bySubject[a.language][txt] = (bySubject[a.language][txt] || 0) + 1;
+                    if (a.assignedBy) teacherPerSubject[a.language] = a.assignedBy;
                 });
 
                 html += `
@@ -685,11 +706,15 @@
 
                 Object.keys(bySubject).sort().forEach(lang => {
                     const activities = Object.entries(bySubject[lang]);
+                    const teacher = teacherPerSubject[lang] || '';
                     activities.forEach(([ txt, cnt ], idx) => {
                         if (idx === 0) {
                             html += `
                                 <tr>
-                                    <td class="subject-cell" rowspan="\${activities.length}">\${lang}</td>
+                                    <td class="subject-cell" rowspan="\${activities.length}">
+                                        \${lang}
+                                        \${teacher ? `<div style="font-size:9px;font-weight:normal;color:#555;margin-top:3px;font-style:italic;">🧑‍🏫 \${teacher}</div>` : ''}
+                                    </td>
                                     <td>\${txt}</td>
                                     <td class="count-cell">\${cnt}</td>
                                 </tr>
