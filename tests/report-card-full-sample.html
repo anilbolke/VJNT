@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Report Card – Full Sample</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+
+        .no-print { background:#17a2b8; color:white; padding:12px; text-align:center; margin-bottom:16px; border-radius:8px; font-weight:bold; }
+        .no-print button { background:#28a745; color:white; padding:8px 22px; border:none; border-radius:5px; font-size:14px; font-weight:bold; cursor:pointer; margin-right:8px; }
+        .no-print button.close { background:#6c757d; }
+
+        .report-card { max-width: 900px; margin: 0 auto; background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.15); }
+
+        /* ── Header ── */
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:3px solid #333; padding-bottom:10px; }
+        .logo { width:70px; height:70px; background:#f0f0f0; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid #006400; font-size:34px; }
+        .header-center { flex-grow:1; text-align:center; padding:0 16px; }
+        .header-center h1 { font-size:22px; font-weight:bold; color:#333; }
+        .header-center p { font-size:11px; margin:2px 0; color:#555; }
+
+        /* ── Report title bar ── */
+        .report-title { background:#000; color:white; text-align:center; padding:6px; font-weight:bold; font-size:16px; margin-bottom:2px; }
+
+        /* ── Class / Session ── */
+        .class-session { display:flex; border:2px solid #000; background:#f9f9f9; }
+        .class-session > div { padding:7px 10px; font-weight:bold; font-size:13px; }
+        .class-info { flex:1; border-right:2px solid #000; }
+        .session-info { flex:1; text-align:right; }
+
+        /* ── Student info grid ── */
+        .student-info { display:grid; grid-template-columns:1fr 2fr 1fr 2fr; border:2px solid #000; border-top:none; }
+        .student-info > div { padding:7px 10px; border-right:1px solid #000; border-bottom:1px solid #000; font-size:12px; }
+        .student-info > div:nth-child(4n) { border-right:none; }
+        .label { font-weight:bold; background:#f0f0f0; }
+
+        /* ── Approval banner ── */
+        .approval-banner { background:#28a745; color:white; padding:10px 16px; margin-bottom:10px; border-radius:6px; display:flex; align-items:center; gap:12px; border:2px solid #1e7e34; }
+        .approval-icon { font-size:26px; }
+        .approval-title { font-size:15px; font-weight:bold; margin-bottom:2px; }
+        .approval-info { font-size:11px; opacity:.95; }
+
+        /* ── Section title ── */
+        .section-title { background:#667eea; color:white; padding:5px 10px; font-weight:bold; font-size:13px; margin-top:8px; border-radius:3px; }
+
+        /* ── Assessment section ── */
+        .assessment-section { border:1px solid #aaa; margin-top:6px; }
+        .assessment-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+        .assessment-box { border-right:1px solid #aaa; border-bottom:1px solid #aaa; padding:6px 8px; text-align:center; }
+        .assessment-box:nth-child(3n) { border-right:none; }
+        .assessment-box:last-child, .assessment-box:nth-last-child(2), .assessment-box:nth-last-child(3) { border-bottom:none; }
+        .assessment-label { font-size:11px; color:#444; margin-bottom:3px; font-weight:700; text-transform:uppercase; }
+        .assessment-teacher { font-size:10px; color:#888; margin-bottom:3px; font-style:italic; }
+        .assessment-value { font-size:12px; font-weight:bold; color:#333; line-height:1.3; }
+        .assessment-value.level-1 { color:#dc3545; }
+        .assessment-value.level-2 { color:#fd7e14; }
+        .assessment-value.level-3 { color:#ffc107; }
+        .assessment-value.level-4 { color:#28a745; }
+        .assessment-value.level-5 { color:#007bff; }
+        .overall-progress { background:#e7f3ff; padding:5px 10px; text-align:center; font-size:12px; font-weight:bold; color:#004085; border:1px solid #007bff; margin-top:6px; }
+
+        /* ── Summary bar ── */
+        .summary-bar { display:flex; gap:16px; align-items:center; margin-top:8px; padding:5px 10px; background:#e7f3ff; border:1px solid #007bff; border-radius:4px; font-size:12px; }
+        .summary-bar .sv { font-weight:bold; font-size:15px; color:#007bff; margin-right:3px; }
+
+        /* ── Activity table ── */
+        .activities-table { width:100%; border-collapse:collapse; margin-top:6px; font-size:11px; }
+        .activities-table th { background:#90EE90; border:1px solid #666; padding:5px 8px; text-align:center; font-weight:bold; font-size:11.5px; }
+        .activities-table td { border:1px solid #bbb; padding:4px 8px; vertical-align:middle; line-height:1.4; font-size:11px; }
+        .activities-table td.subject-cell { font-weight:bold; font-size:12px; text-align:center; background:#f0f4ff; border-right:2px solid #667eea; }
+        .activities-table td.count-cell { text-align:center; font-weight:bold; color:#007bff; font-size:13px; }
+        .activities-table tbody tr:nth-child(odd) td:not(.subject-cell) { background:#fff; }
+        .activities-table tbody tr:nth-child(even) td:not(.subject-cell) { background:#f9f9f9; }
+
+        /* ── Palak Melava ── */
+        .palak-melava-section { margin-top:6px; border:1px solid #aaa; }
+        .palak-melava-header { background:#90EE90; padding:4px 10px; font-weight:bold; text-align:center; border-bottom:1px solid #aaa; font-size:11px; }
+        .palak-melava-content { padding:4px 8px; }
+        .meeting-table { width:100%; border-collapse:collapse; font-size:11px; }
+        .meeting-table th { background:#f0f4ff; border:1px solid #bbb; padding:3px 6px; font-weight:bold; text-align:center; }
+        .meeting-table td { border:1px solid #ddd; padding:3px 6px; vertical-align:middle; }
+        .meeting-table tbody tr:nth-child(even) td { background:#fafafa; }
+
+        /* ── Remarks ── */
+        .remarks-section { margin-top:6px; border:1px solid #aaa; }
+        .remarks-header { background:#f0f0f0; padding:4px 10px; font-weight:bold; border-bottom:1px solid #aaa; text-align:center; font-size:11px; }
+        .remarks-content { padding:6px 10px; min-height:30px; font-size:11px; line-height:1.5; }
+
+        /* ── Signatures ── */
+        .signatures { display:grid; grid-template-columns:1fr 1fr 1fr; border:1px solid #aaa; border-top:none; margin-top:6px; }
+        .signatures > div { padding:8px 10px; border-right:1px solid #aaa; text-align:center; min-height:55px; display:flex; flex-direction:column; justify-content:space-between; }
+        .signatures > div:last-child { border-right:none; }
+        .signature-label { font-weight:bold; font-size:11px; margin-top:auto; }
+        .date-large { font-size:14px; font-weight:bold; margin:4px 0; color:#333; }
+
+        @media print {
+            body { background:white; padding:0; }
+            .no-print { display:none; }
+            .report-card { box-shadow:none; padding:10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button onclick="window.print()">🖨️ Print Report Card</button>
+    <button class="close" onclick="window.close()">✖ Close</button>
+</div>
+
+<div class="report-card">
+
+    <!-- ══════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════ -->
+    <div class="header">
+        <div class="logo">🏫</div>
+        <div class="header-center">
+            <h1>जिल्हा परिषद प्राथमिक शाळा, पुणे</h1>
+            <p class="school-address">UDISE: 27120100101 | जि.प. शाळा, वडगाव बुद्रुक, तालुका – हवेली, जिल्हा – पुणे</p>
+            <p>विभाग: पुणे | जिल्हा: पुणे</p>
+        </div>
+        <div class="logo">🎓</div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         TITLE + CLASS + SESSION
+    ══════════════════════════════════════ -->
+    <div class="report-title">विद्यार्थी सर्वसमावेशक प्रगती पत्रक</div>
+    <div class="class-session">
+        <div class="class-info">वर्ग: III &nbsp;|&nbsp; तुकडी: A</div>
+        <div class="session-info">शैक्षणिक वर्ष: 2025-2026</div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         STUDENT INFO
+    ══════════════════════════════════════ -->
+    <div class="student-info">
+        <div class="label">विद्यार्थ्याचे नाव</div>
+        <div>अनिल रमेश देशमुख</div>
+        <div class="label">PEN क्रमांक</div>
+        <div>MH20250001</div>
+
+        <div class="label">वर्ग</div>
+        <div>III – A</div>
+        <div class="label">शाळेचे नाव</div>
+        <div>जि.प. प्रा. शाळा, वडगाव बुद्रुक</div>
+
+        <div class="label">पालकाचे नाव</div>
+        <div>रमेश विठ्ठल देशमुख</div>
+        <div class="label">अहवाल तारीख</div>
+        <div>25-Feb-2026</div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         ASSESSMENT LEVELS  (compact)
+    ══════════════════════════════════════ -->
+    <div class="section-title">📊 विषयनिहाय शिक्षण मूल्यांकन</div>
+    <div class="assessment-section">
+        <div class="assessment-grid">
+            <div class="assessment-box">
+                <div class="assessment-label">इंग्रजी (English)</div>
+                <div class="assessment-teacher">🧑‍🏫 Rekha Jadhav</div>
+                <div class="assessment-value level-3">Level 3 – Proficient</div>
+            </div>
+            <div class="assessment-box">
+                <div class="assessment-label">मराठी</div>
+                <div class="assessment-teacher">🧑‍🏫 सुनीता पाटील</div>
+                <div class="assessment-value level-4">Level 4 – Advanced</div>
+            </div>
+            <div class="assessment-box">
+                <div class="assessment-label">गणित</div>
+                <div class="assessment-teacher">🧑‍🏫 अनिल देशमुख</div>
+                <div class="assessment-value level-2">Level 2 – Developing</div>
+            </div>
+        </div>
+    </div>
+    <div class="overall-progress">⭐ एकूण प्रगती: Level 3 – Progressing Well</div>
+
+    <!-- ══════════════════════════════════════
+         ACTIVITY TABLE  (3-column compact)
+    ══════════════════════════════════════ -->
+    <div class="summary-bar">
+        <span><span class="sv">42</span> एकूण उपक्रम</span>
+        <span style="color:#999">|</span>
+        <span><span class="sv">15</span> English</span>
+        <span><span class="sv">15</span> Marathi</span>
+        <span><span class="sv">12</span> Math</span>
+    </div>
+
+    <div class="section-title">📚 तपशीलवार क्रियाकलापांचा रेकॉर्ड</div>
+    <table class="activities-table">
+        <thead>
+            <tr>
+                <th style="width:16%;">विषय</th>
+                <th style="width:70%;">क्रियाकलाप वर्णन</th>
+                <th style="width:14%;">संख्या</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- English -->
+            <tr>
+                <td class="subject-cell" rowspan="5">English<div style="font-size:9px;font-weight:normal;color:#555;margin-top:3px;font-style:italic;">🧑‍🏫 Rekha Jadhav</div></td>
+                <td>Alphabet recognition and phonics activity</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr><td>Word reading with picture cards</td><td class="count-cell">3</td></tr>
+            <tr><td>Simple sentence formation using flashcards</td><td class="count-cell">3</td></tr>
+            <tr><td>Listening and responding to short stories</td><td class="count-cell">3</td></tr>
+            <tr><td>Oral conversation – greetings &amp; daily routine</td><td class="count-cell">3</td></tr>
+
+            <!-- Marathi -->
+            <tr>
+                <td class="subject-cell" rowspan="5">Marathi<div style="font-size:9px;font-weight:normal;color:#555;margin-top:3px;font-style:italic;">🧑‍🏫 सुनीता पाटील</div></td>
+                <td>मुलांना मराठी अक्षरे ओळखणे व लिहिणे</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr><td>शब्द वाचन व अर्थ समजणे क्रियाकलाप</td><td class="count-cell">3</td></tr>
+            <tr><td>वाक्य तयार करणे आणि समजपूर्वक वाचन</td><td class="count-cell">3</td></tr>
+            <tr><td>कविता म्हणणे व अर्थ सांगणे</td><td class="count-cell">3</td></tr>
+            <tr><td>गोष्ट सांगणे आणि प्रश्नांची उत्तरे देणे</td><td class="count-cell">3</td></tr>
+
+            <!-- Math -->
+            <tr>
+                <td class="subject-cell" rowspan="4">Math<div style="font-size:9px;font-weight:normal;color:#555;margin-top:3px;font-style:italic;">🧑‍🏫 अनिल देशमुख</div></td>
+                <td>संख्या ओळख व मोजणी क्रियाकलाप (1 ते 20)</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr><td>बेरीज व वजाबाकी (वस्तू वापरून)</td><td class="count-cell">3</td></tr>
+            <tr><td>आकार ओळख – त्रिकोण, चौकोन, वर्तुळ</td><td class="count-cell">3</td></tr>
+            <tr><td>गुणाकाराची ओळख – गट करणे</td><td class="count-cell">3</td></tr>
+        </tbody>
+    </table>
+
+    <!-- ══════════════════════════════════════
+         PALAK MELAVA  (one-liner table)
+    ══════════════════════════════════════ -->
+    <div class="section-title">👨‍👩‍👧‍👦 पालक-शिक्षक बैठका</div>
+    <div class="palak-melava-section">
+        <div class="palak-melava-header">पालकांच्या सहभागाच्या क्रियाकलापांची नोंद &nbsp;|&nbsp; एकूण बैठका: 3</div>
+        <div class="palak-melava-content">
+            <table class="meeting-table">
+                <thead>
+                    <tr>
+                        <th style="width:5%;">#</th>
+                        <th style="width:22%;">बैठकीची तारीख</th>
+                        <th style="width:15%;">उपस्थित पालक</th>
+                        <th>प्रमुख पाहुणे / उपस्थित</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align:center;">1</td>
+                        <td>15-Jun-2025</td>
+                        <td style="text-align:center;">28</td>
+                        <td>श्री. रमेश पाटील (BEO), श्रीमती सुमन शिंदे (CRC)</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">2</td>
+                        <td>10-Oct-2025</td>
+                        <td style="text-align:center;">35</td>
+                        <td>श्री. विजय जाधव (SMC अध्यक्ष), सर्व पालक</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">3</td>
+                        <td>20-Jan-2026</td>
+                        <td style="text-align:center;">31</td>
+                        <td>श्रीमती कला देशपांडे (HM), श्री. अशोक कुलकर्णी</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         REMARKS  (compact)
+    ══════════════════════════════════════ -->
+    <div class="remarks-section">
+        <div class="remarks-header">वर्ग शिक्षकांचे टिप्पण्या आणि निरीक्षणे</div>
+        <div class="remarks-content">
+            विद्यार्थी अनिल हा अभ्यासात नियमित आणि उत्साही आहे. मराठी व गणितात चांगली प्रगती दिसून येते. इंग्रजीत अधिक सराव आवश्यक आहे.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SIGNATURES  (compact)
+    ══════════════════════════════════════ -->
+    <div class="signatures">
+        <div>
+            <div style="font-weight:bold;font-size:11px;color:#666;">अहवाल तारीख</div>
+            <div class="date-large">25-Feb-2026</div>
+            <div></div>
+        </div>
+        <div>
+            <div></div>
+            <div class="signature-label">वर्ग शिक्षकाची स्वाक्षरी</div>
+        </div>
+        <div>
+            <div></div>
+            <div class="signature-label">मुख्याध्यापकांची सही</div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         GRADING LEGEND  (one line)
+    ══════════════════════════════════════ -->
+    <div style="margin-top:6px;padding:4px 10px;background:#f8f9fa;border:1px solid #ddd;font-size:10px;color:#555;text-align:center;">
+        📖 स्तर:
+        <span style="color:#dc3545;">●Level 1 सुरुवात</span> &nbsp;
+        <span style="color:#fd7e14;">●Level 2 विकसित</span> &nbsp;
+        <span style="color:#ffc107;">●Level 3 प्रवीण</span> &nbsp;
+        <span style="color:#28a745;">●Level 4 प्रगत</span> &nbsp;
+        <span style="color:#007bff;">●Level 5 तज्ज्ञ</span>
+    </div>
+
+</div><!-- /report-card -->
+</body>
+</html>

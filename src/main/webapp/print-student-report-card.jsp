@@ -605,19 +605,6 @@
                 </div>
             `;
             
-            // Approval Banner
-            if (approvalData && approvalData.status === 'APPROVED') {
-                html += `
-                    <div class="approval-banner">
-                        <div class="approval-icon">✓</div>
-                        <div class="approval-details">
-                            <div class="approval-title">मुख्याध्यापकांनी मंजूर केलेला अहवाल</div>
-                            <div class="approval-info">मंजुरी तपशील: #\${approvalData.approvalId} | मंजूर तारीख: \${approvalData.approvedDate || 'N/A'} |व्युत्पन्न तारीख: \${currentDate}</div>
-                        </div>
-                    </div>
-                `;
-            }
-            
             // Assessment Levels
             if (data.assessmentLevels) {
                 // Collect teacher per subject from activities
