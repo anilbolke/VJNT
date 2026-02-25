@@ -96,15 +96,22 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
         levels.put("mathLevelNum", String.valueOf(mathLevel));
         levels.put("englishLevelNum", String.valueOf(englishLevel));
         
-        // Calculate overall progress based on how many subjects are assessed
+        // Calculate overall progress: average of assessed subjects
         int assessedCount = 0;
-        if (marathiLevel > 0) assessedCount++;
-        if (mathLevel > 0) assessedCount++;
-        if (englishLevel > 0) assessedCount++;
-        
-        String overall = assessedCount == 3 ? "All Subjects Assessed" :
-                        assessedCount == 2 ? "2 of 3 Assessed" :
-                        assessedCount == 1 ? "1 of 3 Assessed" : "Not Yet Assessed";
+        int levelSum = 0;
+        if (marathiLevel > 0) { assessedCount++; levelSum += marathiLevel; }
+        if (mathLevel > 0)    { assessedCount++; levelSum += mathLevel; }
+        if (englishLevel > 0) { assessedCount++; levelSum += englishLevel; }
+
+        String overall;
+        if (assessedCount == 0) {
+            overall = "अद्याप मूल्यांकन नाही";
+        } else {
+            int avgLevel = (int) Math.round((double) levelSum / assessedCount);
+            String[] levelNames = { "", "Level 1 – सुरुवात", "Level 2 – विकसित होत आहे",
+                                    "Level 3 – प्रगत", "Level 4 – उत्कृष्ट", "Level 5 – तज्ज्ञ" };
+            overall = (avgLevel >= 1 && avgLevel <= 5) ? levelNames[avgLevel] : "Level " + avgLevel;
+        }
         levels.put("overall", overall);
         
         return levels;
