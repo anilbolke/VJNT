@@ -689,15 +689,11 @@
 
                 Object.keys(bySubject).sort().forEach(lang => {
                     const activities = Object.entries(bySubject[lang]);
-                    const teacher = teacherPerSubject[lang] || '';
                     activities.forEach(([ txt, cnt ], idx) => {
                         if (idx === 0) {
                             html += `
                                 <tr>
-                                    <td class="subject-cell" rowspan="\${activities.length}">
-                                        \${lang}
-                                        \${teacher ? `<div style="font-size:9px;font-weight:normal;color:#555;margin-top:3px;font-style:italic;">🧑‍🏫 \${teacher}</div>` : ''}
-                                    </td>
+                                    <td class="subject-cell" rowspan="\${activities.length}">\${lang}</td>
                                     <td>\${txt}</td>
                                     <td class="count-cell">\${cnt}</td>
                                 </tr>
