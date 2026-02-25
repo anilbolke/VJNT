@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <title>3-Column Activity Summary – Sample</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+
+        /* ── Section title ── */
+        .section-title {
+            background-color: #667eea;
+            color: white;
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 13px;
+            margin-top: 12px;
+            border-radius: 3px;
+        }
+
+        /* ── Summary bar ── */
+        .summary-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #e7f3ff;
+            border: 1px solid #007bff;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .summary-bar .sv { font-weight: bold; font-size: 15px; color: #007bff; margin-right: 3px; }
+
+        /* ── 3-column activity summary table ── */
+        .act-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+        .act-table th {
+            background-color: #90EE90;
+            border: 1px solid #666;
+            padding: 5px 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 11.5px;
+        }
+        .act-table td {
+            border: 1px solid #bbb;
+            padding: 4px 8px;
+            vertical-align: middle;
+            line-height: 1.4;
+        }
+        /* Subject cell – spans all its activity rows, bold */
+        .act-table td.subject-cell {
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            background: #f0f4ff;
+            border-right: 2px solid #667eea;
+        }
+        /* Count cell – centered, bold */
+        .act-table td.count-cell {
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+            font-size: 13px;
+        }
+        /* Alternating rows */
+        .act-table tbody tr:nth-child(odd) td:not(.subject-cell) { background: #fff; }
+        .act-table tbody tr:nth-child(even) td:not(.subject-cell) { background: #f9f9f9; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .act-table { page-break-inside: auto; }
+            .act-table tr { page-break-inside: avoid; }
+        }
+
+        /* Demo wrapper */
+        .card { background: white; max-width: 780px; margin: 0 auto; padding: 24px; border: 1px solid #ccc; }
+        h2 { font-size: 14px; color: #333; border-bottom: 2px solid #667eea; padding-bottom: 4px; margin-bottom: 12px; }
+        .badge { display:inline-block; font-size:11px; background:#28a745; color:white; padding:2px 8px; border-radius:10px; margin-left:8px; }
+    </style>
+</head>
+<body>
+<div class="card">
+
+    <h1 style="font-size:16px; color:#667eea; margin-bottom:4px;">
+        📚 तपशीलवार क्रियाकलापांचा रेकॉर्ड — 3-Column Layout Sample
+        <span class="badge">PROPOSED</span>
+    </h1>
+    <p style="font-size:11px; color:#666; margin-bottom:16px;">
+        Columns: <strong>विषय (Subject)</strong> | <strong>क्रियाकलाप वर्णन (Activity Details)</strong> | <strong>संख्या (Count)</strong>
+    </p>
+
+    <!-- Summary bar -->
+    <div class="summary-bar">
+        <span><span class="sv">42</span> एकूण उपक्रम</span>
+        <span>|</span>
+        <span><span class="sv">15</span> मराठी</span>
+        <span><span class="sv">14</span> इंग्रजी</span>
+        <span><span class="sv">13</span> गणित</span>
+    </div>
+
+    <!-- Section title -->
+    <div class="section-title">📚 तपशीलवार क्रियाकलापांचा रेकॉर्ड</div>
+
+    <!-- 3-column table -->
+    <table class="act-table">
+        <thead>
+            <tr>
+                <th style="width:14%;">विषय</th>
+                <th style="width:72%;">क्रियाकलाप वर्णन</th>
+                <th style="width:14%;">संख्या</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            <!-- ── MARATHI ── -->
+            <tr>
+                <td class="subject-cell" rowspan="6">मराठी</td>
+                <td>मुलांना मराठी अक्षरे ओळखणे व लिहिणे या क्रियाकलापात सहभागी केले</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>शब्द वाचन व अर्थ समजणे क्रियाकलाप</td>
+                <td class="count-cell">2</td>
+            </tr>
+            <tr>
+                <td>वाक्य तयार करणे आणि समजपूर्वक वाचन</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>कविता म्हणणे व अर्थ सांगणे</td>
+                <td class="count-cell">2</td>
+            </tr>
+            <tr>
+                <td>गोष्ट सांगणे आणि प्रश्नांची उत्तरे देणे</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>लेखन सराव – मात्रा व जोडाक्षरे</td>
+                <td class="count-cell">2</td>
+            </tr>
+
+            <!-- ── ENGLISH ── -->
+            <tr>
+                <td class="subject-cell" rowspan="5">इंग्रजी</td>
+                <td>Alphabet recognition and phonics activity</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>Word reading with picture cards</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>Simple sentence formation using flashcards</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>Listening and responding to short stories</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>Oral conversation practice – greetings &amp; daily routine</td>
+                <td class="count-cell">2</td>
+            </tr>
+
+            <!-- ── MATH ── -->
+            <tr>
+                <td class="subject-cell" rowspan="5">गणित</td>
+                <td>संख्या ओळख व मोजणी क्रियाकलाप (1 ते 20)</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>बेरीज व वजाबाकी (वस्तू वापरून)</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>आकार ओळख – त्रिकोण, चौकोन, वर्तुळ</td>
+                <td class="count-cell">2</td>
+            </tr>
+            <tr>
+                <td>मापन क्रियाकलाप – लांबी व वजन</td>
+                <td class="count-cell">3</td>
+            </tr>
+            <tr>
+                <td>गुणाकाराची ओळख – गट करणे</td>
+                <td class="count-cell">2</td>
+            </tr>
+
+        </tbody>
+    </table>
+
+    <!-- Notes -->
+    <div style="margin-top:20px; padding:12px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:5px; font-size:11px; color:#555;">
+        <strong style="font-size:12px; color:#333;">Layout notes:</strong><br>
+        • <strong>विषय</strong> cell uses <code>rowspan</code> — appears once per subject, vertically centred.<br>
+        • <strong>क्रियाकलाप वर्णन</strong> — unique activity description (same text repeated across days is merged into one row).<br>
+        • <strong>संख्या</strong> — how many times (days/weeks) that activity was recorded for this student.<br>
+        • Entire section for 42 activities fits on <strong>~½ page</strong> instead of 4–5 pages.
+    </div>
+
+</div>
+</body>
+</html>

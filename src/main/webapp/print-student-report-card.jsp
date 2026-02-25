@@ -240,69 +240,58 @@
             margin-top: 15px;
         }
         
+        /* ── Compact 3-column activity table ── */
         .activities-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            border: 2px solid #000;
+            margin-top: 6px;
+            font-size: 11px;
         }
-        
         .activities-table th {
             background-color: #90EE90;
-            border: 1px solid #000;
-            padding: 10px;
+            border: 1px solid #666;
+            padding: 5px 8px;
             text-align: center;
             font-weight: bold;
+            font-size: 11.5px;
+        }
+        .activities-table td {
+            border: 1px solid #bbb;
+            padding: 4px 8px;
+            vertical-align: middle;
+            line-height: 1.4;
+            font-size: 11px;
+        }
+        .activities-table td.subject-cell {
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            background: #f0f4ff;
+            border-right: 2px solid #667eea;
+        }
+        .activities-table td.count-cell {
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
             font-size: 13px;
         }
-        
-        .activities-table td {
-            border: 1px solid #000;
-            padding: 8px;
+        .activities-table tbody tr:nth-child(odd) td:not(.subject-cell) { background: #fff; }
+        .activities-table tbody tr:nth-child(even) td:not(.subject-cell) { background: #f9f9f9; }
+
+        /* ── Compact summary bar ── */
+        .summary-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #e7f3ff;
+            border: 1px solid #007bff;
+            border-radius: 4px;
             font-size: 12px;
         }
-        
-        .activities-table .week-header {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            text-align: center;
-        }
-        
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .stat-card {
-            border: 2px solid #000;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
-        }
-        
-        .stat-card.total {
-            background-color: #e7f3ff;
-            border-color: #007bff;
-        }
-        
-        .stat-card.completed {
-            background-color: #d4edda;
-            border-color: #28a745;
-        }
-        
-        .stat-card.completion {
-            background-color: #fff3cd;
-            border-color: #ffc107;
-        }
-        
-        .stat-value {
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
+        .summary-bar .sv { font-weight: bold; font-size: 15px; color: #007bff; margin-right: 3px; }
+
         .stat-label {
             font-size: 13px;
             color: #666;
@@ -655,71 +644,67 @@
             // Activities Summary
             if (data.allActivities && data.allActivities.length > 0) {
                 const totalActivities = data.allActivities.length;
-                const completedActivities = data.allActivities.filter(a => a.completed).length;
-                const completionRate = Math.round((completedActivities / totalActivities) * 100);
-                
+
+                // Count per subject for summary bar
+                const subjectCount = {};
+                data.allActivities.forEach(a => {
+                    subjectCount[a.language] = (subjectCount[a.language] || 0) + 1;
+                });
+                let subjectSummary = Object.keys(subjectCount).map(s =>
+                    `<span><span class="sv">\${subjectCount[s]}</span> \${s}</span>`
+                ).join('<span style="color:#999"> | </span>');
+
                 html += `
-                    <div class="section-title">📝 क्रियाकलाप पूर्ण सारांश</div>
-                    <div class="summary-stats">
-                        <div class="stat-card total">
-                            <div class="stat-value" style="color: #007bff;">\${totalActivities}</div>
-                            <div class="stat-label">एकूण उपक्रम</div>
-                        </div>
+                    <div class="summary-bar">
+                        <span><span class="sv">\${totalActivities}</span> एकूण उपक्रम</span>
+                        <span style="color:#999"> | </span>
+                        \${subjectSummary}
                     </div>
                 `;
-                
-                // Activities Table
+
+                // Group by language → unique activityText → count
+                const bySubject = {};
+                data.allActivities.forEach(a => {
+                    if (!bySubject[a.language]) bySubject[a.language] = {};
+                    const txt = a.activityText || 'N/A';
+                    bySubject[a.language][txt] = (bySubject[a.language][txt] || 0) + 1;
+                });
+
                 html += `
                     <div class="section-title">📚 तपशीलवार क्रियाकलापांचा रेकॉर्ड</div>
                     <table class="activities-table">
                         <thead>
                             <tr>
-                                <th style="width: 12%;">विषय</th>
-                                <th style="width: 8%;">आठवडा</th>
-                                <th style="width: 8%;">दिवस</th>
-                                <th style="width: 52%;">क्रियाकलाप वर्णन</th>
-                                <th style="width: 20%;">शिक्षकाचे नाव</th>
+                                <th style="width:14%;">विषय</th>
+                                <th style="width:72%;">क्रियाकलाप वर्णन</th>
+                                <th style="width:14%;">संख्या</th>
                             </tr>
                         </thead>
                         <tbody>
                 `;
-                
-                // Group activities by language and week
-                const grouped = {};
-                data.allActivities.forEach(activity => {
-                    const key = activity.language + '-Week' + activity.weekNumber;
-                    if (!grouped[key]) {
-                        grouped[key] = {
-                            language: activity.language,
-                            week: activity.weekNumber,
-                            activities: []
-                        };
-                    }
-                    grouped[key].activities.push(activity);
-                });
-                
-                // Render grouped activities
-                Object.keys(grouped).sort().forEach(key => {
-                    const group = grouped[key];
-                    html += `
-                        <tr class="week-header">
-                            <td colspan="5">\${group.language.toUpperCase()} - Week \${group.week}</td>
-                        </tr>
-                    `;
-                    
-                    group.activities.sort((a, b) => a.dayNumber - b.dayNumber).forEach(activity => {
-                        html += `
-                            <tr>
-                                <td>\${activity.language}</td>
-                                <td>\${activity.weekNumber}</td>
-                                <td>\${activity.dayNumber}</td>
-                                <td>\${activity.activityText || 'N/A'}</td>
-                                <td>\${activity.assignedBy || 'N/A'}</td>
-                            </tr>
-                        `;
+
+                Object.keys(bySubject).sort().forEach(lang => {
+                    const activities = Object.entries(bySubject[lang]);
+                    activities.forEach(([ txt, cnt ], idx) => {
+                        if (idx === 0) {
+                            html += `
+                                <tr>
+                                    <td class="subject-cell" rowspan="\${activities.length}">\${lang}</td>
+                                    <td>\${txt}</td>
+                                    <td class="count-cell">\${cnt}</td>
+                                </tr>
+                            `;
+                        } else {
+                            html += `
+                                <tr>
+                                    <td>\${txt}</td>
+                                    <td class="count-cell">\${cnt}</td>
+                                </tr>
+                            `;
+                        }
                     });
                 });
-                
+
                 html += `
                         </tbody>
                     </table>
