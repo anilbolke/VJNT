@@ -165,11 +165,11 @@
         .section-title {
             background-color: #667eea;
             color: white;
-            padding: 12px;
+            padding: 5px 10px;
             font-weight: bold;
-            font-size: 16px;
-            margin-top: 25px;
-            border-radius: 4px;
+            font-size: 13px;
+            margin-top: 8px;
+            border-radius: 3px;
         }
         
         .assessment-section {
@@ -307,81 +307,77 @@
         }
         
         .palak-melava-section {
-            margin-top: 20px;
-            border: 2px solid #000;
+            margin-top: 6px;
+            border: 1px solid #aaa;
         }
         
         .palak-melava-header {
             background-color: #90EE90;
-            padding: 10px;
+            padding: 4px 10px;
             font-weight: bold;
             text-align: center;
-            border-bottom: 2px solid #000;
+            border-bottom: 1px solid #aaa;
+            font-size: 11px;
         }
         
         .palak-melava-content {
-            padding: 15px;
+            padding: 4px 8px;
         }
         
-        .meeting-card {
-            background-color: #f8f9fa;
-            border: 2px solid #667eea;
-            border-left: 6px solid #667eea;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 4px;
+        /* compact one-liner meeting table */
+        .meeting-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
         }
-        
-        .meeting-card h4 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 15px;
+        .meeting-table th {
+            background: #f0f4ff;
+            border: 1px solid #bbb;
+            padding: 3px 6px;
+            font-weight: bold;
+            text-align: center;
         }
-        
-        .meeting-details {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-            font-size: 12px;
+        .meeting-table td {
+            border: 1px solid #ddd;
+            padding: 3px 6px;
+            vertical-align: middle;
         }
-        
-        .meeting-details strong {
-            color: #333;
-        }
+        .meeting-table tbody tr:nth-child(even) td { background: #fafafa; }
         
         .remarks-section {
-            margin-top: 25px;
-            border: 2px solid #000;
+            margin-top: 6px;
+            border: 1px solid #aaa;
         }
         
         .remarks-header {
             background-color: #f0f0f0;
-            padding: 12px;
+            padding: 4px 10px;
             font-weight: bold;
-            border-bottom: 2px solid #000;
+            border-bottom: 1px solid #aaa;
             text-align: center;
+            font-size: 11px;
         }
         
         .remarks-content {
-            padding: 15px;
-            min-height: 80px;
-            font-size: 13px;
-            line-height: 1.6;
+            padding: 6px 10px;
+            min-height: 30px;
+            font-size: 11px;
+            line-height: 1.5;
         }
         
         .signatures {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            border: 2px solid #000;
+            border: 1px solid #aaa;
             border-top: none;
+            margin-top: 6px;
         }
         
         .signatures > div {
-            padding: 20px;
-            border-right: 2px solid #000;
+            padding: 8px 10px;
+            border-right: 1px solid #aaa;
             text-align: center;
-            min-height: 100px;
+            min-height: 55px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -393,7 +389,7 @@
         
         .signature-label {
             font-weight: bold;
-            font-size: 13px;
+            font-size: 11px;
             margin-top: auto;
         }
         
@@ -402,9 +398,9 @@
         }
         
         .date-large {
-            font-size: 24px;
+            font-size: 14px;
             font-weight: bold;
-            margin: 15px 0;
+            margin: 4px 0;
             color: #333;
         }
         
@@ -739,30 +735,34 @@
             // Palak Melava
             if (data.palakMelavaData && data.palakMelavaData.length > 0) {
                 html += `
-                    <div class="section-title">👨‍👩‍👧‍👦 पालक-शिक्षक बैठका (PALAK MELAVA)</div>
+                    <div class="section-title">👨‍👩‍👧‍👦 पालक-शिक्षक बैठका</div>
                     <div class="palak-melava-section">
-                        <div class="palak-melava-header">पालकांच्या सहभागाच्या क्रियाकलापांची नोंद</div>
+                        <div class="palak-melava-header">पालकांच्या सहभागाच्या क्रियाकलापांची नोंद &nbsp;|&nbsp; एकूण बैठका: \${data.palakMelavaData.length}</div>
                         <div class="palak-melava-content">
-                            <p style="margin-bottom: 15px; font-weight: bold; color: #666;">एकूण आयोजित बैठका: \${data.palakMelavaData.length}</p>
+                            <table class="meeting-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:6%;">#</th>
+                                        <th style="width:20%;">बैठकीची तारीख</th>
+                                        <th style="width:14%;">उपस्थित पालक</th>
+                                        <th>प्रमुख पाहुणे / उपस्थित</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                 `;
-                
                 data.palakMelavaData.forEach((melava, index) => {
                     html += `
-                        <div class="meeting-card">
-                            <h4>📅 Meeting #\${index + 1}</h4>
-                            <div class="meeting-details">
-                                <div><strong>बैठकीची तारीख:</strong> \${melava.meetingDate || 'N/A'}</div>
-                                <div><strong>पालक उपस्थित होते:</strong> \${melava.totalParentsAttended || 'N/A'}</div>
-                                <div style="grid-column: span 2;">
-                                    <strong>प्रमुख पाहुणे/उपस्थित:</strong><br>
-                                    \${melava.chiefAttendeeInfo || 'N/A'}
-                                </div>
-                            </div>
-                        </div>
+                        <tr>
+                            <td style="text-align:center;">\${index + 1}</td>
+                            <td>\${melava.meetingDate || 'N/A'}</td>
+                            <td style="text-align:center;">\${melava.totalParentsAttended || 'N/A'}</td>
+                            <td>\${melava.chiefAttendeeInfo || 'N/A'}</td>
+                        </tr>
                     `;
                 });
-                
                 html += `
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 `;
@@ -797,42 +797,14 @@
             `;
             
             // Grading Information
+            // Compact grading legend (one line)
             html += `
-                <div class="grading-info">
-                    <h3>📖 मूल्यांकन पातळी माहिती</h3>
-                    <table class="grading-scale">
-                        <thead>
-                            <tr>
-                                <th>Level</th>
-                                <th>Level 1</th>
-                                <th>Level 2</th>
-                                <th>Level 3</th>
-                                <th>Level 4</th>
-                                <th>Level 5</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Description</td>
-                                <td>Beginning</td>
-                                <td>Developing</td>
-                                <td>Proficient</td>
-                                <td>Advanced</td>
-                                <td>Expert</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    
-                    <div style="margin-top: 20px; padding: 15px; background: white; border: 2px solid #667eea; border-radius: 6px;">
-                        <p style="font-size: 12px; line-height: 1.8; color: #333;">
-                            <strong>Important Notes:</strong><br>
-                            • This comprehensive report reflects the student's performance throughout the academic year<br>
-                            • Activities mentioned are part of the daily learning curriculum as per VJNT Class Management System<br>
-                            • Parent-Teacher meetings provide valuable insights for collaborative student development<br>
-                            • For any queries regarding this report, please contact the class teacher or Head Master<br>
-                            • This is an official document approved by the Head Master and should be preserved carefully
-                        </p>
-                    </div>
+                <div style="margin-top:6px; padding:4px 10px; background:#f8f9fa; border:1px solid #ddd; font-size:10px; color:#555; text-align:center;">
+                    📖 स्तर: <span style="color:#dc3545;">●Level 1 सुरुवात</span> &nbsp;
+                    <span style="color:#fd7e14;">●Level 2 विकसित</span> &nbsp;
+                    <span style="color:#ffc107;">●Level 3 प्रवीण</span> &nbsp;
+                    <span style="color:#28a745;">●Level 4 प्रगत</span> &nbsp;
+                    <span style="color:#007bff;">●Level 5 तज्ज्ञ</span>
                 </div>
             `;
             
