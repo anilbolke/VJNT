@@ -108,8 +108,8 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
             overall = "अद्याप मूल्यांकन नाही";
         } else {
             int avgLevel = (int) Math.round((double) levelSum / assessedCount);
-            String[] levelNames = { "", "Level 1 – सुरुवात", "Level 2 – विकसित होत आहे",
-                                    "Level 3 – प्रगत", "Level 4 – उत्कृष्ट", "Level 5 – तज्ज्ञ" };
+            String[] levelNames = { "", "Level 1 – सुरुवात", "Level 2 – विकसित",
+                                    "Level 3 – प्रवीण", "Level 4 – प्रगत", "Level 5 – तज्ज्ञ" };
             overall = (avgLevel >= 1 && avgLevel <= 5) ? levelNames[avgLevel] : "Level " + avgLevel;
         }
         levels.put("overall", overall);
