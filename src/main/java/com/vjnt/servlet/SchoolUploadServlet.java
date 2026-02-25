@@ -54,49 +54,38 @@ public class SchoolUploadServlet extends HttpServlet {
         }
         
         try {
-            System.out.println("=== School Upload Servlet Started ===");
             
             // Get uploaded file
             Part filePart = request.getPart("schoolFile");
-            System.out.println("File part received: " + (filePart != null));
             
             if (filePart == null || filePart.getSize() == 0) {
-                System.out.println("Error: No file selected or file is empty");
                 request.setAttribute("errorMessage", "Please select a file to upload.");
                 request.getRequestDispatcher("/upload-schools.jsp").forward(request, response);
                 return;
             }
             
-            System.out.println("File size: " + filePart.getSize() + " bytes");
             
             String fileName = getFileName(filePart);
-            System.out.println("File name: " + fileName);
             
             // Validate file type
             if (!fileName.toLowerCase().endsWith(".xlsx") && !fileName.toLowerCase().endsWith(".xls")) {
-                System.out.println("Error: Invalid file type - " + fileName);
                 request.setAttribute("errorMessage", "Invalid file type. Please upload Excel file (.xlsx or .xls)");
                 request.getRequestDispatcher("/upload-schools.jsp").forward(request, response);
                 return;
             }
             
             // Parse Excel file
-            System.out.println("Starting to parse Excel file...");
             List<School> schools = parseExcelFile(filePart.getInputStream(), user.getUsername());
-            System.out.println("Parsed " + schools.size() + " schools from Excel");
             
             if (schools.isEmpty()) {
-                System.out.println("Error: No valid school records found");
                 request.setAttribute("errorMessage", "No valid school records found in the Excel file.");
                 request.getRequestDispatcher("/upload-schools.jsp").forward(request, response);
                 return;
             }
             
             // Insert into database
-            System.out.println("Inserting schools into database...");
             SchoolDAO schoolDAO = new SchoolDAO();
             int successCount = schoolDAO.batchInsertSchools(schools);
-            System.out.println("Successfully inserted " + successCount + " schools");
             
             String message = String.format("✓ Successfully uploaded %d school records out of %d total records.", 
                                           successCount, schools.size());
@@ -120,18 +109,14 @@ public class SchoolUploadServlet extends HttpServlet {
     private List<School> parseExcelFile(InputStream inputStream, String uploadedBy) throws IOException {
         List<School> schools = new ArrayList<>();
         
-        System.out.println("Opening Excel workbook...");
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             Sheet sheet = workbook.getSheetAt(0);
-            System.out.println("Sheet name: " + sheet.getSheetName());
-            System.out.println("Total rows: " + (sheet.getLastRowNum() + 1));
             
             // Skip header row (row 0)
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 
                 if (row == null) {
-                    System.out.println("Row " + (i+1) + " is null, skipping");
                     continue;
                 }
                 
@@ -141,16 +126,13 @@ public class SchoolUploadServlet extends HttpServlet {
                     String schoolName = getCellValueAsString(row.getCell(1));
                     String udiseNo = getCellValueAsString(row.getCell(2));
                     
-                    System.out.println("Row " + (i+1) + ": District=" + districtName + ", School=" + schoolName + ", UDISE=" + udiseNo);
                     
                     // Validate required fields
                     if (udiseNo == null || udiseNo.trim().isEmpty()) {
-                        System.out.println("  -> Skipping: Missing UDISE number");
                         continue;
                     }
                     
                     if (schoolName == null || schoolName.trim().isEmpty()) {
-                        System.out.println("  -> Skipping: Missing school name");
                         continue;
                     }
                     
@@ -159,7 +141,6 @@ public class SchoolUploadServlet extends HttpServlet {
                     school.setCreatedBy(uploadedBy);
                     
                     schools.add(school);
-                    System.out.println("  -> Added successfully");
                     
                 } catch (Exception e) {
                     System.err.println("Error parsing row " + (i+1) + ": " + e.getMessage());
@@ -168,7 +149,6 @@ public class SchoolUploadServlet extends HttpServlet {
             }
         }
         
-        System.out.println("Total schools parsed: " + schools.size());
         return schools;
     }
     

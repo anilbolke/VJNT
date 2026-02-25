@@ -569,7 +569,7 @@
         <!-- Left Side - Branding -->
         <div class="branding-section">
             <div class="logo-section">
-               <%--  <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo"> --%>
+                 <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo"> 
                 <h1 class="system-title"><span style="font-size: 64px;">GATEE</span> </h1>
                 <h1><span style="font-size: 32px;">PORTAL</span></h1><br>
                 <p class="system-subtitle">Growth  Achievement  Transformation  Excellence in Education  </p>

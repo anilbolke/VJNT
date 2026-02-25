@@ -78,8 +78,6 @@ public class ApproveVideoServlet extends HttpServlet {
                 return;
             }
             
-            System.out.println("Video approval request - Video ID: " + videoId + ", Action: " + action + 
-                             ", By: " + user.getUsername());
             
             // Process approval/rejection
             boolean success = false;
@@ -138,10 +136,8 @@ public class ApproveVideoServlet extends HttpServlet {
             int rowsAffected = pstmt.executeUpdate();
             
             if (rowsAffected > 0) {
-                System.out.println("Video " + videoId + " approved by " + approvedByName);
                 return true;
             } else {
-                System.err.println("No pending video found with ID: " + videoId);
                 return false;
             }
             
@@ -188,8 +184,6 @@ public class ApproveVideoServlet extends HttpServlet {
             int rowsAffected = pstmt.executeUpdate();
             
             if (rowsAffected > 0) {
-                System.out.println("Video " + videoId + " rejected by " + rejectedByName + 
-                                 ". Reason: " + rejectionReason);
                 return true;
             } else {
                 System.err.println("No pending video found with ID: " + videoId);

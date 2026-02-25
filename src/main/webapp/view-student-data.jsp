@@ -1925,12 +1925,7 @@
             const week = document.getElementById('weekFilter').value;
             
             // Log the data being sent
-            console.log('DEBUG: Fetching activity count with:');
-            console.log('  studentId:', studentId);
-            console.log('  subject:', subject);
-            console.log('  week:', week);
-            console.log('  day:', selectedActivity.dayNumber);
-            console.log('  activity:', selectedActivity.fullText);
+            
             
             const contextPath = '<%= request.getContextPath() %>';
             const formData = new URLSearchParams();
@@ -1949,18 +1944,12 @@
                 body: formData.toString()
             })
             .then(response => {
-                console.log('DEBUG: Debug Response status:', response.status);
                 return response.json();
             })
             .then(debugData => {
-                console.log('DEBUG: Full debug info from server:', debugData);
                 if (debugData && debugData.debug) {
-                    console.log('DEBUG: Total records in table:', debugData.debug.totalRecordsInTable);
-                    console.log('DEBUG: All records:', debugData.debug.allRecords);
-                    console.log('DEBUG: Records by student & language:', debugData.debug.recordsByStudentAndLanguage);
-                    console.log('DEBUG: Records by week & day:', debugData.debug.recordsByWeekAndDay);
+                   
                 } else {
-                    console.warn('DEBUG: No debug data received from server');
                 }
                 
                 // Now try to get the specific count
@@ -1973,16 +1962,13 @@
                 });
             })
             .then(response => {
-                console.log('DEBUG: Count Response status:', response.status);
                 return response.json();
             })
             .then(data => {
-                console.log('DEBUG: Count Response data:', data);
                 if (data.success) {
                     document.getElementById('selectedActivityCount').textContent = data.count;
                     selectedActivityCountSection.style.display = 'block';
                 } else {
-                    console.log('DEBUG: Error from server:', data.message);
                     document.getElementById('selectedActivityCount').textContent = '0';
                     selectedActivityCountSection.style.display = 'block';
                 }

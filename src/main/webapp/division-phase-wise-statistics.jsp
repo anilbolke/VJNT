@@ -553,8 +553,6 @@
             
             const url = 'division-phase-statistics' + (urlParams.length > 0 ? '?' + urlParams.join('&') : '');
             
-            console.log('Loading data from URL:', url);
-            console.log('Current filters:', currentFilters);
             
             fetch(url)
                 .then(response => response.json())

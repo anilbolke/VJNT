@@ -124,7 +124,6 @@ public class PalakMelavaSaveServlet extends HttpServlet {
                     
                     if (ImageEncryption.encryptFile(tempFilePath, encryptedFilePath)) {
                         melava.setPhoto1Path("uploads/palak-melava/" + encryptedFileName1);
-                        System.out.println("Photo 1 uploaded successfully: " + encryptedFilePath);
                     } else {
                         System.err.println("Photo 1 encryption failed");
                         throw new IOException("Photo 1 encryption failed");
@@ -169,7 +168,6 @@ public class PalakMelavaSaveServlet extends HttpServlet {
                     
                     if (ImageEncryption.encryptFile(tempFilePath, encryptedFilePath)) {
                         melava.setPhoto2Path("uploads/palak-melava/" + encryptedFileName2);
-                        System.out.println("Photo 2 uploaded successfully: " + encryptedFilePath);
                     } else {
                         System.err.println("Photo 2 encryption failed");
                         throw new IOException("Photo 2 encryption failed");

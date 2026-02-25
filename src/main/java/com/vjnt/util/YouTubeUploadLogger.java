@@ -22,36 +22,36 @@ public class YouTubeUploadLogger {
      * Log info message
      */
     public static void info(String message) {
-        System.out.println(LOG_PREFIX + " [INFO] " + timestamp() + " " + message);
+        // //System.out.println(LOG_PREFIX + " [INFO] " + timestamp() + " " + message);
     }
     
     /**
      * Log error message
      */
     public static void error(String message) {
-        System.err.println(LOG_PREFIX + " [ERROR] " + timestamp() + " " + message);
+        // System.err.println(LOG_PREFIX + " [ERROR] " + timestamp() + " " + message);
     }
     
     /**
      * Log error with exception
      */
     public static void error(String message, Exception e) {
-        System.err.println(LOG_PREFIX + " [ERROR] " + timestamp() + " " + message);
-        e.printStackTrace();
+        // System.err.println(LOG_PREFIX + " [ERROR] " + timestamp() + " " + message);
+        // e.printStackTrace();
     }
     
     /**
      * Log warning message
      */
     public static void warn(String message) {
-        System.out.println(LOG_PREFIX + " [WARN] " + timestamp() + " " + message);
+        // //System.out.println(LOG_PREFIX + " [WARN] " + timestamp() + " " + message);
     }
     
     /**
      * Log success message
      */
     public static void success(String message) {
-        System.out.println(LOG_PREFIX + " [SUCCESS] " + timestamp() + " ✓ " + message);
+        // //System.out.println(LOG_PREFIX + " [SUCCESS] " + timestamp() + " ✓ " + message);
     }
     
     /**

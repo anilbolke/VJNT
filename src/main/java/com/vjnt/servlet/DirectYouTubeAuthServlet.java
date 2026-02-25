@@ -97,9 +97,7 @@ public class DirectYouTubeAuthServlet extends HttpServlet {
                 .build();
             
             // Start authorization flow
-            System.out.println("=== Starting Direct YouTube Authorization ===");
             Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
-            System.out.println("✓ Authorization successful!");
             
             // Success message
             out.println("<div class='success'>");

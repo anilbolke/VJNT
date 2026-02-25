@@ -55,12 +55,6 @@ public class DivisionPhaseStatisticsServlet extends HttpServlet {
             String filterSchool = request.getParameter("school");
             String filterClass = request.getParameter("class");
             
-            System.out.println("=== Division Phase Statistics Filter ===");
-            System.out.println("Division: " + divisionName);
-            System.out.println("Filter - District: " + filterDistrict);
-            System.out.println("Filter - School: " + filterSchool);
-            System.out.println("Filter - Class: " + filterClass);
-            System.out.println("========================================");
             
             SchoolDAO schoolDAO = new SchoolDAO();
             StudentDAO studentDAO = new StudentDAO();
@@ -130,12 +124,6 @@ public class DivisionPhaseStatisticsServlet extends HttpServlet {
             responseData.put("schoolData", schoolData);
             responseData.put("divisionSummary", divisionSummary);
             
-            System.out.println("=== Response Summary ===");
-            System.out.println("Total Schools: " + schools.size());
-            System.out.println("Filtered Schools: " + schoolData.size());
-            System.out.println("Districts: " + districts.size());
-            System.out.println("Division Total Students: " + divisionSummary.get("totalStudents"));
-            System.out.println("=======================");
             
             Gson gson = new Gson();
             out.print(gson.toJson(responseData));

@@ -13,9 +13,9 @@ public class RevertFLNCompletedStatus {
     public static void main(String[] args) {
         String udiseNo = "27150401803";
         
-        System.out.println("=== Revert FLN Completed Status ===");
-        System.out.println("Setting fln_completed = TRUE for 5 students");
-        System.out.println("====================================\n");
+        //System.out.println("=== Revert FLN Completed Status ===");
+        //System.out.println("Setting fln_completed = TRUE for 5 students");
+        //System.out.println("====================================\n");
         
         String[] studentNames = {
             "JAGDISH BABA HARGAONKAR",
@@ -42,17 +42,17 @@ public class RevertFLNCompletedStatus {
                 int updated = pstmt.executeUpdate();
                 
                 if (updated > 0) {
-                    System.out.println("✓ " + studentName + " - Set fln_completed = TRUE");
+                    //System.out.println("✓ " + studentName + " - Set fln_completed = TRUE");
                 } else {
-                    System.out.println("⚠ " + studentName + " - No records updated");
+                    //System.out.println("⚠ " + studentName + " - No records updated");
                 }
                 
                 pstmt.close();
             }
             
-            System.out.println("\n====================================");
-            System.out.println("✓ Revert Complete!");
-            System.out.println("These students will now be excluded from phase completion calculations.");
+            //System.out.println("\n====================================");
+            //System.out.println("✓ Revert Complete!");
+            //System.out.println("These students will now be excluded from phase completion calculations.");
             
         } catch (SQLException e) {
             System.err.println("\n✗ DATABASE ERROR:");

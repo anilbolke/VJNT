@@ -64,29 +64,29 @@ public class ExcelStudentLoader {
      * 11: इंग्रजी स्तर (English Level)
      */
     public void loadStudentsFromExcel(String excelFilePath) {
-        System.out.println("========================================");
-        System.out.println("Starting Excel Student Loader");
-        System.out.println("========================================");
-        System.out.println("File: " + excelFilePath);
+        //System.out.println("========================================");
+        //System.out.println("Starting Excel Student Loader");
+        //System.out.println("========================================");
+        //System.out.println("File: " + excelFilePath);
         
         try (FileInputStream fis = new FileInputStream(excelFilePath);
              Workbook workbook = new XSSFWorkbook(fis)) {
             
             org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
-            System.out.println("Total rows in Excel: " + sheet.getLastRowNum());
+            //System.out.println("Total rows in Excel: " + sheet.getLastRowNum());
             
             // Read header row for validation
             Row headerRow = sheet.getRow(0);
             if (headerRow != null) {
-                System.out.println("\nHeader columns detected:");
+                //System.out.println("\nHeader columns detected:");
                 for (int i = 0; i < 12; i++) {
                     Cell cell = headerRow.getCell(i);
                     String header = getCellValue(cell);
-                    System.out.println("  Column " + i + ": " + header);
+                    //System.out.println("  Column " + i + ": " + header);
                 }
             }
             
-            System.out.println("\nProcessing student records...\n");
+            //System.out.println("\nProcessing student records...\n");
             
             // Process data rows (skip header row)
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -123,14 +123,14 @@ public class ExcelStudentLoader {
                     
                     // Validate required fields
                     if (isNullOrEmpty(studentName)) {
-                        System.out.println("⚠ Row " + (i + 1) + ": Skipping - Student name is empty");
+                        //System.out.println("⚠ Row " + (i + 1) + ": Skipping - Student name is empty");
                         totalStudentsSkipped++;
                         continue;
                     }
                     
                     // Check if student already exists (by PEN if available)
                     if (!isNullOrEmpty(studentPen) && studentDAO.studentExists(studentPen)) {
-                        System.out.println("⚠ Row " + (i + 1) + ": Skipping - Student PEN " + studentPen + " already exists");
+                        //System.out.println("⚠ Row " + (i + 1) + ": Skipping - Student PEN " + studentPen + " already exists");
                         totalStudentsSkipped++;
                         continue;
                     }
@@ -155,15 +155,15 @@ public class ExcelStudentLoader {
                     if (studentDAO.createStudent(student)) {
                         totalStudentsCreated++;
                         if (totalStudentsCreated % 50 == 0) {
-                            System.out.println("✓ Processed " + totalStudentsCreated + " students...");
+                            //System.out.println("✓ Processed " + totalStudentsCreated + " students...");
                         }
                     } else {
-                        System.out.println("✗ Row " + (i + 1) + ": Failed to insert student: " + studentName);
+                        //System.out.println("✗ Row " + (i + 1) + ": Failed to insert student: " + studentName);
                         totalStudentsSkipped++;
                     }
                     
                 } catch (Exception e) {
-                    System.out.println("✗ Row " + (i + 1) + ": Error processing row - " + e.getMessage());
+                    //System.out.println("✗ Row " + (i + 1) + ": Error processing row - " + e.getMessage());
                     totalStudentsSkipped++;
                 }
             }
@@ -239,7 +239,7 @@ public class ExcelStudentLoader {
         user.setFullName(division + " Administrator");
         
         if (userDAO.createUser(user)) {
-            System.out.println("✓ Created Division user: " + username);
+            //System.out.println("✓ Created Division user: " + username);
             totalUsersCreated++;
         }
         
@@ -267,7 +267,7 @@ public class ExcelStudentLoader {
             user1.setFullName(district + " Coordinator");
             
             if (userDAO.createUser(user1)) {
-                System.out.println("✓ Created District Coordinator: " + username1);
+                //System.out.println("✓ Created District Coordinator: " + username1);
                 totalUsersCreated++;
             }
         }
@@ -285,7 +285,7 @@ public class ExcelStudentLoader {
             user2.setFullName(district + " 2nd Coordinator");
             
             if (userDAO.createUser(user2)) {
-                System.out.println("✓ Created District 2nd Coordinator: " + username2);
+                //System.out.println("✓ Created District 2nd Coordinator: " + username2);
                 totalUsersCreated++;
             }
         }
@@ -315,7 +315,7 @@ public class ExcelStudentLoader {
             user1.setFullName("School Coordinator - UDISE " + udiseNo);
             
             if (userDAO.createUser(user1)) {
-                System.out.println("✓ Created School Coordinator: " + username1 + " (UDISE: " + udiseNo + ")");
+                //System.out.println("✓ Created School Coordinator: " + username1 + " (UDISE: " + udiseNo + ")");
                 totalUsersCreated++;
             }
         }
@@ -334,7 +334,7 @@ public class ExcelStudentLoader {
             user2.setFullName("Head Master - UDISE " + udiseNo);
             
             if (userDAO.createUser(user2)) {
-                System.out.println("✓ Created Head Master: " + username2 + " (UDISE: " + udiseNo + ")");
+                //System.out.println("✓ Created Head Master: " + username2 + " (UDISE: " + udiseNo + ")");
                 totalUsersCreated++;
             }
         }
@@ -346,30 +346,30 @@ public class ExcelStudentLoader {
      * Print summary of import
      */
     private void printSummary() {
-        System.out.println("\n========================================");
-        System.out.println("STUDENT IMPORT SUMMARY");
-        System.out.println("========================================");
-        System.out.println("Total Rows Processed: " + totalRowsProcessed);
-        System.out.println("Students Created: " + totalStudentsCreated);
-        System.out.println("Students Skipped: " + totalStudentsSkipped);
-        System.out.println("========================================");
-        System.out.println("\nUSER LOGIN SUMMARY");
-        System.out.println("========================================");
-        System.out.println("Unique Divisions Processed: " + processedDivisions.size());
-        System.out.println("Unique Districts Processed: " + processedDistricts.size());
-        System.out.println("Unique UDISE Numbers Processed: " + processedUdiseNumbers.size());
-        System.out.println("----------------------------------------");
-        System.out.println("Expected Users:");
-        System.out.println("  - Division logins: " + processedDivisions.size());
-        System.out.println("  - District logins: " + (processedDistricts.size() * 2));
-        System.out.println("  - UDISE logins: " + (processedUdiseNumbers.size() * 2));
-        System.out.println("  - TOTAL EXPECTED: " + (processedDivisions.size() + (processedDistricts.size() * 2) + (processedUdiseNumbers.size() * 2)));
-        System.out.println("----------------------------------------");
-        System.out.println("Total Users Created: " + totalUsersCreated);
-        System.out.println("========================================");
-        System.out.println("\nDefault Password for all users: " + PasswordUtil.getDefaultPassword());
-        System.out.println("Users must change password on first login.");
-        System.out.println("========================================");
+        //System.out.println("\n========================================");
+        //System.out.println("STUDENT IMPORT SUMMARY");
+        //System.out.println("========================================");
+        //System.out.println("Total Rows Processed: " + totalRowsProcessed);
+        //System.out.println("Students Created: " + totalStudentsCreated);
+        //System.out.println("Students Skipped: " + totalStudentsSkipped);
+        //System.out.println("========================================");
+        //System.out.println("\nUSER LOGIN SUMMARY");
+        //System.out.println("========================================");
+        //System.out.println("Unique Divisions Processed: " + processedDivisions.size());
+        //System.out.println("Unique Districts Processed: " + processedDistricts.size());
+        //System.out.println("Unique UDISE Numbers Processed: " + processedUdiseNumbers.size());
+        //System.out.println("----------------------------------------");
+        //System.out.println("Expected Users:");
+        //System.out.println("  - Division logins: " + processedDivisions.size());
+        //System.out.println("  - District logins: " + (processedDistricts.size() * 2));
+        //System.out.println("  - UDISE logins: " + (processedUdiseNumbers.size() * 2));
+        //System.out.println("  - TOTAL EXPECTED: " + (processedDivisions.size() + (processedDistricts.size() * 2) + (processedUdiseNumbers.size() * 2)));
+        //System.out.println("----------------------------------------");
+        //System.out.println("Total Users Created: " + totalUsersCreated);
+        //System.out.println("========================================");
+        //System.out.println("\nDefault Password for all users: " + PasswordUtil.getDefaultPassword());
+        //System.out.println("Users must change password on first login.");
+        //System.out.println("========================================");
     }
     
     /**
@@ -378,11 +378,11 @@ public class ExcelStudentLoader {
     public static void main(String[] args) {
         String excelPath = "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\src\\main\\webapp\\Document\\V2 Sample Format Data Entry for Anil.xlsx";
         
-        System.out.println("Starting Student Data Import...\n");
+        //System.out.println("Starting Student Data Import...\n");
         
         ExcelStudentLoader loader = new ExcelStudentLoader();
         loader.loadStudentsFromExcel(excelPath);
         
-        System.out.println("\nImport completed!");
+        //System.out.println("\nImport completed!");
     }
 }

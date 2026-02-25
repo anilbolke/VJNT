@@ -70,7 +70,7 @@ public class LoginServlet extends HttpServlet {
         } else {
             // Authentication failed
             User checkUser = userDAO.findByUsername(username.trim());
-            System.out.println("Failed login attempt for user: " + username);
+            //System.out.println("Failed login attempt for user: " + username);
             String errorMessage = "Invalid username or password";
             
             // Provide helpful hints for common mistakes

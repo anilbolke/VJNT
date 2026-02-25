@@ -86,8 +86,6 @@ public class YouTubeAuthorizationServlet extends HttpServlet {
                     .setPort(8888) // Use fixed port for consistency
                     .build();
             
-            System.out.println("Starting OAuth authorization flow...");
-            System.out.println("Browser will open for Google authorization");
             
             // Perform authorization
             Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
@@ -108,7 +106,7 @@ public class YouTubeAuthorizationServlet extends HttpServlet {
                 out.println(getSuccessPage("Authorization Successful!", 
                     "YouTube credentials have been stored in the database.",
                     "You can now upload videos to YouTube from the application."));
-                System.out.println("✓ YouTube authorization completed successfully");
+                //System.out.println("✓ YouTube authorization completed successfully");
             } else {
                 throw new IOException("Failed to store credentials in database");
             }

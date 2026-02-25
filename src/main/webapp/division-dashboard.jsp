@@ -82,7 +82,7 @@
     }
     
     // Count teachers per district from teachers table
-    System.out.println("=== Teacher Count Calculation (from teachers table) ===");
+    //System.out.println("=== Teacher Count Calculation (from teachers table) ===");
     Connection teacherConn = null;
     PreparedStatement teacherStmt = null;
     ResultSet teacherRs = null;
@@ -105,11 +105,11 @@
             if (district != null && !district.trim().isEmpty()) {
                 districtToTeacherCount.put(district, count);
                 totalTeacherCount += count;
-                System.out.println("District: " + district + " - Teachers: " + count);
+                //System.out.println("District: " + district + " - Teachers: " + count);
             }
         }
-        System.out.println("Total teachers in division: " + totalTeacherCount);
-        System.out.println("Districts with teachers: " + districtToTeacherCount.keySet());
+        //System.out.println("Total teachers in division: " + totalTeacherCount);
+        //System.out.println("Districts with teachers: " + districtToTeacherCount.keySet());
     } catch (Exception e) {
         System.err.println("Error counting teachers: " + e.getMessage());
         e.printStackTrace();
@@ -118,7 +118,7 @@
         if (teacherStmt != null) try { teacherStmt.close(); } catch (Exception e) {}
         if (teacherConn != null) try { teacherConn.close(); } catch (Exception e) {}
     }
-    System.out.println("=======================================================");
+    //System.out.println("=======================================================");
 %>
 <!DOCTYPE html>
 <html>
@@ -282,6 +282,105 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        /* Quick Actions Dropdown */
+        .quick-actions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .quick-actions-btn {
+            padding: 10px 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-weight: 600;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        
+        .quick-actions-btn:hover {
+            background: white;
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            min-width: 280px;
+            max-height: 500px;
+            overflow-y: auto;
+            z-index: 1000;
+            animation: dropdownFadeIn 0.2s ease;
+        }
+        
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+        }
+        
+        .dropdown-section {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .dropdown-section:last-child {
+            border-bottom: none;
+        }
+        
+        .section-title {
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #999;
+            letter-spacing: 0.5px;
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .dropdown-item:hover {
+            background: #f8f9fa;
+            padding-left: 20px;
+        }
+        
+        .dropdown-item span:first-child {
+            font-size: 18px;
         }
         
         .btn {
@@ -308,22 +407,15 @@
             transform: translateY(0);
         }
         
-        .btn-analytics {
-            background: #4caf50;
-            color: white;
-        }
-        
-        .btn-analytics:hover {
-            background: #45a049;
-        }
-        
         .btn-change-password {
-            background: #ff9800;
-            color: white;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            border: 2px solid rgba(255,255,255,0.3);
         }
         
         .btn-change-password:hover {
-            background: #f57c00;
+            background: white;
+            border-color: rgba(255,255,255,0.5);
         }
         
         .btn-logout {
@@ -588,9 +680,9 @@
         <div class="header-content">
             <div class="header-left">
                 <!-- Logo Section - START -->
-                <%-- <div class="header-logo">
+                <div class="header-logo">
                     <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
-                </div> --%>
+                </div> 
                 <!-- Logo Section - END -->
                 <!-- Division Icon and Name Section - START -->
                 <div class="school-icon">🏛️</div>
@@ -610,48 +702,72 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <a href="<%= request.getContextPath() %>/manage-notifications.jsp" class="btn" style="background: #9c27b0; color: white;" title="Create and manage announcements for schools">
-                        <span>📢</span>
-                        <span>Manage Announcements</span>
-                    </a>
-                    <a href="<%= request.getContextPath() %>/division-dashboard-enhanced.jsp" class="btn btn-analytics" title="View detailed analytics and reports">
-                        <span>📊</span>
-                        <span>Analytics</span>
-                    </a>
-                    <%-- <a href="<%= request.getContextPath() %>/authorize-youtube" class="btn" style="background: #FF0000; color: white;" target="_blank" title="Authorize YouTube for video uploads">
-                        <span>🎥</span>
-                        <span>YouTube Setup</span>
-                    </a> --%>
-                    <button onclick="togglePhaseCompletion()" class="btn" style="background: #9C27B0; color: white;" title="Show/Hide Phase Completion Status">
-                        <span>📊</span>
-                        <span>Phase Completion Status</span>
-                    </button>
-                    <a href="<%= request.getContextPath() %>/division-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">📈 Activity Analysis</a>
-                    <a href="<%= request.getContextPath() %>/division-phase-wise-statistics.jsp" class="btn" style="background: #2196F3; color: white;" title="View phase-wise subject statistics by district and school">
-                        <span>📚</span>
-                        <span>Phase Levels Statistics</span>
-                    </a>
+                    <!-- Quick Actions Dropdown -->
+                    <div class="quick-actions-dropdown">
+                        <button class="quick-actions-btn" onclick="toggleQuickActions()">
+                            <span>⚡</span>
+                            <span>Quick Actions</span>
+                            <span style="font-size: 10px;">▼</span>
+                        </button>
+                        <div class="dropdown-menu" id="quickActionsMenu">
+                            <!-- Management Section -->
+                            <div class="dropdown-section">
+                                <div class="section-title">Management</div>
+                                <a href="<%= request.getContextPath() %>/manage-notifications.jsp" class="dropdown-item" title="Create and manage announcements for schools">
+                                    <span>📢</span>
+                                    <span>Manage Announcements</span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="togglePhaseCompletion()" class="dropdown-item" title="Show/Hide Phase Completion Status">
+                                    <span>📊</span>
+                                    <span>Phase Completion Status</span>
+                                </a>
+                            </div>
+                            
+                            <!-- Analytics & Reports Section -->
+                            <div class="dropdown-section">
+                                <div class="section-title">Analytics & Reports</div>
+                                <a href="<%= request.getContextPath() %>/division-dashboard-enhanced.jsp" class="dropdown-item" title="View detailed analytics and reports">
+                                    <span>📊</span>
+                                    <span>Analytics Dashboard</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-activity-analysis.jsp" class="dropdown-item" title="View activity analysis">
+                                    <span>📈</span>
+                                    <span>Activity Analysis</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-analytics-dashboard.jsp" class="dropdown-item" title="View all analytics in one comprehensive dashboard">
+                                    <span>📊</span>
+                                    <span>Complete Analytics Dashboard</span>
+                                </a>
+                            </div>
+                            
+                            <!-- Student Data Section -->
+                            <div class="dropdown-section">
+                                <div class="section-title">Student Data & Statistics</div>
+                                <a href="<%= request.getContextPath() %>/division-phase-wise-statistics.jsp" class="dropdown-item" title="View phase-wise subject statistics by district and school">
+                                    <span>📚</span>
+                                    <span>Phase Levels Statistics</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-student-level-details.jsp" class="dropdown-item" title="View individual student level details with filters">
+                                    <span>👨‍🎓</span>
+                                    <span>Student Level Details</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-student-levels-percentage.jsp" class="dropdown-item" title="View student levels percentage bar graph by district and school">
+                                    <span>📊</span>
+                                    <span>Subjects Percentage Graph</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-student-level-distribution.jsp" class="dropdown-item" title="View detailed level-wise student distribution with percentage bars">
+                                    <span>📈</span>
+                                    <span>Level Distribution Graph</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-phase-comparison.jsp" class="dropdown-item" title="Compare student levels across Phase 1, 2, 3, and 4 side-by-side">
+                                    <span>🔄</span>
+                                    <span>Phase-wise Comparison</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <a href="<%= request.getContextPath() %>/division-student-level-details.jsp" class="btn" style="background: #4CAF50; color: white;" title="View individual student level details with filters">
-                        <span>👨‍🎓</span>
-                        <span>Student Level Details</span>
-                    </a>
-                    
-                    <a href="<%= request.getContextPath() %>/division-student-levels-percentage.jsp" class="btn" style="background: #673AB7; color: white;" title="View student levels percentage bar graph by district and school">
-                        <span>📊</span>
-                        <span>Subjects Percentage Graph</span>
-                    </a>
-                    
-                    <a href="<%= request.getContextPath() %>/division-student-level-distribution.jsp" class="btn" style="background: #E91E63; color: white;" title="View detailed level-wise student distribution with percentage bars">
-                        <span>📈</span>
-                        <span>Level Distribution Graph</span>
-                    </a>
-                    
-                    <a href="<%= request.getContextPath() %>/division-analytics-dashboard.jsp" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: 2px solid white;" title="View all analytics in one comprehensive dashboard">
-                        <span>📊</span>
-                        <span>Complete Analytics Dashboard</span>
-                    </a>
-                    
+                    <!-- Account Actions -->
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password" title="Change your password">
                         <span>🔐</span>
                         <span>Change Password</span>
@@ -664,6 +780,24 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        // Quick Actions Dropdown Toggle
+        function toggleQuickActions() {
+            const menu = document.getElementById('quickActionsMenu');
+            menu.classList.toggle('show');
+        }
+        
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.quick-actions-dropdown')) {
+                const menu = document.getElementById('quickActionsMenu');
+                if (menu) {
+                    menu.classList.remove('show');
+                }
+            }
+        });
+    </script>
     
     <div class="container">
         <!-- Breadcrumb -->

@@ -281,7 +281,6 @@ public class GetSchoolStudentsServlet extends HttpServlet {
                 videos.add(video);
             }
             
-            System.out.println("Found " + videos.size() + " videos for PEN: " + penNumber);
             
         } catch (SQLException e) {
             System.err.println("Error fetching videos for PEN " + penNumber + ": " + e.getMessage());

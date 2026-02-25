@@ -14,10 +14,10 @@ public class PhaseCompletionDiagnostic {
     public static void main(String[] args) {
         String username = "sr_27150401803";
         
-        System.out.println("=== Phase 2 Completion Diagnostic ===");
-        System.out.println("Username: " + username);
-        System.out.println("Date: " + new java.util.Date());
-        System.out.println("=====================================\n");
+        //System.out.println("=== Phase 2 Completion Diagnostic ===");
+        //System.out.println("Username: " + username);
+        //System.out.println("Date: " + new java.util.Date());
+        //System.out.println("=====================================\n");
         
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -33,17 +33,17 @@ public class PhaseCompletionDiagnostic {
             rs = pstmt.executeQuery();
             
             if (!rs.next()) {
-                System.out.println("✗ ERROR: User not found!");
+                //System.out.println("✗ ERROR: User not found!");
                 return;
             }
             
             String udiseNo = rs.getString("udise_no");
             String userType = rs.getString("user_type");
             
-            System.out.println("✓ User Found:");
-            System.out.println("  UDISE No: " + udiseNo);
-            System.out.println("  User Type: " + userType);
-            System.out.println();
+            //System.out.println("✓ User Found:");
+            //System.out.println("  UDISE No: " + udiseNo);
+            //System.out.println("  User Type: " + userType);
+            //System.out.println();
             
             rs.close();
             pstmt.close();
@@ -61,8 +61,8 @@ public class PhaseCompletionDiagnostic {
             rs.close();
             pstmt.close();
             
-            System.out.println("📊 Total Active Students: " + totalActive);
-            System.out.println();
+            //System.out.println("📊 Total Active Students: " + totalActive);
+            //System.out.println();
             
             // Step 3: Check Phase 2 completion for each student
             String phase2Query = "SELECT student_id, student_name, student_pen, class, section, " +
@@ -77,8 +77,8 @@ public class PhaseCompletionDiagnostic {
             int completed = 0;
             int pending = 0;
             
-            System.out.println("📋 Phase 2 Status for Each Student:");
-            System.out.println("─────────────────────────────────────────────────────────────────────────");
+            //System.out.println("📋 Phase 2 Status for Each Student:");
+            //System.out.println("─────────────────────────────────────────────────────────────────────────");
             
             while (rs.next()) {
                 String studentName = rs.getString("student_name");
@@ -103,45 +103,41 @@ public class PhaseCompletionDiagnostic {
                                 status, studentClass, section, studentPen, studentName);
                 
                 if (phase2Date == null) {
-                    System.out.println("  → Phase 2 NOT saved yet (phase2_date is NULL)");
+                    //System.out.println("  → Phase 2 NOT saved yet (phase2_date is NULL)");
                 } else {
-                    System.out.println("  → Saved on: " + phase2Date);
-                    System.out.println("  → Values: Marathi=" + phase2Marathi + 
-                                     ", Math=" + phase2Math + 
-                                     ", English=" + phase2English);
                 }
-                System.out.println();
+                //System.out.println();
             }
             
             rs.close();
             pstmt.close();
             
             // Step 4: Calculate and display percentage
-            System.out.println("─────────────────────────────────────────────────────────────────────────");
-            System.out.println("📈 PHASE 2 SUMMARY:");
-            System.out.println("  Total Active Students: " + totalActive);
-            System.out.println("  Completed: " + completed);
-            System.out.println("  Pending: " + pending);
+            //System.out.println("─────────────────────────────────────────────────────────────────────────");
+            //System.out.println("📈 PHASE 2 SUMMARY:");
+            //System.out.println("  Total Active Students: " + totalActive);
+            //System.out.println("  Completed: " + completed);
+            //System.out.println("  Pending: " + pending);
             
             if (totalActive > 0) {
                 double percentage = (completed * 100.0) / totalActive;
                 int roundedPercentage = (int) Math.round(percentage);
-                System.out.println("  Completion Percentage: " + String.format("%.2f", percentage) + "% (rounded: " + roundedPercentage + "%)");
+                //System.out.println("  Completion Percentage: " + String.format("%.2f", percentage) + "% (rounded: " + roundedPercentage + "%)");
             }
             
-            System.out.println();
+            //System.out.println();
             
             if (pending > 0) {
-                System.out.println("⚠ ISSUE FOUND:");
-                System.out.println("  " + pending + " student(s) have NOT completed Phase 2 assessment.");
-                System.out.println("  These students are marked as active but their phase2_date is NULL.");
-                System.out.println();
-                System.out.println("💡 SOLUTION:");
-                System.out.println("  1. Go to the student list and complete Phase 2 assessment for pending students");
-                System.out.println("  2. Or mark inactive students as inactive (is_active = 0)");
-                System.out.println("  3. After completing all assessments, the percentage will show 100%");
+                //System.out.println("⚠ ISSUE FOUND:");
+                //System.out.println("  " + pending + " student(s) have NOT completed Phase 2 assessment.");
+                //System.out.println("  These students are marked as active but their phase2_date is NULL.");
+                //System.out.println();
+                //System.out.println("💡 SOLUTION:");
+                //System.out.println("  1. Go to the student list and complete Phase 2 assessment for pending students");
+                //System.out.println("  2. Or mark inactive students as inactive (is_active = 0)");
+                //System.out.println("  3. After completing all assessments, the percentage will show 100%");
             } else {
-                System.out.println("✓ All active students have completed Phase 2!");
+                //System.out.println("✓ All active students have completed Phase 2!");
             }
             
             // Step 5: Check if there are any inactive students
@@ -153,13 +149,13 @@ public class PhaseCompletionDiagnostic {
             if (rs.next()) {
                 int inactiveCount = rs.getInt("inactive_count");
                 if (inactiveCount > 0) {
-                    System.out.println();
-                    System.out.println("ℹ INFO: There are " + inactiveCount + " inactive students (not counted in percentage)");
+                    //System.out.println();
+                    //System.out.println("ℹ INFO: There are " + inactiveCount + " inactive students (not counted in percentage)");
                 }
             }
             
-            System.out.println();
-            System.out.println("=== Diagnostic Complete ===");
+            //System.out.println();
+            //System.out.println("=== Diagnostic Complete ===");
             
         } catch (SQLException e) {
             System.err.println("\n✗ DATABASE ERROR:");

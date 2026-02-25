@@ -64,7 +64,6 @@ public class StudentActivityDAO {
                 ps.setInt(2, existingId);
                 ps.executeUpdate();
                 
-                System.out.println("DEBUG: Updated activity count to " + (currentCount + 1) + " for identifier: " + activityIdentifier);
                 
             } else {
                 // Insert new record with activity_identifier
@@ -89,7 +88,6 @@ public class StudentActivityDAO {
                 ps.setString(13, assignedBy);
                 ps.executeUpdate();
                 
-                System.out.println("DEBUG: Inserted new activity with identifier: " + activityIdentifier);
             }
             
             return true;
@@ -212,7 +210,6 @@ public class StudentActivityDAO {
             // Generate activity identifier from mandatory fields
             String activityIdentifier = String.format("%d_%s_%d_%d", studentId, subject, week, day);
             
-            System.out.println("DEBUG: Looking for activity with identifier: " + activityIdentifier);
             
             // Query using activity_identifier for reliable matching
             String query = "SELECT activity_count FROM student_weekly_activities " +
@@ -225,15 +222,12 @@ public class StudentActivityDAO {
             
             if (rs.next()) {
                 int count = rs.getInt("activity_count");
-                System.out.println("DEBUG: Found activity count = " + count);
                 return count;
             }
             
-            System.out.println("DEBUG: No activity found with identifier: " + activityIdentifier);
             
         } catch (SQLException e) {
             e.printStackTrace();
-            System.out.println("DEBUG: SQL Error in getSpecificActivityCount: " + e.getMessage());
         }
         
         return 0;

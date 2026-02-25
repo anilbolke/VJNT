@@ -50,8 +50,6 @@ public class UploadStudentVideoServlet extends HttpServlet {
         try {
             out = response.getWriter();
             
-            System.out.println("=== Student Video Upload to Bunny CDN Started ===");
-            System.out.println("Upload request received at: " + new Date());
             
             // Check session
             HttpSession session = request.getSession(false);
@@ -62,7 +60,6 @@ public class UploadStudentVideoServlet extends HttpServlet {
             }
             
             User user = (User) session.getAttribute("user");
-            System.out.println("User: " + user.getUsername() + " (UDISE: " + user.getUdiseNo() + ")");
             File tempFile = null;
             
             try {
@@ -79,7 +76,6 @@ public class UploadStudentVideoServlet extends HttpServlet {
                 return;
             }
             
-            System.out.println("Parameters - Student ID: " + studentId + ", Subject: " + subject + ", Month: " + month);
             
             // Get student info from database for YouTube title
             String studentName = getStudentName(Integer.parseInt(studentId));
@@ -100,7 +96,6 @@ public class UploadStudentVideoServlet extends HttpServlet {
                 return;
             }
             
-            System.out.println("Video file: " + fileName + ", Size: " + filePart.getSize() + " bytes (" + BunnyCDNService.formatFileSize(filePart.getSize()) + ")");
             
             // Validate file extension
             String fileExtension = fileName.substring(fileName.lastIndexOf("."));
@@ -119,27 +114,24 @@ public class UploadStudentVideoServlet extends HttpServlet {
             double fileSizeKB = fileSize / 1024.0;
             
             if (fileSize < minFileSize) {
-                System.out.println("File too small: " + String.format("%.2f KB", fileSizeKB));
                 out.print("{\"success\": false, \"message\": \"Video file is too small. Minimum required: 100 KB. Your file: " + 
                          String.format("%.2f", fileSizeKB) + " KB\"}");
                 return;
             }
             
             if (fileSize > maxFileSize) {
-                System.out.println("File too large: " + String.format("%.2f MB", fileSizeMB));
                 out.print("{\"success\": false, \"message\": \"Video file is too large. Maximum allowed: 15 MB. Your file: " + 
                          String.format("%.2f", fileSizeMB) + " MB\"}");
                 return;
             }
             
             String fileSizeDisplay = fileSizeMB >= 1 ? String.format("%.2f MB", fileSizeMB) : String.format("%.2f KB", fileSizeKB);
-            System.out.println("✓ File validation passed: " + fileSizeDisplay);
             
             // Create temp file to store upload
             tempFile = File.createTempFile("student_video_", "_" + fileName);
             tempFile.deleteOnExit();
             
-            System.out.println("Created temp file: " + tempFile.getAbsolutePath());
+            //System.out.println("Created temp file: " + tempFile.getAbsolutePath());
             
             // Save uploaded file to temp location
             try (InputStream fileContent = filePart.getInputStream();
@@ -153,19 +145,14 @@ public class UploadStudentVideoServlet extends HttpServlet {
                     totalBytesWritten += bytesRead;
                 }
                 
-                System.out.println("✓ Temp file saved: " + totalBytesWritten + " bytes written");
             }
             
-            System.out.println("File saved to temp: " + tempFile.getAbsolutePath());
             
             // Upload to Bunny CDN
-            System.out.println("Starting Bunny CDN upload...");
             String cdnUrl;
             
             try {
                 cdnUrl = BunnyCDNService.uploadVideo(tempFile, fileName, user.getUdiseNo());
-                System.out.println("✓ Video uploaded to Bunny CDN successfully!");
-                System.out.println("CDN URL: " + cdnUrl);
                 
             } catch (Exception e) {
                 System.err.println("Bunny CDN upload failed: " + e.getMessage());
@@ -179,7 +166,6 @@ public class UploadStudentVideoServlet extends HttpServlet {
             // Generate thumbnail URL
             String thumbnailUrl = BunnyCDNService.getThumbnailUrl(cdnUrl);
             
-            System.out.println("Saving to database...");
             
             // Determine approval status based on user role
             String approvalStatus = "PENDING";
@@ -189,12 +175,10 @@ public class UploadStudentVideoServlet extends HttpServlet {
                 // Headmaster uploads are auto-approved
                 approvalStatus = "APPROVED";
                 isVisible = true;
-                System.out.println("Headmaster upload - Auto-approved");
             } else if (user.getUserType() == User.UserType.SCHOOL_COORDINATOR) {
                 // School coordinator uploads need approval
                 approvalStatus = "PENDING";
                 isVisible = false;
-                System.out.println("School Coordinator upload - Requires approval");
             }
             
             boolean saved = saveVideoToDatabase(
@@ -217,7 +201,6 @@ public class UploadStudentVideoServlet extends HttpServlet {
             );
             
             if (saved) {
-                System.out.println("✓ Video saved to database successfully!");
                 out.print("{\"success\": true, \"message\": \"Video uploaded to Bunny CDN successfully!\", " +
                          "\"cdnUrl\": \"" + cdnUrl + "\", \"thumbnailUrl\": \"" + thumbnailUrl + "\"}");
                 out.flush();

@@ -13,9 +13,9 @@ public class DatabaseConnection {
     // Database credentials - UPDATE THESE WITH YOUR DATABASE DETAILS
     private static final String DB_URL = "jdbc:mysql://localhost:3306/vjnt_class_management?useUnicode=true&characterEncoding=UTF-8";
     private static final String DB_USER = "root";
-    //private static final String DB_PASSWORD = "root";
+    private static final String DB_PASSWORD = "root";
     
- private static final String DB_PASSWORD = "Ou@rl}gN4n3maAy*";
+    //private static final String DB_PASSWORD = "Ou@rl}gN4n3maAy*";
     
     
     private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";
@@ -23,7 +23,7 @@ public class DatabaseConnection {
     static {
         try {
             Class.forName(DB_DRIVER);
-            System.out.println("Database driver loaded successfully");
+            //System.out.println("Database driver loaded successfully");
         } catch (ClassNotFoundException e) {
             System.err.println("Error loading database driver: " + e.getMessage());
             e.printStackTrace();
@@ -42,7 +42,7 @@ public class DatabaseConnection {
             try {
                 Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
                 if (attempt > 1) {
-                    System.out.println("✓ Database connection successful on attempt " + attempt);
+                    //System.out.println("✓ Database connection successful on attempt " + attempt);
                 }
                 return conn;
             } catch (SQLException e) {
@@ -91,11 +91,11 @@ public class DatabaseConnection {
     }
     
     public static void main(String[] args) {
-        System.out.println("Testing database connection...");
+        //System.out.println("Testing database connection...");
         if (testConnection()) {
-            System.out.println("✓ Database connection successful!");
+            //System.out.println("✓ Database connection successful!");
         } else {
-            System.out.println("✗ Database connection failed!");
+            //System.out.println("✗ Database connection failed!");
         }
     }
 }

@@ -67,11 +67,9 @@ public class AuthorizeYouTubeNowServlet extends HttpServlet {
             out.flush();
             
             try {
-                System.out.println("=== Starting YouTube Authorization ===");
                 
                 // Aggressively clear ALL old credentials from all locations
                 clearAllCredentials();
-                System.out.println("✓ Cleared old credentials from all locations");
                 
                 // Show instruction page for manual OAuth
                 out.println("<h1>🔐 YouTube Authorization Required</h1>");
@@ -248,7 +246,6 @@ public class AuthorizeYouTubeNowServlet extends HttpServlet {
                 File credFile = new File(path);
                 if (credFile.exists()) {
                     credFile.delete();
-                    System.out.println("✓ Deleted: " + path);
                 }
             } catch (Exception e) {
                 System.err.println("Could not delete: " + path);

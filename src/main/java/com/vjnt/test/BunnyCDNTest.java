@@ -14,13 +14,13 @@ public class BunnyCDNTest {
         String apiKey = "1806b190-51f1-4f09-8b27bb22aaa8-ec16-4c84";
         
         try {
-            System.out.println("=== Testing Bunny CDN Connection ===");
-            System.out.println("Storage Zone: " + storageZone);
-            System.out.println("API Key: " + apiKey.substring(0, 8) + "..." + apiKey.substring(apiKey.length() - 4));
+            //System.out.println("=== Testing Bunny CDN Connection ===");
+            //System.out.println("Storage Zone: " + storageZone);
+            //System.out.println("API Key: " + apiKey.substring(0, 8) + "..." + apiKey.substring(apiKey.length() - 4));
             
             // Test URL: upload a simple test file - USE SINGAPORE REGION
             String testUrl = "https://sg.storage.bunnycdn.com/" + storageZone + "/test.txt";
-            System.out.println("Test URL: " + testUrl);
+            //System.out.println("Test URL: " + testUrl);
             
             URL url = new URL(testUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -33,7 +33,7 @@ public class BunnyCDNTest {
             String testContent = "Test from Java - " + new java.util.Date();
             conn.setRequestProperty("Content-Length", String.valueOf(testContent.length()));
             
-            System.out.println("\nSending request...");
+            //System.out.println("\nSending request...");
             
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(testContent.getBytes());
@@ -43,16 +43,16 @@ public class BunnyCDNTest {
             int responseCode = conn.getResponseCode();
             String responseMessage = conn.getResponseMessage();
             
-            System.out.println("\n=== RESPONSE ===");
-            System.out.println("Response Code: " + responseCode);
-            System.out.println("Response Message: " + responseMessage);
+            //System.out.println("\n=== RESPONSE ===");
+            //System.out.println("Response Code: " + responseCode);
+            //System.out.println("Response Message: " + responseMessage);
             
             if (responseCode == 201 || responseCode == 200) {
-                System.out.println("\n✓✓✓ SUCCESS! ✓✓✓");
-                System.out.println("Credentials are working correctly!");
-                System.out.println("\nYour test file is now available at:");
-                System.out.println("https://vjnt-videos-cdn.b-cdn.net/test.txt");
-                System.out.println("\nThe video upload should work now.");
+                //System.out.println("\n✓✓✓ SUCCESS! ✓✓✓");
+                //System.out.println("Credentials are working correctly!");
+                //System.out.println("\nYour test file is now available at:");
+                //System.out.println("https://vjnt-videos-cdn.b-cdn.net/test.txt");
+                //System.out.println("\nThe video upload should work now.");
             } else {
                 System.err.println("\n✗✗✗ FAILED! ✗✗✗");
                 System.err.println("Response code: " + responseCode);

@@ -26,20 +26,20 @@ public class GetAllStudentsServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
-        System.out.println("GetAllStudentsServlet: Request received");
+        //System.out.println("GetAllStudentsServlet: Request received");
         
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
         
         if (user == null) {
-            System.out.println("GetAllStudentsServlet: User not found in session");
+            //System.out.println("GetAllStudentsServlet: User not found in session");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User not logged in");
             return;
         }
         
         if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
             !user.getUserType().equals(User.UserType.HEAD_MASTER)) {
-            System.out.println("GetAllStudentsServlet: Invalid user type: " + user.getUserType());
+            //System.out.println("GetAllStudentsServlet: Invalid user type: " + user.getUserType());
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
             return;
         }
@@ -55,10 +55,10 @@ public class GetAllStudentsServlet extends HttpServlet {
                 udiseNo = user.getUdiseNo();
             }
             
-            System.out.println("GetAllStudentsServlet: Fetching students for UDISE: " + udiseNo);
+            //System.out.println("GetAllStudentsServlet: Fetching students for UDISE: " + udiseNo);
             
             if (udiseNo == null || udiseNo.trim().isEmpty()) {
-                System.out.println("GetAllStudentsServlet: UDISE number is null or empty");
+                //System.out.println("GetAllStudentsServlet: UDISE number is null or empty");
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("error", "UDISE number not found for user");
@@ -67,7 +67,7 @@ public class GetAllStudentsServlet extends HttpServlet {
             }
             
             List<Student> students = studentDAO.getStudentsByUdise(udiseNo);
-            System.out.println("GetAllStudentsServlet: Found " + students.size() + " students");
+            //System.out.println("GetAllStudentsServlet: Found " + students.size() + " students");
             
             out.print(gson.toJson(students));
             

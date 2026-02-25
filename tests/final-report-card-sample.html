@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Comprehensive Report Card - VJNT Class Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .report-card {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            background-color: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #006400;
+            font-size: 40px;
+        }
+        
+        .header-center {
+            flex-grow: 1;
+            text-align: center;
+            padding: 0 20px;
+        }
+        
+        .header-center h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .header-center p {
+            font-size: 12px;
+            margin: 3px 0;
+            color: #555;
+        }
+        
+        .header-center .school-address {
+            font-weight: 600;
+            color: #000;
+        }
+        
+        .report-title {
+            background-color: #000;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 2px;
+        }
+        
+        .class-session {
+            display: flex;
+            border: 2px solid #000;
+            background-color: #f9f9f9;
+        }
+        
+        .class-session > div {
+            padding: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .class-info {
+            flex: 1;
+            border-right: 2px solid #000;
+        }
+        
+        .session-info {
+            flex: 1;
+            text-align: right;
+        }
+        
+        .student-info {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 2fr;
+            border: 2px solid #000;
+            border-top: none;
+        }
+        
+        .student-info > div {
+            padding: 10px;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            font-size: 13px;
+        }
+        
+        .student-info > div:nth-child(4n) {
+            border-right: none;
+        }
+        
+        .label {
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }
+        
+        .section-title {
+            background-color: #667eea;
+            color: white;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 25px;
+            border-radius: 4px;
+        }
+        
+        .assessment-section {
+            border: 2px solid #000;
+            margin-top: 20px;
+        }
+        
+        .assessment-header {
+            background-color: #90EE90;
+            padding: 10px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 2px solid #000;
+            font-size: 15px;
+        }
+        
+        .assessment-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+        }
+        
+        .assessment-box {
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .assessment-box:nth-child(3n) {
+            border-right: none;
+        }
+        
+        .assessment-box:last-child,
+        .assessment-box:nth-last-child(2),
+        .assessment-box:nth-last-child(3) {
+            border-bottom: none;
+        }
+        
+        .assessment-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .assessment-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .assessment-value.level-1 { color: #dc3545; }
+        .assessment-value.level-2 { color: #fd7e14; }
+        .assessment-value.level-3 { color: #ffc107; }
+        .assessment-value.level-4 { color: #28a745; }
+        .assessment-value.level-5 { color: #007bff; }
+        
+        .overall-progress {
+            background-color: #e7f3ff;
+            padding: 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #004085;
+            border: 2px solid #007bff;
+            margin-top: 15px;
+        }
+        
+        .activities-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border: 2px solid #000;
+        }
+        
+        .activities-table th {
+            background-color: #90EE90;
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .activities-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        .activities-table .week-header {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            border: 2px solid #000;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+        }
+        
+        .stat-card.total {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+        }
+        
+        .stat-card.completed {
+            background-color: #d4edda;
+            border-color: #28a745;
+        }
+        
+        .stat-card.completion {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .palak-melava-section {
+            margin-top: 20px;
+            border: 2px solid #000;
+        }
+        
+        .palak-melava-header {
+            background-color: #90EE90;
+            padding: 10px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 2px solid #000;
+        }
+        
+        .palak-melava-content {
+            padding: 15px;
+        }
+        
+        .meeting-card {
+            background-color: #f8f9fa;
+            border: 2px solid #667eea;
+            border-left: 6px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .meeting-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        
+        .meeting-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .meeting-details strong {
+            color: #333;
+        }
+        
+        .remarks-section {
+            margin-top: 25px;
+            border: 2px solid #000;
+        }
+        
+        .remarks-header {
+            background-color: #f0f0f0;
+            padding: 12px;
+            font-weight: bold;
+            border-bottom: 2px solid #000;
+            text-align: center;
+        }
+        
+        .remarks-content {
+            padding: 15px;
+            min-height: 80px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            border: 2px solid #000;
+            border-top: none;
+        }
+        
+        .signatures > div {
+            padding: 20px;
+            border-right: 2px solid #000;
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .signatures > div:last-child {
+            border-right: none;
+        }
+        
+        .signature-label {
+            font-weight: bold;
+            font-size: 13px;
+            margin-top: auto;
+        }
+        
+        .date-box {
+            text-align: center;
+        }
+        
+        .date-large {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #333;
+        }
+        
+        .grading-info {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .grading-info h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        
+        .grading-scale {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .grading-scale th,
+        .grading-scale td {
+            border: 2px solid #000;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .grading-scale th {
+            background-color: #90EE90;
+        }
+        
+        .approval-banner {
+            background-color: #28a745;
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 3px solid #1e7e34;
+        }
+        
+        .approval-icon {
+            font-size: 32px;
+        }
+        
+        .approval-details {
+            flex: 1;
+        }
+        
+        .approval-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .approval-info {
+            font-size: 13px;
+            opacity: 0.95;
+        }
+        
+        .no-print {
+            background-color: #17a2b8;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            
+            .report-card {
+                box-shadow: none;
+                padding: 20px;
+            }
+            
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        📌 This is a FINAL SAMPLE FORMAT. Press Ctrl+P to see print preview. Confirm if this looks good!
+    </div>
+    
+    <div class="report-card">
+        <!-- Header Section with School Info -->
+        <div class="header">
+            <div class="logo">
+                🏫
+            </div>
+            <div class="header-center">
+                <h1>Z.P. PRIMARY SCHOOL EXAMPLE</h1>
+                <p class="school-address">Village Name, Taluka, District - 123456</p>
+                <p>UDISE No: 27123456789 | District: Pune</p>
+                <p>Ph: (+91) 9876543210 | Email: zpschool@example.com</p>
+            </div>
+            <div class="logo">
+                🎓
+            </div>
+        </div>
+        
+        <!-- Report Card Title -->
+        <div class="report-title">COMPREHENSIVE STUDENT PROGRESS REPORT</div>
+        
+        <!-- Class and Session Info -->
+        <div class="class-session">
+            <div class="class-info">Class: CLASS 2 | Section: B</div>
+            <div class="session-info">Academic Session: 2024-25</div>
+        </div>
+        
+        <!-- Student Information -->
+        <div class="student-info">
+            <div class="label">STUDENT NAME</div>
+            <div>: Priya Ashok Patil</div>
+            <div class="label">PEN NUMBER</div>
+            <div>: MH27345678901234</div>
+        </div>
+        
+        <!-- Approval Status Banner -->
+        <div class="approval-banner">
+            <div class="approval-icon">✓</div>
+            <div class="approval-details">
+                <div class="approval-title">Report Approved by Head Master</div>
+                <div class="approval-info">Approval ID: #2045 | Approved Date: 14-Feb-2026 | Generated Date: 16-Feb-2026</div>
+            </div>
+        </div>
+        
+        <!-- Assessment Levels Section -->
+        <div class="section-title">📊 ASSESSMENT LEVELS</div>
+        <div class="assessment-section">
+            <div class="assessment-header">SUBJECT-WISE LEARNING ASSESSMENT</div>
+            <div class="assessment-grid">
+                <div class="assessment-box">
+                    <div class="assessment-label">ENGLISH</div>
+                    <div class="assessment-value level-4">Level 4</div>
+                </div>
+                <div class="assessment-box">
+                    <div class="assessment-label">MARATHI</div>
+                    <div class="assessment-value level-5">Level 5</div>
+                </div>
+                <div class="assessment-box">
+                    <div class="assessment-label">MATHEMATICS</div>
+                    <div class="assessment-value level-3">Level 3</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overall-progress">
+            ⭐ OVERALL PROGRESS: Excellent Progress - Student is performing exceptionally well in all subjects
+        </div>
+        
+        <!-- Activities Summary Stats -->
+        <div class="section-title">📝 ACTIVITIES COMPLETION SUMMARY</div>
+        <div class="summary-stats">
+            <div class="stat-card total">
+                <div class="stat-value" style="color: #007bff;">150</div>
+                <div class="stat-label">Total Activities</div>
+            </div>
+            <div class="stat-card completed">
+                <div class="stat-value" style="color: #28a745;">142</div>
+                <div class="stat-label">Completed Activities</div>
+            </div>
+            <div class="stat-card completion">
+                <div class="stat-value" style="color: #ffc107;">95%</div>
+                <div class="stat-label">Completion Rate</div>
+            </div>
+        </div>
+        
+        <!-- Activities Details Table -->
+        <div class="section-title">📚 DETAILED ACTIVITIES RECORD</div>
+        <table class="activities-table">
+            <thead>
+                <tr>
+                    <th style="width: 12%;">SUBJECT</th>
+                    <th style="width: 8%;">WEEK</th>
+                    <th style="width: 8%;">DAY</th>
+                    <th style="width: 52%;">ACTIVITY DESCRIPTION</th>
+                    <th style="width: 20%;">TEACHER NAME</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- English Activities -->
+                <tr class="week-header">
+                    <td colspan="5">ENGLISH - Week 1</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>Reading comprehension - "The Little Red Hen" story with question answers</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>1</td>
+                    <td>2</td>
+                    <td>Sentence formation - Making simple sentences using given words</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>1</td>
+                    <td>3</td>
+                    <td>Grammar - Learning about nouns, common and proper nouns with examples</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>1</td>
+                    <td>4</td>
+                    <td>Creative writing - Write 5 sentences about "My School" with neat handwriting</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>1</td>
+                    <td>5</td>
+                    <td>Poem recitation - Learning and reciting "Twinkle Twinkle Little Star"</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                
+                <!-- Marathi Activities -->
+                <tr class="week-header">
+                    <td colspan="5">MARATHI - Week 2</td>
+                </tr>
+                <tr>
+                    <td>Marathi</td>
+                    <td>2</td>
+                    <td>1</td>
+                    <td>मराठी पाठ वाचन - "माझा शाळा" पाठ वाचन आणि अर्थ समजून घेणे</td>
+                    <td>Mrs. Sunita Jadhav</td>
+                </tr>
+                <tr>
+                    <td>Marathi</td>
+                    <td>2</td>
+                    <td>2</td>
+                    <td>व्याकरण - लिंग ओळखणे आणि वाक्यात वापर करणे</td>
+                    <td>Mrs. Sunita Jadhav</td>
+                </tr>
+                <tr>
+                    <td>Marathi</td>
+                    <td>2</td>
+                    <td>3</td>
+                    <td>निबंध लेखन - "माझे आवडते पक्षी" या विषयावर ५ ओळी लिहिणे</td>
+                    <td>Mrs. Sunita Jadhav</td>
+                </tr>
+                <tr>
+                    <td>Marathi</td>
+                    <td>2</td>
+                    <td>4</td>
+                    <td>कथा सांगणे - "चतुर ससा आणि मूर्ख सिंह" ची कथा सुंदर भाषेत सांगणे</td>
+                    <td>Mrs. Sunita Jadhav</td>
+                </tr>
+                <tr>
+                    <td>Marathi</td>
+                    <td>2</td>
+                    <td>5</td>
+                    <td>सुलेखन - मराठी अक्षरांचे सुंदर लेखन आणि वाक्य लिहिण्याचा सराव</td>
+                    <td>Mrs. Sunita Jadhav</td>
+                </tr>
+                
+                <!-- Math Activities -->
+                <tr class="week-header">
+                    <td colspan="5">MATHEMATICS - Week 3</td>
+                </tr>
+                <tr>
+                    <td>Math</td>
+                    <td>3</td>
+                    <td>1</td>
+                    <td>Addition - Two digit addition without carry (25+32, 41+17, etc.)</td>
+                    <td>Mr. Prakash Shinde</td>
+                </tr>
+                <tr>
+                    <td>Math</td>
+                    <td>3</td>
+                    <td>2</td>
+                    <td>Subtraction - Two digit subtraction without borrow (48-23, 67-34, etc.)</td>
+                    <td>Mr. Prakash Shinde</td>
+                </tr>
+                <tr>
+                    <td>Math</td>
+                    <td>3</td>
+                    <td>3</td>
+                    <td>Multiplication tables - Learning and reciting 2 and 3 times tables</td>
+                    <td>Mr. Prakash Shinde</td>
+                </tr>
+                <tr>
+                    <td>Math</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>Word problems - Solving simple addition and subtraction story problems</td>
+                    <td>Mr. Prakash Shinde</td>
+                </tr>
+                <tr>
+                    <td>Math</td>
+                    <td>3</td>
+                    <td>5</td>
+                    <td>Measurement - Learning about length using ruler, measuring objects in cm</td>
+                    <td>Mr. Prakash Shinde</td>
+                </tr>
+                
+                <!-- Additional Week -->
+                <tr class="week-header">
+                    <td colspan="5">ENGLISH - Week 4</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>4</td>
+                    <td>1</td>
+                    <td>Vocabulary building - Learning 10 new words with meanings and usage</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>4</td>
+                    <td>2</td>
+                    <td>Punctuation - Using capital letters, full stops, and question marks correctly</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>4</td>
+                    <td>3</td>
+                    <td>Picture description - Observe a picture and write 5 sentences about it</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>4</td>
+                    <td>4</td>
+                    <td>Letter writing - Writing a simple letter to a friend using proper format</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+                <tr>
+                    <td>English</td>
+                    <td>4</td>
+                    <td>5</td>
+                    <td>Story completion - Complete the given story with your own creative ending</td>
+                    <td>Mrs. Anita Kulkarni</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Palak Melava Section -->
+        <div class="section-title">👨‍👩‍👧‍👦 PARENT-TEACHER MEETINGS (PALAK MELAVA)</div>
+        <div class="palak-melava-section">
+            <div class="palak-melava-header">RECORD OF PARENT ENGAGEMENT ACTIVITIES</div>
+            <div class="palak-melava-content">
+                <p style="margin-bottom: 15px; font-weight: bold; color: #666;">Total Meetings Conducted: 3</p>
+                
+                <div class="meeting-card">
+                    <h4>📅 Meeting #1</h4>
+                    <div class="meeting-details">
+                        <div><strong>Meeting Date:</strong> 25-Jun-2024</div>
+                        <div><strong>Parents Attended:</strong> 68</div>
+                        <div style="grid-column: span 2;">
+                            <strong>Chief Guest/Attendee:</strong><br>
+                            Smt. Rekha Desai, Block Education Officer, discussed importance of primary education and parent involvement
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="meeting-card">
+                    <h4>📅 Meeting #2</h4>
+                    <div class="meeting-details">
+                        <div><strong>Meeting Date:</strong> 15-Oct-2024</div>
+                        <div><strong>Parents Attended:</strong> 73</div>
+                        <div style="grid-column: span 2;">
+                            <strong>Chief Guest/Attendee:</strong><br>
+                            Dr. Anil Patwardhan, Education Specialist, conducted workshop on child psychology and learning difficulties
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="meeting-card">
+                    <h4>📅 Meeting #3</h4>
+                    <div class="meeting-details">
+                        <div><strong>Meeting Date:</strong> 28-Jan-2025</div>
+                        <div><strong>Parents Attended:</strong> 71</div>
+                        <div style="grid-column: span 2;">
+                            <strong>Chief Guest/Attendee:</strong><br>
+                            Mrs. Kavita Joshi, Nutritionist, educated parents about balanced diet and its impact on child development
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Class Teacher's Remarks -->
+        <div class="remarks-section">
+            <div class="remarks-header">CLASS TEACHER'S REMARKS & OBSERVATIONS</div>
+            <div class="remarks-content">
+                Priya is an outstanding student who consistently demonstrates excellence in her academic performance. She is particularly strong in Marathi and shows great enthusiasm for learning. Her reading and comprehension skills are remarkable for her age. She actively participates in class discussions and helps her classmates when needed. Her Mathematics skills are improving steadily with regular practice. She maintains excellent discipline, is punctual, and shows respect to teachers and peers. Parents should encourage her creative writing skills further. Overall, Priya is a role model student with a bright academic future.
+            </div>
+        </div>
+        
+        <!-- Signatures Section -->
+        <div class="signatures">
+            <div class="date-box">
+                <div style="font-weight: bold; font-size: 14px; color: #666;">REPORT DATE</div>
+                <div class="date-large">16-Feb-2026</div>
+            </div>
+            <div>
+                <div style="margin-bottom: 40px;"></div>
+                <div class="signature-label">CLASS TEACHER'S SIGNATURE</div>
+            </div>
+            <div>
+                <div style="margin-bottom: 40px;"></div>
+                <div class="signature-label">HEAD MASTER'S SIGNATURE</div>
+            </div>
+        </div>
+        
+        <!-- Grading Information -->
+        <div class="grading-info">
+            <h3>📖 ASSESSMENT LEVEL INFORMATION</h3>
+            <p style="font-size: 13px; margin-bottom: 15px; color: #666; line-height: 1.6;">
+                The assessment levels indicate the learning progress of the student in each subject. 
+                Levels range from 1 (Beginning) to 5 (Advanced). Regular practice and parental support 
+                can help students achieve higher learning levels.
+            </p>
+            <table class="grading-scale">
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Level 1</th>
+                        <th>Level 2</th>
+                        <th>Level 3</th>
+                        <th>Level 4</th>
+                        <th>Level 5</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Description</td>
+                        <td>Beginning</td>
+                        <td>Developing</td>
+                        <td>Proficient</td>
+                        <td>Advanced</td>
+                        <td>Expert</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 20px; padding: 15px; background: white; border: 2px solid #667eea; border-radius: 6px;">
+                <p style="font-size: 12px; line-height: 1.8; color: #333;">
+                    <strong>Important Notes:</strong><br>
+                    • This comprehensive report reflects the student's performance throughout the academic year<br>
+                    • Activities mentioned are part of the daily learning curriculum as per VJNT Class Management System<br>
+                    • Parent-Teacher meetings provide valuable insights for collaborative student development<br>
+                    • For any queries regarding this report, please contact the class teacher or Head Master<br>
+                    • This is an official document approved by the Head Master and should be preserved carefully
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -77,8 +77,6 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
             
             ResultSet rs = stmt.executeQuery();
             
-            System.out.println("=== School Details Request ===");
-            System.out.println("District: " + districtName);
             int count = 0;
 
             while (rs.next()) {
@@ -98,13 +96,8 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
                 
                 schoolsArray.add(school);
                 
-                System.out.println("School " + count + ": " + rs.getString("school_name") + 
-                                 " (Students: " + rs.getInt("student_count") + 
-                                 ", Teachers: " + rs.getInt("teacher_count") + ")");
             }
             
-            System.out.println("Total schools found: " + count);
-            System.out.println("==============================");
 
             // Return format based on endpoint
             if (isApiEndpoint) {

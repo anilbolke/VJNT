@@ -40,7 +40,7 @@ public class YouTubeCredentialManager {
             pstmt.setLong(5, expiresInSeconds);
             
             int result = pstmt.executeUpdate();
-            System.out.println("✓ YouTube credentials stored in database");
+            //System.out.println("✓ YouTube credentials stored in database");
             return result > 0;
             
         } catch (SQLException e) {
@@ -125,7 +125,7 @@ public class YouTubeCredentialManager {
             
             int result = pstmt.executeUpdate();
             if (result > 0) {
-                System.out.println("✓ Access token refreshed");
+                //System.out.println("✓ Access token refreshed");
             }
             return result > 0;
             
@@ -148,7 +148,7 @@ public class YouTubeCredentialManager {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             int result = pstmt.executeUpdate();
-            System.out.println("✓ YouTube credentials cleared");
+            //System.out.println("✓ YouTube credentials cleared");
             return result > 0;
             
         } catch (SQLException e) {

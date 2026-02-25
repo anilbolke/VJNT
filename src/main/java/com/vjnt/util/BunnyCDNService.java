@@ -34,10 +34,6 @@ public class BunnyCDNService {
      * @throws IOException If upload fails
      */
     public static String uploadVideo(File videoFile, String originalFileName, String udiseNo) throws IOException {
-        System.out.println("=== Bunny CDN Upload Started ===");
-        System.out.println("File: " + videoFile.getAbsolutePath());
-        System.out.println("Size: " + videoFile.length() + " bytes");
-        System.out.println("UDISE: " + udiseNo);
         
         // Generate unique filename to avoid collisions
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -52,11 +48,9 @@ public class BunnyCDNService {
         String storagePath = String.format(VIDEO_PATH_FORMAT, year, month, udiseNo);
         String fullPath = storagePath + "/" + uniqueFileName;
         
-        System.out.println("Storage Path: " + fullPath);
         
         // Upload to Bunny CDN
         String uploadUrl = STORAGE_API_URL + "/" + STORAGE_ZONE_NAME + "/" + fullPath;
-        System.out.println("Upload URL: " + uploadUrl);
         
         HttpURLConnection connection = null;
         
@@ -67,10 +61,6 @@ public class BunnyCDNService {
             connection.setDoOutput(true);
             
             // Debug: Print what we're sending
-            System.out.println("=== DEBUG INFO ===");
-            System.out.println("Storage Zone: " + STORAGE_ZONE_NAME);
-            System.out.println("API Key: " + API_KEY.substring(0, 8) + "..." + API_KEY.substring(API_KEY.length() - 4));
-            System.out.println("Full Upload URL: " + uploadUrl);
             
             // Try different header names that Bunny CDN might use
             connection.setRequestProperty("AccessKey", API_KEY);
@@ -79,7 +69,6 @@ public class BunnyCDNService {
             connection.setRequestProperty("Content-Type", "video/" + fileExtension.substring(1)); // Remove dot from extension
             connection.setRequestProperty("Content-Length", String.valueOf(videoFile.length()));
             
-            System.out.println("Headers set: AccessKey, Authorization, X-Auth-Token, Content-Type, Content-Length");
             
             // Upload file
             try (FileInputStream fileInputStream = new FileInputStream(videoFile);
@@ -95,18 +84,14 @@ public class BunnyCDNService {
                 }
                 
                 outputStream.flush();
-                System.out.println("Upload completed: " + totalBytesWritten + " bytes written");
             }
             
             // Check response
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
             
             if (responseCode == HttpURLConnection.HTTP_CREATED || responseCode == HttpURLConnection.HTTP_OK) {
                 // Success! Return CDN URL
                 String cdnUrl = PULL_ZONE_URL + "/" + fullPath;
-                System.out.println("✓ Video uploaded successfully!");
-                System.out.println("CDN URL: " + cdnUrl);
                 return cdnUrl;
             } else {
                 // Read error response
@@ -131,14 +116,11 @@ public class BunnyCDNService {
      * @throws IOException If deletion fails
      */
     public static boolean deleteVideo(String cdnUrl) throws IOException {
-        System.out.println("=== Bunny CDN Delete Started ===");
-        System.out.println("CDN URL: " + cdnUrl);
         
         // Extract path from CDN URL
         String path = cdnUrl.replace(PULL_ZONE_URL + "/", "");
         String deleteUrl = STORAGE_API_URL + "/" + STORAGE_ZONE_NAME + "/" + path;
         
-        System.out.println("Delete URL: " + deleteUrl);
         
         HttpURLConnection connection = null;
         
@@ -149,10 +131,8 @@ public class BunnyCDNService {
             connection.setRequestProperty("AccessKey", API_KEY);
             
             int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
             
             if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_NO_CONTENT) {
-                System.out.println("✓ Video deleted successfully!");
                 return true;
             } else {
                 String errorMessage = readErrorResponse(connection);
@@ -252,9 +232,6 @@ public class BunnyCDNService {
      */
     public static boolean testConnection() {
         try {
-            System.out.println("=== Testing Bunny CDN Connection ===");
-            System.out.println("Storage Zone: " + STORAGE_ZONE_NAME);
-            System.out.println("API URL: " + STORAGE_API_URL);
             
             // Try to list files (will return 404 if empty, but proves connection works)
             String testUrl = STORAGE_API_URL + "/" + STORAGE_ZONE_NAME + "/";
@@ -267,8 +244,6 @@ public class BunnyCDNService {
             int responseCode = connection.getResponseCode();
             connection.disconnect();
             
-            System.out.println("Response Code: " + responseCode);
-            System.out.println("Connection Status: " + (responseCode < 500 ? "✓ OK" : "✗ Failed"));
             
             return responseCode < 500; // Any code under 500 means connection is working
         } catch (Exception e) {

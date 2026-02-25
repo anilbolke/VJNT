@@ -61,14 +61,6 @@ public class SaveNotificationServlet extends HttpServlet {
                 if (udiseCode != null && udiseCode.trim().isEmpty()) udiseCode = null;
                 
                 // Add debug logging
-                System.out.println("=== CREATING NOTIFICATION ===");
-                System.out.println("Title: " + title);
-                System.out.println("Target Audience: " + targetAudience);
-                System.out.println("Division (always set): " + division);
-                System.out.println("District (null = all): " + district);
-                System.out.println("UDISE (null = all): " + udiseCode);
-                System.out.println("Expiry Date String (RAW): [" + expiryDateStr + "]");
-                System.out.println("============================");
                 
                 Timestamp expiryDate = null;
                 if (expiryDateStr != null && !expiryDateStr.trim().isEmpty()) {
@@ -76,16 +68,11 @@ public class SaveNotificationServlet extends HttpServlet {
                         // Parse datetime-local format: yyyy-MM-dd'T'HH:mm
                         String originalDateStr = expiryDateStr;
                         expiryDateStr = expiryDateStr.replace("T", " ") + ":00";
-                        System.out.println("Expiry Date - Original: [" + originalDateStr + "]");
-                        System.out.println("Expiry Date - Converted: [" + expiryDateStr + "]");
                         expiryDate = Timestamp.valueOf(expiryDateStr);
-                        System.out.println("Expiry Date - Parsed Timestamp: [" + expiryDate + "]");
                     } catch (Exception e) {
-                        System.out.println("ERROR parsing expiry date: " + e.getMessage());
                         e.printStackTrace();
                     }
                 }
-                System.out.println("Final Expiry Date to save: [" + expiryDate + "]");
                 
                 String sql = "INSERT INTO notifications (title, message, notification_type, target_audience, " +
                            "division, district, udise_code, priority, created_by, created_by_name, expiry_date) " +
@@ -133,25 +120,17 @@ public class SaveNotificationServlet extends HttpServlet {
                 if (district != null && district.trim().isEmpty()) district = null;
                 if (udiseCode != null && udiseCode.trim().isEmpty()) udiseCode = null;
                 
-                System.out.println("=== UPDATING NOTIFICATION #" + notificationId + " ===");
-                System.out.println("Expiry Date String (RAW): [" + expiryDateStr + "]");
                 
                 Timestamp expiryDate = null;
                 if (expiryDateStr != null && !expiryDateStr.trim().isEmpty()) {
                     try {
                         String originalDateStr = expiryDateStr;
                         expiryDateStr = expiryDateStr.replace("T", " ") + ":00";
-                        System.out.println("Expiry Date - Original: [" + originalDateStr + "]");
-                        System.out.println("Expiry Date - Converted: [" + expiryDateStr + "]");
                         expiryDate = Timestamp.valueOf(expiryDateStr);
-                        System.out.println("Expiry Date - Parsed Timestamp: [" + expiryDate + "]");
                     } catch (Exception e) {
-                        System.out.println("ERROR parsing expiry date: " + e.getMessage());
                         e.printStackTrace();
                     }
                 }
-                System.out.println("Final Expiry Date to update: [" + expiryDate + "]");
-                System.out.println("============================");
                 
                 String sql = "UPDATE notifications SET title = ?, message = ?, notification_type = ?, " +
                            "target_audience = ?, district = ?, udise_code = ?, priority = ?, expiry_date = ? " +

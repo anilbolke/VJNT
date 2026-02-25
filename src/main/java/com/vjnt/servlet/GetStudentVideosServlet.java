@@ -45,9 +45,6 @@ public class GetStudentVideosServlet extends HttpServlet {
             String studentIdStr = request.getParameter("studentId");
             String studentPen = request.getParameter("studentPen");
             
-            System.out.println("========== GetStudentVideos Request ==========");
-            System.out.println("Student ID: " + studentIdStr);
-            System.out.println("Student PEN: " + studentPen);
             
             if (studentIdStr == null || studentIdStr.isEmpty()) {
                 result.put("success", false);
@@ -63,22 +60,15 @@ public class GetStudentVideosServlet extends HttpServlet {
             List<Video> allVideos = videoDAO.getAllVideos();
             List<Video> studentVideos = new ArrayList<>();
             
-            System.out.println("Total videos in database: " + allVideos.size());
             
             // Filter videos uploaded by this student
             for (Video video : allVideos) {
-                System.out.println("Checking video: ID=" + video.getVideoId() + 
-                                 ", uploadedBy=" + video.getUploadedBy() + 
-                                 ", title=" + video.getTitle());
                 
                 if (video.getUploadedBy() == studentId) {
                     studentVideos.add(video);
-                    System.out.println("  -> MATCHED! Added to student videos");
                 }
             }
             
-            System.out.println("Retrieved " + studentVideos.size() + " videos for student ID: " + studentId);
-            System.out.println("============================================");
             
             result.put("success", true);
             result.put("videos", studentVideos);

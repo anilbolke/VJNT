@@ -39,16 +39,16 @@ public class ExcelUserLoader {
      * Load users from Excel file
      */
     public void loadUsersFromExcel(String excelFilePath) {
-        System.out.println("========================================");
-        System.out.println("Starting Excel User Loader");
-        System.out.println("========================================");
-        System.out.println("File: " + excelFilePath);
+        //System.out.println("========================================");
+        //System.out.println("Starting Excel User Loader");
+        //System.out.println("========================================");
+        //System.out.println("File: " + excelFilePath);
         
         try (FileInputStream fis = new FileInputStream(excelFilePath);
              Workbook workbook = new XSSFWorkbook(fis)) {
             
             org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
-            System.out.println("Total rows in Excel: " + sheet.getLastRowNum());
+            //System.out.println("Total rows in Excel: " + sheet.getLastRowNum());
             
             // Skip header row
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -95,7 +95,7 @@ public class ExcelUserLoader {
         
         // Check if user already exists
         if (userDAO.usernameExists(username)) {
-            System.out.println("Division user already exists: " + username);
+            //System.out.println("Division user already exists: " + username);
             processedDivisions.add(division);
             return;
         }
@@ -109,10 +109,10 @@ public class ExcelUserLoader {
         user.setFullName(division + " Administrator");
         
         if (userDAO.createUser(user)) {
-            System.out.println("✓ Created Division user: " + username);
+            //System.out.println("✓ Created Division user: " + username);
             totalUsersCreated++;
         } else {
-            System.out.println("✗ Failed to create Division user: " + username);
+            //System.out.println("✗ Failed to create Division user: " + username);
         }
         
         processedDivisions.add(division);
@@ -139,11 +139,11 @@ public class ExcelUserLoader {
             user1.setFullName(district + " Coordinator");
             
             if (userDAO.createUser(user1)) {
-                System.out.println("✓ Created District Coordinator: " + username1);
+                //System.out.println("✓ Created District Coordinator: " + username1);
                 totalUsersCreated++;
             }
         } else {
-            System.out.println("District Coordinator already exists: " + username1);
+            //System.out.println("District Coordinator already exists: " + username1);
         }
         
         // Create 2nd District Coordinator
@@ -159,11 +159,11 @@ public class ExcelUserLoader {
             user2.setFullName(district + " 2nd Coordinator");
             
             if (userDAO.createUser(user2)) {
-                System.out.println("✓ Created District 2nd Coordinator: " + username2);
+                //System.out.println("✓ Created District 2nd Coordinator: " + username2);
                 totalUsersCreated++;
             }
         } else {
-            System.out.println("District 2nd Coordinator already exists: " + username2);
+            //System.out.println("District 2nd Coordinator already exists: " + username2);
         }
         
         processedDistricts.add(district);
@@ -191,11 +191,11 @@ public class ExcelUserLoader {
             user1.setFullName("School Coordinator - UDISE " + udiseNo);
             
             if (userDAO.createUser(user1)) {
-                System.out.println("✓ Created School Coordinator: " + username1 + " (UDISE: " + udiseNo + ")");
+                //System.out.println("✓ Created School Coordinator: " + username1 + " (UDISE: " + udiseNo + ")");
                 totalUsersCreated++;
             }
         } else {
-            System.out.println("School Coordinator already exists: " + username1);
+            //System.out.println("School Coordinator already exists: " + username1);
         }
         
         // Create Head Master
@@ -212,11 +212,11 @@ public class ExcelUserLoader {
             user2.setFullName("Head Master - UDISE " + udiseNo);
             
             if (userDAO.createUser(user2)) {
-                System.out.println("✓ Created Head Master: " + username2 + " (UDISE: " + udiseNo + ")");
+                //System.out.println("✓ Created Head Master: " + username2 + " (UDISE: " + udiseNo + ")");
                 totalUsersCreated++;
             }
         } else {
-            System.out.println("Head Master already exists: " + username2);
+            //System.out.println("Head Master already exists: " + username2);
         }
         
         processedUdiseNumbers.add(udiseNo);
@@ -244,24 +244,24 @@ public class ExcelUserLoader {
      * Print summary
      */
     private void printSummary() {
-        System.out.println("\n========================================");
-        System.out.println("USER CREATION SUMMARY");
-        System.out.println("========================================");
-        System.out.println("Unique Divisions Processed: " + processedDivisions.size());
-        System.out.println("Unique Districts Processed: " + processedDistricts.size());
-        System.out.println("Unique UDISE Numbers Processed: " + processedUdiseNumbers.size());
-        System.out.println("----------------------------------------");
-        System.out.println("Expected Users:");
-        System.out.println("  - Division logins: " + processedDivisions.size());
-        System.out.println("  - District logins: " + (processedDistricts.size() * 2));
-        System.out.println("  - UDISE logins: " + (processedUdiseNumbers.size() * 2));
-        System.out.println("  - TOTAL EXPECTED: " + (processedDivisions.size() + (processedDistricts.size() * 2) + (processedUdiseNumbers.size() * 2)));
-        System.out.println("----------------------------------------");
-        System.out.println("Total Users Created: " + totalUsersCreated);
-        System.out.println("========================================");
-        System.out.println("\nDefault Password for all users: " + PasswordUtil.getDefaultPassword());
-        System.out.println("Users must change password on first login.");
-        System.out.println("========================================");
+        //System.out.println("\n========================================");
+        //System.out.println("USER CREATION SUMMARY");
+        //System.out.println("========================================");
+        //System.out.println("Unique Divisions Processed: " + processedDivisions.size());
+        //System.out.println("Unique Districts Processed: " + processedDistricts.size());
+        //System.out.println("Unique UDISE Numbers Processed: " + processedUdiseNumbers.size());
+        //System.out.println("----------------------------------------");
+        //System.out.println("Expected Users:");
+        //System.out.println("  - Division logins: " + processedDivisions.size());
+        //System.out.println("  - District logins: " + (processedDistricts.size() * 2));
+        //System.out.println("  - UDISE logins: " + (processedUdiseNumbers.size() * 2));
+        //System.out.println("  - TOTAL EXPECTED: " + (processedDivisions.size() + (processedDistricts.size() * 2) + (processedUdiseNumbers.size() * 2)));
+        //System.out.println("----------------------------------------");
+        //System.out.println("Total Users Created: " + totalUsersCreated);
+        //System.out.println("========================================");
+        //System.out.println("\nDefault Password for all users: " + PasswordUtil.getDefaultPassword());
+        //System.out.println("Users must change password on first login.");
+        //System.out.println("========================================");
     }
     
     /**

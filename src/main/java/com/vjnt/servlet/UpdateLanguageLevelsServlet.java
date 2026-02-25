@@ -44,12 +44,6 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
         
         try {
             // Debug logging
-            System.out.println("=== Update Language Levels Request ===");
-            System.out.println("studentId param: " + request.getParameter("studentId"));
-            System.out.println("phase param: " + request.getParameter("phase"));
-            System.out.println("marathi_akshara param: " + request.getParameter("marathi_akshara"));
-            System.out.println("math_akshara param: " + request.getParameter("math_akshara"));
-            System.out.println("english_akshara param: " + request.getParameter("english_akshara"));
             
             // Get parameters
             String studentIdStr = request.getParameter("studentId");
@@ -76,11 +70,6 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
             int mathLevel = Integer.parseInt(mathStr);
             int englishLevel = Integer.parseInt(englishStr);
             
-            System.out.println("Parsed values - Student: " + studentId + 
-                             ", Phase: " + phase +
-                             ", Marathi: " + marathiLevel + 
-                             ", Math: " + mathLevel + 
-                             ", English: " + englishLevel);
             
             // Update database with phase-specific method
             StudentDAO studentDAO = new StudentDAO();
@@ -91,20 +80,18 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
             );
             
             if (success) {
-                System.out.println("Phase " + phase + " update successful!");
                 
                 // Check if phase is now complete
                 String udiseNo = user.getUdiseNo();
                 boolean phaseComplete = studentDAO.isPhaseComplete(udiseNo, phase);
                 
                 if (phaseComplete) {
-                    System.out.println("Phase " + phase + " is now COMPLETE for school " + udiseNo);
                     out.print("{\"success\": true, \"message\": \"Phase " + phase + " data saved successfully\", \"phaseComplete\": true}");
                 } else {
                     out.print("{\"success\": true, \"message\": \"Phase " + phase + " data saved successfully\", \"phaseComplete\": false}");
                 }
             } else {
-                System.out.println("Update failed!");
+                //System.out.println("Update failed!");
                 out.print("{\"success\": false, \"message\": \"Failed to update phase data\"}");
             }
             

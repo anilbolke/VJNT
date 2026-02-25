@@ -44,18 +44,11 @@ public class GetSpecificActivityCountServlet extends HttpServlet {
             int day = Integer.parseInt(dayStr);
 
             // Log the request parameters for debugging
-            System.out.println("DEBUG: GetSpecificActivityCountServlet called with:");
-            System.out.println("  studentId: " + studentId);
-            System.out.println("  subject: " + subject);
-            System.out.println("  week: " + week);
-            System.out.println("  day: " + day);
-            System.out.println("  activity: " + activity);
-
+			
             // Get specific activity count from DAO
             StudentActivityDAO activityDAO = new StudentActivityDAO();
             int count1 = activityDAO.getSpecificActivityCount(studentId, subject, week, day, activity);
 
-            System.out.println("DEBUG: Count returned from DAO: " + count1);
 
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
@@ -69,7 +62,6 @@ public class GetSpecificActivityCountServlet extends HttpServlet {
 
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("DEBUG: Exception in GetSpecificActivityCountServlet: " + e.getMessage());
             response.setContentType("application/json");
             response.getWriter().write("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }

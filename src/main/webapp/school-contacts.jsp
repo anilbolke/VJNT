@@ -19,11 +19,9 @@
     
     // Get schools for this district only
     List<School> schools = schoolDAO.getSchoolsByDistrict(districtName);
-    System.out.println("DEBUG: District = " + districtName + ", Schools found = " + (schools != null ? schools.size() : "null"));
     
     // Get existing school contacts for this district
     List<SchoolContact> allContacts = contactDAO.getContactsByDistrict(districtName);
-    System.out.println("DEBUG: Contacts found = " + (allContacts != null ? allContacts.size() : "null"));
     
     // No server-side pagination - send all contacts to client for filtering
     List<SchoolContact> schoolContacts = allContacts != null ? allContacts : new ArrayList<>();

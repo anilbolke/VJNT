@@ -658,7 +658,7 @@
                         <div class="approval-status-badge" id="status-${'$'}{student.studentPen}">
                             <i class="fas fa-spinner fa-spin"></i> Checking status...
                         </div>
-                        <button class="generate-btn" onclick="generateReport('${'$'}{student.studentId}', '${'$'}{student.studentName}', '${'$'}{student.studentPen}')">
+                        <button class="generate-btn" onclick="generateReport('${'$'}{student.studentId}', '${'$'}{student.studentName}', '${'$'}{student.studentPen}', '${'$'}{student.studentClass}', '${'$'}{student.section || ''}')">
                             <i class="fas fa-file-pdf"></i> Generate Report
                         </button>
                     </div>
@@ -739,11 +739,22 @@
         }
         
         // Generate report
-        function generateReport(studentId, studentName, studentPen) {
+        var currentStudentClass = '';
+        var currentStudentSection = '';
+        var currentStudentPen = '';
+        var currentStudentName = '';
+        
+        function generateReport(studentId, studentName, studentPen, studentClass, section) {
             if (!studentPen) {
                 alert('Student PEN number is required to generate report');
                 return;
             }
+            
+            // Store for later use
+            currentStudentClass = studentClass || '';
+            currentStudentSection = section || '';
+            currentStudentPen = studentPen || '';
+            currentStudentName = studentName || '';
             
             document.getElementById('reportStudentName').textContent = studentName;
             document.getElementById('reportModal').style.display = 'block';
@@ -807,12 +818,12 @@
                 }
                 
                 html += `
-                    <div style="background: ${statusColor}; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
-                        <i class="fas ${statusIcon}" style="font-size: 32px;"></i>
+                    <div style="background: \${statusColor}; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+                        <i class="fas \${statusIcon}" style="font-size: 32px;"></i>
                         <div style="flex: 1;">
-                            <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">Report Status: ${statusText}</div>
-                            <div style="font-size: 14px; opacity: 0.95;">${statusMessage}</div>
-                            <div style="font-size: 12px; margin-top: 5px; opacity: 0.9;">Request ID: #${approvalData.approvalId} | Submitted: ${approvalData.requestedDate}</div>
+                            <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">Report Status: \${statusText}</div>
+                            <div style="font-size: 14px; opacity: 0.95;">\${statusMessage}</div>
+                            <div style="font-size: 12px; margin-top: 5px; opacity: 0.9;">Request ID: #\${approvalData.approvalId} | Submitted: \${approvalData.requestedDate}</div>
                         </div>
                     </div>
                 `;
@@ -869,14 +880,6 @@
                             <div class="stat-box total">
                                 <div class="stat-value" style="color: #667eea;">${'$'}{totalActivities}</div>
                                 <div class="stat-label">Total Activities</div>
-                            </div>
-                            <div class="stat-box completed">
-                                <div class="stat-value" style="color: #28a745;">${'$'}{completedActivities}</div>
-                                <div class="stat-label">Completed</div>
-                            </div>
-                            <div class="stat-box completion">
-                                <div class="stat-value" style="color: #ffc107;">${'$'}{completionRate}%</div>
-                                <div class="stat-label">Completion Rate</div>
                             </div>
                         </div>
                 `;
@@ -1005,20 +1008,18 @@
             
             // Show appropriate buttons based on approval status
             if (!approvalData || !approvalData.hasRequest) {
-                // No request yet - show submit button and print button
+                // No request yet - show submit button only
                 html += `
                     <button class="btn-submit-approval" onclick="submitForApproval('${'$'}{studentPen}', '${'$'}{studentName}')" style="background: #667eea; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
                         <i class="fas fa-paper-plane"></i> Send to Head Master for Approval
                     </button>
-                   
                 `;
             } else if (approvalData.status === 'PENDING') {
-                // Pending - show waiting message and print button
+                // Pending - show waiting message only
                 html += `
                     <button style="background: #ffc107; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: not-allowed; margin-right: 10px;" disabled>
                         <i class="fas fa-clock"></i> Waiting for Approval
                     </button>
-                   
                 `;
             } else if (approvalData.status === 'APPROVED') {
                 // Check if report was already generated/printed
@@ -1044,26 +1045,19 @@
                     // Only show PDF button if approvalId is available and not yet printed
                     if (approvalData.approvalId) {
                         html += `
-                            <button onclick="window.open(contextPath + '/GenerateStudentReportPDFServlet?approvalId=${'$'}{approvalData.approvalId}', '_blank'); markAsGenerated(${'$'}{approvalData.approvalId});" style="background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
-                                <i class="fas fa-file-pdf"></i> View & Print Approved Report (One Time Only)
+                            <button onclick="openPrintReportCard('\${studentPen}', '\${studentName}', '\${currentStudentClass}', '\${currentStudentSection}'); markAsGenerated(\${approvalData.approvalId});" style="background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
+                                <i class="fas fa-print"></i> Print Report Card Format
                             </button>
                         `;
                     }
                     
-                    html += `
-                        <button class="print-btn" onclick="printReport()">
-                            <i class="fas fa-print"></i> Print Report
-                        </button>
-                    `;
+                   
                 }
             } else if (approvalData.status === 'REJECTED') {
-                // Rejected - allow resubmission and print button
+                // Rejected - allow resubmission only (no print until re-approved)
                 html += `
                     <button class="btn-submit-approval" onclick="submitForApproval('${'$'}{studentPen}', '${'$'}{studentName}')" style="background: #dc3545; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
                         <i class="fas fa-redo"></i> Resubmit for Approval
-                    </button>
-                    <button class="print-btn" onclick="printReport()">
-                        <i class="fas fa-print"></i> Print Report
                     </button>
                 `;
             }
@@ -1155,15 +1149,30 @@
             });
         }
         
-        // Mark report as generated (called after PDF button click)
+        // Mark report as generated in the database, then reload modal
         function markAsGenerated(approvalId) {
-            // After a short delay (to allow PDF to open), reload the modal to update button state
-            setTimeout(function() {
-                // Reload the report to show updated status
+            // Reuse GenerateStudentReportPDFServlet — it already updates report_generated=1
+            fetch(contextPath + '/GenerateStudentReportPDFServlet?approvalId=' + approvalId)
+            .then(function() {
+                // Reload the report section to reflect updated button state
                 if (currentStudentPen) {
-                    generateReport(null, currentStudentName, currentStudentPen);
+                    generateReport(null, currentStudentName, currentStudentPen, currentStudentClass, currentStudentSection);
                 }
-            }, 2000);
+            })
+            .catch(function(err) {
+                console.error('Error marking report as generated:', err);
+            });
+        }
+        
+        // Open print report card in new window
+        function openPrintReportCard(penNumber, studentName, studentClass, section) {
+            const url = contextPath + '/print-student-report-card.jsp' +
+                '?penNumber=' + encodeURIComponent(penNumber) +
+                '&studentName=' + encodeURIComponent(studentName) +
+                '&studentClass=' + encodeURIComponent(studentClass) +
+                '&section=' + encodeURIComponent(section || '');
+            
+            window.open(url, '_blank', 'width=1200,height=800');
         }
     </script>
 </body>

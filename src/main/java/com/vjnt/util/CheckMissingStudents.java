@@ -13,9 +13,6 @@ public class CheckMissingStudents {
     public static void main(String[] args) {
         String udiseNo = "27150401803";
         
-        System.out.println("=== Check Missing Students ===");
-        System.out.println("UDISE: " + udiseNo);
-        System.out.println("==============================\n");
         
         String[] missingStudents = {
             "JAGDISH BABA HARGAONKAR",
@@ -56,17 +53,8 @@ public class CheckMissingStudents {
                     }
                     java.sql.Timestamp phase2Date = rs.getTimestamp("phase2_date");
                     
-                    System.out.println("Student: " + studentName);
-                    System.out.println("  ID: " + studentId);
-                    System.out.println("  PEN: " + pen);
-                    System.out.println("  Class: " + studentClass + "-" + section);
-                    System.out.println("  is_active: " + isActive);
-                    System.out.println("  fln_completed: " + flnCompleted);
-                    System.out.println("  phase2_date: " + (phase2Date != null ? phase2Date : "NULL (NOT COMPLETED)"));
                     
                     if (flnCompleted != null && flnCompleted) {
-                        System.out.println("  ⚠ ISSUE: fln_completed is TRUE - This is why student is hidden!");
-                        System.out.println("  → Fixing: Setting fln_completed to FALSE...");
                         
                         String updateSql = "UPDATE students SET fln_completed = FALSE WHERE student_id = ?";
                         PreparedStatement updatePstmt = conn.prepareStatement(updateSql);
@@ -75,11 +63,8 @@ public class CheckMissingStudents {
                         updatePstmt.close();
                         
                         if (updated > 0) {
-                            System.out.println("  ✓ Fixed! Student will now be visible in manage-students page.");
                         }
                     } else if (!isActive) {
-                        System.out.println("  ⚠ ISSUE: is_active is FALSE - Student is marked as inactive!");
-                        System.out.println("  → Fixing: Setting is_active to TRUE...");
                         
                         String updateSql = "UPDATE students SET is_active = TRUE WHERE student_id = ?";
                         PreparedStatement updatePstmt = conn.prepareStatement(updateSql);
@@ -88,25 +73,17 @@ public class CheckMissingStudents {
                         updatePstmt.close();
                         
                         if (updated > 0) {
-                            System.out.println("  ✓ Fixed! Student is now active.");
                         }
                     } else {
-                        System.out.println("  ✓ No issues - Student should be visible");
                     }
                 } else {
-                    System.out.println("Student: " + studentName);
-                    System.out.println("  ✗ NOT FOUND in database!");
                 }
                 
-                System.out.println();
                 
                 if (rs != null) rs.close();
                 if (pstmt != null) pstmt.close();
             }
             
-            System.out.println("==============================");
-            System.out.println("✓ Check Complete!");
-            System.out.println("Please refresh the manage-students page to see the students.");
             
         } catch (SQLException e) {
             System.err.println("\n✗ DATABASE ERROR:");

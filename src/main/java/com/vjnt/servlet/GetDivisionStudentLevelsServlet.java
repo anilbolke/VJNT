@@ -124,7 +124,6 @@ public class GetDivisionStudentLevelsServlet extends HttpServlet {
             }
             
             long processingTime = System.currentTimeMillis() - startTime;
-            System.out.println("Fetched and processed " + students.size() + " students for division: " + division + " in " + processingTime + "ms");
             
         } catch (Exception e) {
             System.err.println("Error fetching student levels: " + e.getMessage());

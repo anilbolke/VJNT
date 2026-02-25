@@ -116,7 +116,7 @@
                         // PEN collision detected, generate a new one
                         finalPen = studentDAO.generateNextPenNumber();
                         if (i > 0) {
-                            System.out.println("⚠ PEN collision detected, regenerated: " + finalPen);
+                            //System.out.println("⚠ PEN collision detected, regenerated: " + finalPen);
                         }
                     }
                 }

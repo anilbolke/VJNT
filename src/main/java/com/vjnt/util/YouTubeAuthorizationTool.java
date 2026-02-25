@@ -11,31 +11,31 @@ import java.io.File;
 public class YouTubeAuthorizationTool {
     
     public static void main(String[] args) {
-        System.out.println("========================================");
-        System.out.println("YouTube Authorization Tool");
-        System.out.println("========================================");
-        System.out.println();
+        //System.out.println("========================================");
+        //System.out.println("YouTube Authorization Tool");
+        //System.out.println("========================================");
+        //System.out.println();
         
         try {
-            System.out.println("Checking credentials folder...");
+            //System.out.println("Checking credentials folder...");
             File credentialsDir = new File(System.getProperty("user.home"), ".vjnt/credentials");
             if (!credentialsDir.exists()) {
                 credentialsDir.mkdirs();
-                System.out.println("✓ Created credentials folder: " + credentialsDir.getAbsolutePath());
+                //System.out.println("✓ Created credentials folder: " + credentialsDir.getAbsolutePath());
             } else {
-                System.out.println("✓ Credentials folder exists: " + credentialsDir.getAbsolutePath());
+                //System.out.println("✓ Credentials folder exists: " + credentialsDir.getAbsolutePath());
             }
             
-            System.out.println();
-            System.out.println("Clearing any expired credentials...");
+            //System.out.println();
+            //System.out.println("Clearing any expired credentials...");
             YouTubeUploader.clearCredentials();
-            System.out.println("✓ Old credentials cleared");
+            //System.out.println("✓ Old credentials cleared");
             
-            System.out.println();
-            System.out.println("Starting YouTube authorization...");
-            System.out.println("A browser window will open in a few seconds.");
-            System.out.println("Please sign in and grant permissions.");
-            System.out.println();
+            //System.out.println();
+            //System.out.println("Starting YouTube authorization...");
+            //System.out.println("A browser window will open in a few seconds.");
+            //System.out.println("Please sign in and grant permissions.");
+            //System.out.println();
             
             // Create a test file for upload
             File testFile = File.createTempFile("youtube_auth_test_", ".txt");
@@ -44,7 +44,7 @@ public class YouTubeAuthorizationTool {
             final NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
             
             // This will trigger the OAuth flow and open browser
-            System.out.println("Opening browser for authorization...");
+            //System.out.println("Opening browser for authorization...");
             YouTubeUploader.uploadVideo(
                 testFile,
                 "Test Authorization",
@@ -54,16 +54,16 @@ public class YouTubeAuthorizationTool {
                 "private"
             );
             
-            System.out.println();
-            System.out.println("========================================");
-            System.out.println("✅ SUCCESS! YouTube Authorized!");
-            System.out.println("========================================");
-            System.out.println();
-            System.out.println("Credentials saved to: " + credentialsDir.getAbsolutePath());
-            System.out.println();
-            System.out.println("You can now upload videos from your application!");
-            System.out.println("The authorization is saved and will auto-refresh.");
-            System.out.println();
+            //System.out.println();
+            //System.out.println("========================================");
+            //System.out.println("✅ SUCCESS! YouTube Authorized!");
+            //System.out.println("========================================");
+            //System.out.println();
+            //System.out.println("Credentials saved to: " + credentialsDir.getAbsolutePath());
+            //System.out.println();
+            //System.out.println("You can now upload videos from your application!");
+            //System.out.println("The authorization is saved and will auto-refresh.");
+            //System.out.println();
             
         } catch (Exception e) {
             System.err.println();

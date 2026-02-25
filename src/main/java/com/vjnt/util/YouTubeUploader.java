@@ -45,12 +45,12 @@ public class YouTubeUploader {
     private static Credential getCredentials(final NetHttpTransport httpTransport) throws IOException {
         // Check if using Service Account authentication
         if (YouTubeConfig.useServiceAccount()) {
-            System.out.println("Using Service Account authentication for production deployment...");
+            //System.out.println("Using Service Account authentication for production deployment...");
             return getServiceAccountCredentials(httpTransport);
         }
         
         // Otherwise use OAuth authentication
-        System.out.println("Using OAuth authentication...");
+        //System.out.println("Using OAuth authentication...");
         return getOAuthCredentials(httpTransport);
     }
     
@@ -62,13 +62,13 @@ public class YouTubeUploader {
         String foundLocation = null;
         String serviceAccountFile = YouTubeConfig.getServiceAccountFile();
         
-        System.out.println("Searching for " + serviceAccountFile + "...");
+        //System.out.println("Searching for " + serviceAccountFile + "...");
         
         // PRIORITY 1: Try classpath FIRST (packaged in WAR)
         in = YouTubeUploader.class.getClassLoader().getResourceAsStream(serviceAccountFile);
         if (in != null) {
             foundLocation = "classpath:/" + serviceAccountFile;
-            System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in classpath");
+            //System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in classpath");
         }
         
         // PRIORITY 2: Try as direct resource from class
@@ -76,7 +76,7 @@ public class YouTubeUploader {
             in = YouTubeUploader.class.getResourceAsStream("/" + serviceAccountFile);
             if (in != null) {
                 foundLocation = "classpath:/" + serviceAccountFile + " (via class loader)";
-                System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " via class resource");
+                //System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " via class resource");
             }
         }
         
@@ -89,11 +89,11 @@ public class YouTubeUploader {
                     if (classesFile.exists()) {
                         in = new FileInputStream(classesFile);
                         foundLocation = classesFile.getAbsolutePath();
-                        System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in WEB-INF/classes");
+                        //System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in WEB-INF/classes");
                     }
                 }
             } catch (Exception e) {
-                System.out.println("  WEB-INF/classes search: " + e.getMessage());
+                //System.out.println("  WEB-INF/classes search: " + e.getMessage());
             }
         }
         
@@ -104,7 +104,7 @@ public class YouTubeUploader {
             if (devFile.exists()) {
                 in = new FileInputStream(devFile);
                 foundLocation = devFile.getAbsolutePath();
-                System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " at development path");
+                //System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " at development path");
             }
         }
         
@@ -114,7 +114,7 @@ public class YouTubeUploader {
             if (userHomeFile.exists()) {
                 in = new FileInputStream(userHomeFile);
                 foundLocation = userHomeFile.getAbsolutePath();
-                System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in user home");
+                //System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in user home");
             }
         }
         
@@ -124,7 +124,7 @@ public class YouTubeUploader {
             if (cwdFile.exists()) {
                 in = new FileInputStream(cwdFile);
                 foundLocation = cwdFile.getAbsolutePath();
-                System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in current directory");
+                //System.out.println("✓ SUCCESS: Found " + serviceAccountFile + " in current directory");
             }
         }
         
@@ -148,7 +148,7 @@ public class YouTubeUploader {
             );
         }
         
-        System.out.println("Loading Service Account credentials from: " + foundLocation);
+        //System.out.println("Loading Service Account credentials from: " + foundLocation);
         
         System.err.println("\n╔════════════════════════════════════════════════════════════════════╗");
         System.err.println("║  WARNING: Service Accounts Do NOT Work with YouTube API!          ║");
@@ -169,8 +169,8 @@ public class YouTubeUploader {
         GoogleCredential credential = GoogleCredential.fromStream(in, httpTransport, JSON_FACTORY)
             .createScoped(SCOPES);
         
-        System.out.println("✓ Service Account loaded (but will NOT work for YouTube uploads!)");
-        System.out.println("  Service Account: " + credential.getServiceAccountId());
+        //System.out.println("✓ Service Account loaded (but will NOT work for YouTube uploads!)");
+        //System.out.println("  Service Account: " + credential.getServiceAccountId());
         
         return credential;
     }
@@ -186,19 +186,19 @@ public class YouTubeUploader {
         boolean isHeadless = !isWindows && ((displayEnv == null || displayEnv.isEmpty()) || 
                             System.getProperty("java.awt.headless", "false").equals("true"));
         
-        System.out.println("=== Environment Check ===");
-        System.out.println("OS: " + osName);
-        System.out.println("Is Windows: " + isWindows);
-        System.out.println("Is Headless: " + isHeadless);
+        //System.out.println("=== Environment Check ===");
+        //System.out.println("OS: " + osName);
+        //System.out.println("Is Windows: " + isWindows);
+        //System.out.println("Is Headless: " + isHeadless);
         
         // PRIORITY 0: Try database credentials FIRST (for production servers)
-        System.out.println("=== Checking database for stored credentials ===");
+        //System.out.println("=== Checking database for stored credentials ===");
         try {
             YouTubeCredentialManager.YouTubeCredential dbCred = YouTubeCredentialManager.getCredentials();
             if (dbCred != null && dbCred.getRefreshToken() != null) {
-                System.out.println("✓ Found credentials in database!");
-                System.out.println("  Access token: " + (dbCred.getAccessToken() != null ? "Present" : "Missing"));
-                System.out.println("  Refresh token: " + (dbCred.getRefreshToken() != null ? "Present" : "Missing"));
+                //System.out.println("✓ Found credentials in database!");
+                //System.out.println("  Access token: " + (dbCred.getAccessToken() != null ? "Present" : "Missing"));
+                //System.out.println("  Refresh token: " + (dbCred.getRefreshToken() != null ? "Present" : "Missing"));
                 
                 // Create credential from database values
                 GoogleCredential credential = new GoogleCredential.Builder()
@@ -215,7 +215,7 @@ public class YouTubeUploader {
                     long expiry = dbCred.getTokenExpiry().getTime();
                     
                     if (expiry - now < 300000) { // Less than 5 minutes
-                        System.out.println("⚠ Token expires soon, refreshing...");
+                        //System.out.println("⚠ Token expires soon, refreshing...");
                         try {
                             credential.refreshToken();
                             // Update database with new token
@@ -225,7 +225,7 @@ public class YouTubeUploader {
                                     credential.getAccessToken(), 
                                     expiresIn
                                 );
-                                System.out.println("✓ Token refreshed and updated in database");
+                                //System.out.println("✓ Token refreshed and updated in database");
                             }
                         } catch (Exception e) {
                             System.err.println("⚠ Token refresh failed: " + e.getMessage());
@@ -233,10 +233,10 @@ public class YouTubeUploader {
                     }
                 }
                 
-                System.out.println("✓ SUCCESS: Using database credentials (no port binding needed)");
+                //System.out.println("✓ SUCCESS: Using database credentials (no port binding needed)");
                 return credential;
             } else {
-                System.out.println("✗ No valid credentials in database");
+                //System.out.println("✗ No valid credentials in database");
                 if (isHeadless) {
                     System.err.println("\n╔════════════════════════════════════════════════════════════════════╗");
                     System.err.println("║  ERROR: No database credentials found on production server        ║");
@@ -290,15 +290,15 @@ public class YouTubeUploader {
         String foundLocation = null;
         String clientSecretsFile = YouTubeConfig.getClientSecretsFile();
         
-        System.out.println("Searching for " + clientSecretsFile + "...");
+        //System.out.println("Searching for " + clientSecretsFile + "...");
         
         // PRIORITY 1: Try classpath FIRST (works in production WAR without any server setup)
         // Files in src/main/resources/ are automatically included in WAR and available on classpath
         in = YouTubeUploader.class.getClassLoader().getResourceAsStream(clientSecretsFile);
         if (in != null) {
             foundLocation = "classpath:/" + clientSecretsFile;
-            System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in classpath (packaged in WAR)");
-            System.out.println("  Location: " + foundLocation);
+            //System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in classpath (packaged in WAR)");
+            //System.out.println("  Location: " + foundLocation);
         }
         
         // PRIORITY 2: Try as direct resource from class (alternative classpath method)
@@ -306,7 +306,7 @@ public class YouTubeUploader {
             in = YouTubeUploader.class.getResourceAsStream("/" + clientSecretsFile);
             if (in != null) {
                 foundLocation = "classpath:/" + clientSecretsFile + " (via class loader)";
-                System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " via class resource");
+                //System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " via class resource");
             }
         }
         
@@ -320,11 +320,11 @@ public class YouTubeUploader {
                     if (classesFile.exists()) {
                         in = new FileInputStream(classesFile);
                         foundLocation = classesFile.getAbsolutePath();
-                        System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in WEB-INF/classes");
+                        //System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in WEB-INF/classes");
                     }
                 }
             } catch (Exception e) {
-                System.out.println("  WEB-INF/classes search: " + e.getMessage());
+                //System.out.println("  WEB-INF/classes search: " + e.getMessage());
             }
         }
         
@@ -335,7 +335,7 @@ public class YouTubeUploader {
             if (devFile.exists()) {
                 in = new FileInputStream(devFile);
                 foundLocation = devFile.getAbsolutePath();
-                System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " at development path");
+                //System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " at development path");
             }
         }
         
@@ -345,7 +345,7 @@ public class YouTubeUploader {
             if (userHomeFile.exists()) {
                 in = new FileInputStream(userHomeFile);
                 foundLocation = userHomeFile.getAbsolutePath();
-                System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in user home");
+                //System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in user home");
             }
         }
         
@@ -355,7 +355,7 @@ public class YouTubeUploader {
             if (cwdFile.exists()) {
                 in = new FileInputStream(cwdFile);
                 foundLocation = cwdFile.getAbsolutePath();
-                System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in current directory");
+                //System.out.println("✓ SUCCESS: Found " + clientSecretsFile + " in current directory");
             }
         }
         
@@ -402,28 +402,28 @@ public class YouTubeUploader {
             throw new FileNotFoundException(errorMsg.toString());
         }
         
-        System.out.println("Loading YouTube credentials from: " + foundLocation);
+        //System.out.println("Loading YouTube credentials from: " + foundLocation);
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
         
         // Try to find credentials folder in multiple locations (production-friendly)
         File credentialsFolder = findCredentialsFolder();
-        System.out.println("Using credentials folder: " + credentialsFolder.getAbsolutePath());
+        //System.out.println("Using credentials folder: " + credentialsFolder.getAbsolutePath());
         
         // CRITICAL FIX: Extract packaged credentials from WAR BEFORE building flow
         // This must happen FIRST on production servers before any credential checks
-        System.out.println("=== PRODUCTION FIX: Extracting packaged credentials from WAR ===");
+        //System.out.println("=== PRODUCTION FIX: Extracting packaged credentials from WAR ===");
         boolean extractedFromWAR = false;
         try {
             InputStream credStream = YouTubeUploader.class.getClassLoader()
                 .getResourceAsStream("credentials/StoredCredential");
             
             if (credStream != null) {
-                System.out.println("✓ Found credentials/StoredCredential in WAR classpath!");
+                //System.out.println("✓ Found credentials/StoredCredential in WAR classpath!");
                 
                 // Ensure credentials folder exists
                 if (!credentialsFolder.exists()) {
                     credentialsFolder.mkdirs();
-                    System.out.println("✓ Created credentials folder: " + credentialsFolder.getAbsolutePath());
+                    //System.out.println("✓ Created credentials folder: " + credentialsFolder.getAbsolutePath());
                 }
                 
                 // Extract to credentials folder
@@ -433,11 +433,11 @@ public class YouTubeUploader {
                 credStream.close();
                 
                 extractedFromWAR = true;
-                System.out.println("✓ EXTRACTED packaged credentials to: " + targetFile.getAbsolutePath());
-                System.out.println("✓ File size: " + targetFile.length() + " bytes");
-                System.out.println("✓ PRODUCTION SERVER: Credentials ready for use!");
+                //System.out.println("✓ EXTRACTED packaged credentials to: " + targetFile.getAbsolutePath());
+                //System.out.println("✓ File size: " + targetFile.length() + " bytes");
+                //System.out.println("✓ PRODUCTION SERVER: Credentials ready for use!");
             } else {
-                System.out.println("✗ credentials/StoredCredential not found in WAR classpath");
+                //System.out.println("✗ credentials/StoredCredential not found in WAR classpath");
             }
         } catch (Exception e) {
             System.err.println("✗ Error extracting packaged credentials: " + e.getMessage());
@@ -446,7 +446,7 @@ public class YouTubeUploader {
         
         // NEW: Try fetching from Hiox server or local backup if not in WAR
         if (!extractedFromWAR) {
-            System.out.println("=== ATTEMPTING TO FETCH CREDENTIALS FROM ALTERNATIVE SOURCES ===");
+            //System.out.println("=== ATTEMPTING TO FETCH CREDENTIALS FROM ALTERNATIVE SOURCES ===");
             extractedFromWAR = fetchCredentialsFromAlternativeSources(credentialsFolder);
         }
         
@@ -462,33 +462,33 @@ public class YouTubeUploader {
         Credential credential = flow.loadCredential("user");
         
         if (credential != null && credential.getRefreshToken() != null) {
-            System.out.println("✓ SUCCESS: Using stored credentials");
-            System.out.println("  Refresh token found - will auto-refresh without browser");
-            System.out.println("  Credentials location: " + credentialsFolder.getAbsolutePath());
+            //System.out.println("✓ SUCCESS: Using stored credentials");
+            //System.out.println("  Refresh token found - will auto-refresh without browser");
+            //System.out.println("  Credentials location: " + credentialsFolder.getAbsolutePath());
             if (extractedFromWAR) {
-                System.out.println("  Source: Extracted from packaged WAR file");
+                //System.out.println("  Source: Extracted from packaged WAR file");
             }
             return credential;
         }
         
         // CRITICAL: Try loading from classpath BEFORE checking if headless
         // This allows packaged credentials in WAR to work on production servers
-        System.out.println("=== ATTEMPTING TO LOAD PACKAGED CREDENTIALS ===");
-        System.out.println("Credentials folder: " + credentialsFolder.getAbsolutePath());
+        //System.out.println("=== ATTEMPTING TO LOAD PACKAGED CREDENTIALS ===");
+        //System.out.println("Credentials folder: " + credentialsFolder.getAbsolutePath());
         
         // Method 1: Try loading from classpath resources (packaged in WAR)
-        System.out.println("Method 1: Checking classpath for credentials/StoredCredential...");
+        //System.out.println("Method 1: Checking classpath for credentials/StoredCredential...");
         try {
             InputStream credStream = YouTubeUploader.class.getClassLoader()
                 .getResourceAsStream("credentials/StoredCredential");
             
             if (credStream != null) {
-                System.out.println("✓ SUCCESS: Found credentials/StoredCredential in classpath!");
+                //System.out.println("✓ SUCCESS: Found credentials/StoredCredential in classpath!");
                 
                 // Ensure credentials folder exists
                 if (!credentialsFolder.exists()) {
                     credentialsFolder.mkdirs();
-                    System.out.println("✓ Created credentials folder: " + credentialsFolder.getAbsolutePath());
+                    //System.out.println("✓ Created credentials folder: " + credentialsFolder.getAbsolutePath());
                 }
                 
                 // Copy to credentials folder
@@ -497,26 +497,26 @@ public class YouTubeUploader {
                     java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 credStream.close();
                 
-                System.out.println("✓ Extracted packaged credentials to: " + targetFile.getAbsolutePath());
-                System.out.println("✓ File size: " + targetFile.length() + " bytes");
+                //System.out.println("✓ Extracted packaged credentials to: " + targetFile.getAbsolutePath());
+                //System.out.println("✓ File size: " + targetFile.length() + " bytes");
                 
                 // Reload credentials from extracted file
                 credential = flow.loadCredential("user");
                 if (credential != null) {
-                    System.out.println("✓ Loaded credential object");
+                    //System.out.println("✓ Loaded credential object");
                     if (credential.getRefreshToken() != null) {
-                        System.out.println("✓ SUCCESS: Refresh token found - credentials are valid!");
-                        System.out.println("✓ Production server can now upload to YouTube!");
+                        //System.out.println("✓ SUCCESS: Refresh token found - credentials are valid!");
+                        //System.out.println("✓ Production server can now upload to YouTube!");
                         return credential;
                     } else {
-                        System.out.println("✗ Warning: Credential loaded but no refresh token");
+                        //System.out.println("✗ Warning: Credential loaded but no refresh token");
                     }
                 } else {
-                    System.out.println("✗ Failed to load credential from extracted file");
+                    //System.out.println("✗ Failed to load credential from extracted file");
                 }
             } else {
-                System.out.println("✗ credentials/StoredCredential not found in classpath");
-                System.out.println("   This means WAR file doesn't contain packaged credentials");
+                //System.out.println("✗ credentials/StoredCredential not found in classpath");
+                //System.out.println("   This means WAR file doesn't contain packaged credentials");
             }
         } catch (Exception e) {
             System.err.println("✗ Error loading packaged credentials: " + e.getMessage());
@@ -524,20 +524,20 @@ public class YouTubeUploader {
         }
         
         // Method 2: Try loading from packaged credentials helper method
-        System.out.println("Method 2: Trying tryLoadPackagedCredentials()...");
+        //System.out.println("Method 2: Trying tryLoadPackagedCredentials()...");
         File packagedCredentials = tryLoadPackagedCredentials(credentialsFolder);
         if (packagedCredentials != null) {
-            System.out.println("✓ tryLoadPackagedCredentials() succeeded");
+            //System.out.println("✓ tryLoadPackagedCredentials() succeeded");
             credential = flow.loadCredential("user");
             if (credential != null && credential.getRefreshToken() != null) {
-                System.out.println("✓ SUCCESS: Using packaged credentials with refresh token");
+                //System.out.println("✓ SUCCESS: Using packaged credentials with refresh token");
                 return credential;
             }
         } else {
-            System.out.println("✗ tryLoadPackagedCredentials() returned null");
+            //System.out.println("✗ tryLoadPackagedCredentials() returned null");
         }
         
-        System.out.println("=== ALL PACKAGED CREDENTIAL METHODS FAILED ===");
+        //System.out.println("=== ALL PACKAGED CREDENTIAL METHODS FAILED ===");
         
         // Log environment for debugging
         YouTubeUploadLogger.logEnvironmentInfo();
@@ -587,7 +587,7 @@ public class YouTubeUploader {
         }
         
         // We're on a local machine with display - allow interactive authentication
-        System.out.println("No stored credentials found. Starting interactive OAuth flow...");
+        //System.out.println("No stored credentials found. Starting interactive OAuth flow...");
         
         // Use configured port or -1 to automatically find an available port
         int oauthPort = YouTubeConfig.getOAuthReceiverPort();
@@ -599,9 +599,9 @@ public class YouTubeUploader {
                     .setPort(oauthPort) // -1 means use any available port
                     .build();
             
-            System.out.println("OAuth receiver using port: " + receiver.getPort());
-            System.out.println("Redirect URI: " + receiver.getRedirectUri());
-            System.out.println("A browser window will open for authorization...");
+            //System.out.println("OAuth receiver using port: " + receiver.getPort());
+            //System.out.println("Redirect URI: " + receiver.getRedirectUri());
+            //System.out.println("A browser window will open for authorization...");
             
             Credential authCredential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
             
@@ -609,7 +609,7 @@ public class YouTubeUploader {
             if (receiver != null) {
                 try {
                     receiver.stop();
-                    System.out.println("✓ OAuth receiver stopped successfully");
+                    //System.out.println("✓ OAuth receiver stopped successfully");
                 } catch (Exception e) {
                     System.err.println("Warning: Could not stop OAuth receiver: " + e.getMessage());
                 }
@@ -634,7 +634,7 @@ public class YouTubeUploader {
                     .setPort(-1) // Force automatic port
                     .build();
             
-            System.out.println("OAuth receiver using fallback port: " + receiver.getPort());
+            //System.out.println("OAuth receiver using fallback port: " + receiver.getPort());
             
             try {
                 Credential fallbackCredential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
@@ -699,11 +699,11 @@ public class YouTubeUploader {
                 for (File file : files) {
                     if (file.isFile()) {
                         boolean deleted = file.delete();
-                        System.out.println("Deleted credential file: " + file.getName() + " - " + deleted);
+                        //System.out.println("Deleted credential file: " + file.getName() + " - " + deleted);
                     }
                 }
             }
-            System.out.println("Cleared all stored credentials");
+            //System.out.println("Cleared all stored credentials");
         }
     }
     
@@ -742,14 +742,14 @@ public class YouTubeUploader {
         }
         
         if (YouTubeConfig.isDebugEnabled()) {
-            System.out.println("============ YOUTUBE UPLOAD DEBUG ============");
-            System.out.println("Original title: [" + title + "]");
-            System.out.println("Cleaned title: [" + cleanTitle + "]");
-            System.out.println("Title length: " + cleanTitle.length());
-            System.out.println("Title bytes: " + java.util.Arrays.toString(cleanTitle.getBytes("UTF-8")));
-            System.out.println("Title is null: " + (cleanTitle == null));
-            System.out.println("Title is empty: " + (cleanTitle.isEmpty()));
-            System.out.println("============================================");
+            //System.out.println("============ YOUTUBE UPLOAD DEBUG ============");
+            //System.out.println("Original title: [" + title + "]");
+            //System.out.println("Cleaned title: [" + cleanTitle + "]");
+            //System.out.println("Title length: " + cleanTitle.length());
+            //System.out.println("Title bytes: " + java.util.Arrays.toString(cleanTitle.getBytes("UTF-8")));
+            //System.out.println("Title is null: " + (cleanTitle == null));
+            //System.out.println("Title is empty: " + (cleanTitle.isEmpty()));
+            //System.out.println("============================================");
         }
         
         snippet.setTitle(cleanTitle);
@@ -790,19 +790,19 @@ public class YouTubeUploader {
             public void progressChanged(MediaHttpUploader uploader) throws IOException {
                 switch (uploader.getUploadState()) {
                     case INITIATION_STARTED:
-                        System.out.println("Initiation Started");
+                        //System.out.println("Initiation Started");
                         break;
                     case INITIATION_COMPLETE:
-                        System.out.println("Initiation Completed");
+                        //System.out.println("Initiation Completed");
                         break;
                     case MEDIA_IN_PROGRESS:
-                        System.out.println("Upload in progress: " + uploader.getProgress());
+                        //System.out.println("Upload in progress: " + uploader.getProgress());
                         break;
                     case MEDIA_COMPLETE:
-                        System.out.println("Upload Completed!");
+                        //System.out.println("Upload Completed!");
                         break;
                     case NOT_STARTED:
-                        System.out.println("Upload Not Started!");
+                        //System.out.println("Upload Not Started!");
                         break;
                 }
             }
@@ -811,11 +811,11 @@ public class YouTubeUploader {
         // Execute upload
         Video returnedVideo = videoInsert.execute();
         
-        System.out.println("\n================== Returned Video ==================\n");
-        System.out.println("  - Id: " + returnedVideo.getId());
-        System.out.println("  - Title: " + returnedVideo.getSnippet().getTitle());
-        System.out.println("  - Status: " + returnedVideo.getStatus().getPrivacyStatus());
-        System.out.println("  - URL: https://www.youtube.com/watch?v=" + returnedVideo.getId());
+        //System.out.println("\n================== Returned Video ==================\n");
+        //System.out.println("  - Id: " + returnedVideo.getId());
+        //System.out.println("  - Title: " + returnedVideo.getSnippet().getTitle());
+        //System.out.println("  - Status: " + returnedVideo.getStatus().getPrivacyStatus());
+        //System.out.println("  - URL: https://www.youtube.com/watch?v=" + returnedVideo.getId());
         
         return returnedVideo.getId();
     }
@@ -842,7 +842,7 @@ public class YouTubeUploader {
         if (cleanTitle == null || cleanTitle.trim().isEmpty()) {
             cleanTitle = YouTubeConfig.getFallbackTitle();
         }
-        System.out.println("Setting video title: " + cleanTitle);
+        //System.out.println("Setting video title: " + cleanTitle);
         snippet.setTitle(cleanTitle);
         
         // Set description
@@ -956,7 +956,7 @@ public class YouTubeUploader {
             if (catalinaBase != null) {
                 File warCredentials = new File(catalinaBase, "webapps/ROOT/WEB-INF/classes/" + YouTubeConfig.getCredentialsFolder());
                 if (warCredentials.exists() && warCredentials.isDirectory()) {
-                    System.out.println("✓ Found credentials folder inside WAR: " + warCredentials.getAbsolutePath());
+                    //System.out.println("✓ Found credentials folder inside WAR: " + warCredentials.getAbsolutePath());
                     return warCredentials;
                 }
             }
@@ -970,7 +970,7 @@ public class YouTubeUploader {
             if (catalinaBase != null) {
                 File webappsCredentials = new File(catalinaBase, "webapps/" + YouTubeConfig.getCredentialsFolder());
                 if (webappsCredentials.exists() || webappsCredentials.mkdirs()) {
-                    System.out.println("Using credentials folder in webapps: " + webappsCredentials.getAbsolutePath());
+                    //System.out.println("Using credentials folder in webapps: " + webappsCredentials.getAbsolutePath());
                     return webappsCredentials;
                 }
             }
@@ -982,7 +982,7 @@ public class YouTubeUploader {
         try {
             File userHomeCredentials = new File(System.getProperty("user.home"), YouTubeConfig.getUserHomeSubfolder() + YouTubeConfig.getCredentialsFolder());
             if (userHomeCredentials.exists() || userHomeCredentials.mkdirs()) {
-                System.out.println("Using credentials folder in user home: " + userHomeCredentials.getAbsolutePath());
+                //System.out.println("Using credentials folder in user home: " + userHomeCredentials.getAbsolutePath());
                 return userHomeCredentials;
             }
         } catch (Exception e) {
@@ -994,7 +994,7 @@ public class YouTubeUploader {
         if (!credentialsFolder.exists()) {
             credentialsFolder.mkdirs();
         }
-        System.out.println("Using credentials folder (relative): " + credentialsFolder.getAbsolutePath());
+        //System.out.println("Using credentials folder (relative): " + credentialsFolder.getAbsolutePath());
         return credentialsFolder;
     }
     
@@ -1009,7 +1009,7 @@ public class YouTubeUploader {
                 .getResourceAsStream(YouTubeConfig.getCredentialsFolder() + "/StoredCredential");
             
             if (credStream != null) {
-                System.out.println("✓ Found packaged credentials in WAR");
+                //System.out.println("✓ Found packaged credentials in WAR");
                 
                 // Copy to target folder for the DataStoreFactory to use
                 File targetFile = new File(targetFolder, "StoredCredential");
@@ -1024,11 +1024,11 @@ public class YouTubeUploader {
                 }
                 credStream.close();
                 
-                System.out.println("✓ Copied packaged credentials to: " + targetFile.getAbsolutePath());
+                //System.out.println("✓ Copied packaged credentials to: " + targetFile.getAbsolutePath());
                 return targetFile;
             }
         } catch (Exception e) {
-            System.out.println("No packaged credentials found (this is OK if authorizing for first time)");
+            //System.out.println("No packaged credentials found (this is OK if authorizing for first time)");
         }
         
         return null;
@@ -1143,10 +1143,10 @@ public class YouTubeUploader {
                 );
                 
                 if (saved) {
-                    System.out.println("✓ SUCCESS: Credentials saved to database");
-                    System.out.println("  Access token: " + (accessToken != null ? "Saved" : "Missing"));
-                    System.out.println("  Refresh token: " + (refreshToken != null ? "Saved" : "Missing"));
-                    System.out.println("  Production server can now use database credentials");
+                    //System.out.println("✓ SUCCESS: Credentials saved to database");
+                    //System.out.println("  Access token: " + (accessToken != null ? "Saved" : "Missing"));
+                    //System.out.println("  Refresh token: " + (refreshToken != null ? "Saved" : "Missing"));
+                    //System.out.println("  Production server can now use database credentials");
                 } else {
                     System.err.println("✗ Failed to save credentials to database");
                 }

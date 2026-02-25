@@ -60,7 +60,6 @@ public class GetPendingVideosServlet extends HttpServlet {
             }
             
             String udiseNo = user.getUdiseNo();
-            System.out.println("Fetching pending videos for UDISE: " + udiseNo);
             
             // Get pending videos for this school
             List<Map<String, Object>> pendingVideos = getPendingVideos(udiseNo);
@@ -126,7 +125,6 @@ public class GetPendingVideosServlet extends HttpServlet {
                 videos.add(video);
             }
             
-            System.out.println("Found " + videos.size() + " pending videos for UDISE: " + udiseNo);
             
         } catch (Exception e) {
             System.err.println("Error querying pending videos: " + e.getMessage());

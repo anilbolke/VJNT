@@ -117,12 +117,6 @@ public class DivisionAnalyticsServlet extends HttpServlet {
     private JSONObject getPalakMelavaData(String divisionName, String startDate, String endDate) {
         JSONObject result = new JSONObject();
         
-        // DEBUG: Log received parameters
-        System.out.println("=== PALAK MELAVA DATE FILTER DEBUG ===");
-        System.out.println("Division: " + divisionName);
-        System.out.println("Start Date: " + startDate);
-        System.out.println("End Date: " + endDate);
-        System.out.println("Date Filter Active: " + (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()));
         
         try (Connection conn = DatabaseConnection.getConnection()) {
             
@@ -146,7 +140,6 @@ public class DivisionAnalyticsServlet extends HttpServlet {
             sql.append("GROUP BY sch.district_name ");
             sql.append("ORDER BY meeting_count DESC");
             
-            System.out.println("SQL Query: " + sql.toString());
             
             PreparedStatement ps = conn.prepareStatement(sql.toString());
             int paramIndex = 1;
@@ -155,14 +148,11 @@ public class DivisionAnalyticsServlet extends HttpServlet {
             if (hasDateFilter) {
                 ps.setString(paramIndex++, startDate);
                 ps.setString(paramIndex++, endDate);
-                System.out.println("✅ DATE FILTER APPLIED: " + startDate + " to " + endDate);
             } else {
-                System.out.println("⚠️ NO DATE FILTER - Showing all data");
             }
             
 	            ResultSet rs = ps.executeQuery();
             
-            System.out.println("Query executed successfully");
             
             JSONArray districtData = new JSONArray();
             int totalMeetings = 0;
@@ -183,15 +173,9 @@ public class DivisionAnalyticsServlet extends HttpServlet {
                 totalSchoolsWithMeetings += rs.getInt("schools_with_meetings");
             }
             
-            System.out.println("===========================================");
-            System.out.println("📊 FILTERED RESULTS:");
-            System.out.println("Total Meetings Found: " + totalMeetings);
-            System.out.println("Total Parents: " + totalParents);
-            System.out.println("Total Schools with Meetings: " + totalSchoolsWithMeetings);
+         
             if (hasDateFilter) {
-                System.out.println("🗓️ Date Range Applied: " + startDate + " to " + endDate);
             }
-            System.out.println("===========================================");
             
             result.put("districts", districtData);
             result.put("totalMeetings", totalMeetings);

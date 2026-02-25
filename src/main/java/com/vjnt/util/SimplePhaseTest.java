@@ -15,9 +15,9 @@ public class SimplePhaseTest {
         String udiseNo = "27150401803";
         int phase = 2;
         
-        System.out.println("=== Simple Phase 2 Test ===");
-        System.out.println("UDISE: " + udiseNo);
-        System.out.println("==========================\n");
+        //System.out.println("=== Simple Phase 2 Test ===");
+        //System.out.println("UDISE: " + udiseNo);
+        //System.out.println("==========================\n");
         
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -44,15 +44,15 @@ public class SimplePhaseTest {
                 int completedStudents = rs.getInt("completed_students");
                 int percentage = totalStudents > 0 ? (int) Math.round((completedStudents * 100.0) / totalStudents) : 0;
                 
-                System.out.println("📊 NEW CALCULATION (excluding fln_completed = TRUE):");
-                System.out.println("  Total Active Students (fln_completed = FALSE/NULL): " + totalStudents);
-                System.out.println("  Phase 2 Completed: " + completedStudents);
-                System.out.println("  Percentage: " + percentage + "%");
+                //System.out.println("📊 NEW CALCULATION (excluding fln_completed = TRUE):");
+                //System.out.println("  Total Active Students (fln_completed = FALSE/NULL): " + totalStudents);
+                //System.out.println("  Phase 2 Completed: " + completedStudents);
+                //System.out.println("  Percentage: " + percentage + "%");
                 
                 if (percentage == 100) {
-                    System.out.println("\n✓✓✓ SUCCESS! Phase 2 is now 100% ✓✓✓");
+                    //System.out.println("\n✓✓✓ SUCCESS! Phase 2 is now 100% ✓✓✓");
                 } else {
-                    System.out.println("\n⚠ Phase 2 is at " + percentage + "%");
+                    //System.out.println("\n⚠ Phase 2 is at " + percentage + "%");
                 }
             }
             
@@ -60,7 +60,7 @@ public class SimplePhaseTest {
             pstmt.close();
             
             // Also show OLD calculation for comparison
-            System.out.println("\n" + "─".repeat(50));
+            //System.out.println("\n" + "─".repeat(50));
             
             String sqlOld = "SELECT " +
                           "COUNT(*) as total_students, " +
@@ -78,14 +78,14 @@ public class SimplePhaseTest {
                 int completedStudents = rs.getInt("completed_students");
                 int percentage = totalStudents > 0 ? (int) Math.round((completedStudents * 100.0) / totalStudents) : 0;
                 
-                System.out.println("📊 OLD CALCULATION (including all active students):");
-                System.out.println("  Total Active Students (all): " + totalStudents);
-                System.out.println("  Phase 2 Completed: " + completedStudents);
-                System.out.println("  Percentage: " + percentage + "%");
+                //System.out.println("📊 OLD CALCULATION (including all active students):");
+                //System.out.println("  Total Active Students (all): " + totalStudents);
+                //System.out.println("  Phase 2 Completed: " + completedStudents);
+                //System.out.println("  Percentage: " + percentage + "%");
             }
             
-            System.out.println("\n==========================");
-            System.out.println("✓ Test Complete!");
+            //System.out.println("\n==========================");
+            //System.out.println("✓ Test Complete!");
             
         } catch (SQLException e) {
             System.err.println("\n✗ ERROR:");

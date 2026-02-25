@@ -426,9 +426,9 @@
         <div class="header">
             <div class="header-left">
                 <!-- Logo Section - START -->
-               <%--  <div class="header-logo">
+                 <div class="header-logo">
                     <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
-                </div> --%>
+                </div> 
                 <!-- Logo Section - END -->
                 <!-- Admin Icon and Title Section - START -->
                 <div class="school-icon">👨‍💼</div>

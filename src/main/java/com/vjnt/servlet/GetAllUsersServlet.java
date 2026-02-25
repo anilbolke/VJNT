@@ -31,7 +31,7 @@ public class GetAllUsersServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
-        System.out.println("GetAllUsersServlet: Request received");
+        //System.out.println("GetAllUsersServlet: Request received");
         
         // Set response type to JSON
         response.setContentType("application/json;charset=UTF-8");
@@ -42,7 +42,7 @@ public class GetAllUsersServlet extends HttpServlet {
             // Check user session
             HttpSession session = request.getSession(false);
             if (session == null || session.getAttribute("user") == null) {
-                System.out.println("GetAllUsersServlet: User not found in session");
+                //System.out.println("GetAllUsersServlet: User not found in session");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 Map<String, String> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Unauthorized");
@@ -53,7 +53,7 @@ public class GetAllUsersServlet extends HttpServlet {
             // Verify user is DATA_ADMIN
             User sessionUser = (User) session.getAttribute("user");
             if (!sessionUser.getUserType().equals(User.UserType.DATA_ADMIN)) {
-                System.out.println("GetAllUsersServlet: Invalid user type: " + sessionUser.getUserType());
+                //System.out.println("GetAllUsersServlet: Invalid user type: " + sessionUser.getUserType());
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 Map<String, String> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Access Denied - Only DATA_ADMIN can view users");
@@ -63,7 +63,7 @@ public class GetAllUsersServlet extends HttpServlet {
             
             // Get all users
             List<User> users = userDAO.getAllUsers();
-            System.out.println("GetAllUsersServlet: Retrieved " + users.size() + " users");
+            //System.out.println("GetAllUsersServlet: Retrieved " + users.size() + " users");
             
             // Build response with user details
             Map<String, Object> responseData = new HashMap<>();

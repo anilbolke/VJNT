@@ -55,7 +55,6 @@ public class StudentDAO {
                 if (rs.next()) {
                     student.setStudentId(rs.getInt(1));
                 }
-                System.out.println("✓ Student created successfully with PEN: " + student.getStudentPen());
                 return true;
             }
             return false;
@@ -124,7 +123,6 @@ public class StudentDAO {
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Batch insert completed: " + totalInserted + " students inserted in " + duration + "ms");
             return totalInserted;
             
         } catch (SQLException e) {
@@ -662,10 +660,7 @@ public class StudentDAO {
                 // Phase is complete if there are students and all have completed
                 boolean isComplete = totalStudents > 0 && totalStudents == completedStudents;
                 
-                System.out.println("Phase " + phase + " check - UDISE: " + udiseNo + 
-                                 ", Total Active (excluding fln_completed): " + totalStudents + 
-                                 ", Completed: " + completedStudents + 
-                                 ", IsComplete: " + isComplete);
+             
                 
                 return isComplete;
             }
@@ -748,14 +743,12 @@ public class StudentDAO {
                 if (flnComplete) {
                     // ✓ Student achieved 100% FLN - mark as completed immediately
                     updateFlnCompletionStatus(studentId, true);
-                    System.out.println("✓ Student " + studentId + " achieved FLN 100% in Phase " + phase + " - marked as completed!");
                 } else if (phase == 4) {
                     // Only for Phase 4: If not FLN complete but all phases done, restart
                     boolean allPhasesCompleted = hasCompletedAllPhases(studentId);
                     if (allPhasesCompleted) {
                         // Restart phases with Phase 4 data copied to Phase 1
                         restartPhasesWithPhase4Data(studentId);
-                        System.out.println("✓ Student " + studentId + " completed Phase 4 but FLN not 100% - phases restarted");
                     }
                 }
             }
@@ -834,8 +827,6 @@ public class StudentDAO {
             
             // If standard changed, check FLN completion and handle phase restart
             if (rowsAffected > 0 && standardChanged) {
-                System.out.println("✓ Student standard changed from '" + originalStudent.getStudentClass() + 
-                                   "' to '" + student.getStudentClass() + "', checking FLN completion...");
                 handleStandardUpdate(student.getStudentId());
             }
             
@@ -882,10 +873,6 @@ public class StudentDAO {
                 // Calculate percentage
                 int percentage = (int) Math.round((completedStudents * 100.0) / totalStudents);
                 
-                System.out.println("Phase " + phase + " percentage - UDISE: " + udiseNo + 
-                                 ", Active Students (excluding fln_completed): " + totalStudents + 
-                                 ", Completed: " + completedStudents + 
-                                 ", Percentage: " + percentage + "%");
                 
                 return percentage;
             }
@@ -980,7 +967,6 @@ public class StudentDAO {
     public java.util.Map<String, Object> getPhaseWiseSubjectCounts(String udiseNo, String studentClass) {
         java.util.Map<String, Object> counts = new java.util.HashMap<>();
         
-        System.out.println("DEBUG: Getting phase-wise counts for UDISE: " + udiseNo + ", Class: " + studentClass);
 
         String sql = "SELECT " +
                      // Phase 1 counts - Marathi (0-6)
@@ -1098,16 +1084,12 @@ public class StudentDAO {
             pstmt.setString(1, udiseNo);
             if (studentClass != null && !studentClass.isEmpty()) {
                 pstmt.setString(2, studentClass);
-                System.out.println("DEBUG: Filtering by class: " + studentClass);
             }
             
-            System.out.println("DEBUG: Executing SQL: " + sql);
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
                 int totalStudents = rs.getInt("total_students");
-                System.out.println("DEBUG: Found " + totalStudents + " students for UDISE: " + udiseNo + 
-                                 (studentClass != null && !studentClass.isEmpty() ? ", Class: " + studentClass : ""));
                 
                 // Store all counts in the map
                 for (int phase = 1; phase <= 4; phase++) {
@@ -1138,12 +1120,9 @@ public class StudentDAO {
                     }
                     counts.put("phase" + phase + "_english", englishCounts);
                     
-                    System.out.println("DEBUG: Phase " + phase + " - Total students: " + totalStudents);
                 }
                 counts.put("totalStudents", totalStudents);
             } else {
-                System.out.println("DEBUG: No students found for UDISE: " + udiseNo + 
-                                 (studentClass != null && !studentClass.isEmpty() ? ", Class: " + studentClass : ""));
             }
             
         } catch (SQLException e) {
@@ -1166,11 +1145,9 @@ public class StudentDAO {
             
             // Check if this PEN already exists
             if (!isPenNumberExists(candidatePen)) {
-                System.out.println("✓ Generated unique PEN: " + candidatePen + (attempt > 0 ? " (after " + (attempt + 1) + " attempts)" : ""));
                 return candidatePen;
             }
             
-            System.out.println("⚠ PEN " + candidatePen + " already exists, generating new one...");
             
             // Small delay to avoid rapid collision in concurrent scenarios
             try {
@@ -1349,7 +1326,6 @@ public class StudentDAO {
             int rowsAffected = pstmt.executeUpdate();
             
             if (rowsAffected > 0) {
-                System.out.println("✓ Phases restarted for student ID: " + studentId + " with Phase 4 data copied to Phase 1");
                 return true;
             }
             
@@ -1376,11 +1352,9 @@ public class StudentDAO {
                 if (flnComplete) {
                     // Mark student as FLN completed
                     updateFlnCompletionStatus(studentId, true);
-                    System.out.println("✓ Student " + studentId + " marked as FLN completed");
                 } else {
                     // Restart phases with Phase 4 data
                     restartPhasesWithPhase4Data(studentId);
-                    System.out.println("✓ Student " + studentId + " phases restarted (FLN not 100%)");
                 }
             }
         } catch (Exception e) {
@@ -1412,7 +1386,6 @@ public class StudentDAO {
             
             if (rs.next()) {
                 int count = rs.getInt(1);
-                System.out.println("Phase " + phaseNumber + " completed count for UDISE " + udiseNo + ": " + count);
                 return count;
             }
             
@@ -1443,7 +1416,6 @@ public class StudentDAO {
             
             if (rs.next()) {
                 int count = rs.getInt(1);
-                System.out.println("Total active students for UDISE " + udiseNo + ": " + count);
                 return count;
             }
             

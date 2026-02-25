@@ -80,9 +80,9 @@ public class PasswordUtil {
         // Test password utilities
         String password = "Test@123";
         String hashed = hashPassword(password);
-        System.out.println("Original: " + password);
-        System.out.println("Hashed: " + hashed);
-        System.out.println("Verified: " + verifyPassword(password, hashed));
-        System.out.println("Valid: " + isValidPassword(password));
+        //System.out.println("Original: " + password);
+        //System.out.println("Hashed: " + hashed);
+        //System.out.println("Verified: " + verifyPassword(password, hashed));
+        //System.out.println("Valid: " + isValidPassword(password));
     }
 }

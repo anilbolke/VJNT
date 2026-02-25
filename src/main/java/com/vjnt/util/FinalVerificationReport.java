@@ -13,13 +13,13 @@ public class FinalVerificationReport {
     public static void main(String[] args) {
         String udiseNo = "27150401803";
         
-        System.out.println("╔════════════════════════════════════════════════════════════╗");
-        System.out.println("║        PHASE COMPLETION FIX - VERIFICATION REPORT          ║");
-        System.out.println("╚════════════════════════════════════════════════════════════╝");
-        System.out.println();
-        System.out.println("UDISE: " + udiseNo);
-        System.out.println("Date: " + new java.util.Date());
-        System.out.println();
+        //System.out.println("╔════════════════════════════════════════════════════════════╗");
+        //System.out.println("║        PHASE COMPLETION FIX - VERIFICATION REPORT          ║");
+        //System.out.println("╚════════════════════════════════════════════════════════════╝");
+        //System.out.println();
+        //System.out.println("UDISE: " + udiseNo);
+        //System.out.println("Date: " + new java.util.Date());
+        //System.out.println();
         
         Connection conn = null;
         
@@ -27,10 +27,10 @@ public class FinalVerificationReport {
             conn = DatabaseConnection.getConnection();
             
             // Check all 4 phases with NEW calculation
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println("  PHASE COMPLETION STATUS (Excluding fln_completed = TRUE)");
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println();
+            //System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            //System.out.println("  PHASE COMPLETION STATUS (Excluding fln_completed = TRUE)");
+            //System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            //System.out.println();
             
             for (int phase = 1; phase <= 4; phase++) {
                 String phaseColumn = "phase" + phase + "_date";
@@ -61,11 +61,11 @@ public class FinalVerificationReport {
                 pstmt.close();
             }
             
-            System.out.println();
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println("  STUDENT SUMMARY");
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println();
+            //System.out.println();
+            //System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            //System.out.println("  STUDENT SUMMARY");
+            //System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            //System.out.println();
             
             // Count students by fln_completed status
             String countSql = "SELECT " +
@@ -83,43 +83,43 @@ public class FinalVerificationReport {
                 int flnCompleted = rs.getInt("fln_completed_true");
                 int flnNotCompleted = rs.getInt("fln_not_completed");
                 
-                System.out.println("  Total Active Students:           " + totalActive);
-                System.out.println("  - FLN Completed (excluded):      " + flnCompleted);
-                System.out.println("  - FLN Not Completed (counted):   " + flnNotCompleted);
+                //System.out.println("  Total Active Students:           " + totalActive);
+                //System.out.println("  - FLN Completed (excluded):      " + flnCompleted);
+                //System.out.println("  - FLN Not Completed (counted):   " + flnNotCompleted);
             }
             
             rs.close();
             pstmt.close();
             
-            System.out.println();
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println("  CHANGES MADE");
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println();
-            System.out.println("  ✓ Modified getPhaseCompletionPercentage() method");
-            System.out.println("    - Now excludes students with fln_completed = TRUE");
-            System.out.println();
-            System.out.println("  ✓ Modified isPhaseComplete() method");
-            System.out.println("    - Now excludes students with fln_completed = TRUE");
-            System.out.println();
-            System.out.println("  ✓ Set fln_completed = TRUE for 5 students:");
-            System.out.println("    1. JAGDISH BABA HARGAONKAR");
-            System.out.println("    2. KRUSHNA RAMBHAU HARGAONKAR");
-            System.out.println("    3. KRUSHNA RAMBHAU HARGAVKAR");
-            System.out.println("    4. SAI LAXMAN GITTE");
-            System.out.println("    5. SUMIT RANJIT PAWAR");
-            System.out.println();
-            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            System.out.println();
-            System.out.println("✓✓✓ FIX COMPLETED SUCCESSFULLY! ✓✓✓");
-            System.out.println();
-            System.out.println("Phase 2 now shows 100% completion by excluding");
-            System.out.println("students who have already completed FLN program.");
-            System.out.println();
-            System.out.println("Please restart your Tomcat server and refresh");
-            System.out.println("the school dashboard to see the updated percentages.");
-            System.out.println();
-            System.out.println("╚════════════════════════════════════════════════════════════╝");
+            //System.out.println();
+            //System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            //System.out.println("  CHANGES MADE");
+            //System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            //System.out.println();
+            //System.out.println("  ✓ Modified getPhaseCompletionPercentage() method");
+            //System.out.println("    - Now excludes students with fln_completed = TRUE");
+            //System.out.println();
+            //System.out.println("  ✓ Modified isPhaseComplete() method");
+            //System.out.println("    - Now excludes students with fln_completed = TRUE");
+            //System.out.println();
+            //System.out.println("  ✓ Set fln_completed = TRUE for 5 students:");
+            //System.out.println("    1. JAGDISH BABA HARGAONKAR");
+            //System.out.println("    2. KRUSHNA RAMBHAU HARGAONKAR");
+            //System.out.println("    3. KRUSHNA RAMBHAU HARGAVKAR");
+            //System.out.println("    4. SAI LAXMAN GITTE");
+            //System.out.println("    5. SUMIT RANJIT PAWAR");
+            //System.out.println();
+            //System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            //System.out.println();
+            //System.out.println("✓✓✓ FIX COMPLETED SUCCESSFULLY! ✓✓✓");
+            //System.out.println();
+            //System.out.println("Phase 2 now shows 100% completion by excluding");
+            //System.out.println("students who have already completed FLN program.");
+            //System.out.println();
+            //System.out.println("Please restart your Tomcat server and refresh");
+            //System.out.println("the school dashboard to see the updated percentages.");
+            //System.out.println();
+            //System.out.println("╚════════════════════════════════════════════════════════════╝");
             
         } catch (SQLException e) {
             System.err.println("\n✗ ERROR: " + e.getMessage());

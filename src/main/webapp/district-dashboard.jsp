@@ -105,54 +105,89 @@
         }
     }
     
-    // Calculate subject level action taken counts per school
-    Map<String, Map<String, Integer>> schoolSubjectLevelCounts = new HashMap<>();
+    // Calculate subject level action taken counts per school (phase-wise separately)
+    // Structure: schoolPhaseSubjectCounts[udise][phase][subject] = count
+    Map<String, Map<String, Map<String, Integer>>> schoolPhaseSubjectCounts = new HashMap<>();
     
     for (com.vjnt.model.Student student : students) {
         String udise = student.getUdiseNo();
         if (udise == null || udise.trim().isEmpty()) continue;
         
         // Initialize map for this school if not exists
-        if (!schoolSubjectLevelCounts.containsKey(udise)) {
-            Map<String, Integer> subjectCounts = new HashMap<>();
-            subjectCounts.put("marathi", 0);
-            subjectCounts.put("math", 0);
-            subjectCounts.put("english", 0);
-            schoolSubjectLevelCounts.put(udise, subjectCounts);
+        if (!schoolPhaseSubjectCounts.containsKey(udise)) {
+            Map<String, Map<String, Integer>> phaseMap = new HashMap<>();
+            
+            // Initialize for each phase
+            for (int phase = 1; phase <= 4; phase++) {
+                Map<String, Integer> subjectCounts = new HashMap<>();
+                subjectCounts.put("marathi", 0);
+                subjectCounts.put("math", 0);
+                subjectCounts.put("english", 0);
+                phaseMap.put("phase" + phase, subjectCounts);
+            }
+            schoolPhaseSubjectCounts.put(udise, phaseMap);
         }
         
-        Map<String, Integer> subjectCounts = schoolSubjectLevelCounts.get(udise);
+        Map<String, Map<String, Integer>> phaseMap = schoolPhaseSubjectCounts.get(udise);
         
-        // Count Marathi level action taken (any level set)
-        Integer marathiAkshara = student.getMarathiAksharaLevel();
-        Integer marathiShabda = student.getMarathiShabdaLevel();
-        Integer marathiVakya = student.getMarathiVakyaLevel();
-        Integer marathiSamajpurvak = student.getMarathiSamajpurvakLevel();
+        // Count Phase 1
+        Integer phase1Marathi = student.getPhase1Marathi();
+        Integer phase1Math = student.getPhase1Math();
+        Integer phase1English = student.getPhase1English();
         
-        if ((marathiAkshara != null && marathiAkshara > 0) ||
-            (marathiShabda != null && marathiShabda > 0) ||
-            (marathiVakya != null && marathiVakya > 0) ||
-            (marathiSamajpurvak != null && marathiSamajpurvak > 0)) {
-            subjectCounts.put("marathi", subjectCounts.get("marathi") + 1);
+        if (phase1Marathi != null && phase1Marathi > 0) {
+            phaseMap.get("phase1").put("marathi", phaseMap.get("phase1").get("marathi") + 1);
+        }
+        if (phase1Math != null && phase1Math > 0) {
+            phaseMap.get("phase1").put("math", phaseMap.get("phase1").get("math") + 1);
+        }
+        if (phase1English != null && phase1English > 0) {
+            phaseMap.get("phase1").put("english", phaseMap.get("phase1").get("english") + 1);
         }
         
-        // Count Math level action taken (any level set)
-        Integer mathAkshara = student.getMathAksharaLevel();
-        Integer mathShabda = student.getMathShabdaLevel();
-        Integer mathVakya = student.getMathVakyaLevel();
-        Integer mathSamajpurvak = student.getMathSamajpurvakLevel();
+        // Count Phase 2
+        Integer phase2Marathi = student.getPhase2Marathi();
+        Integer phase2Math = student.getPhase2Math();
+        Integer phase2English = student.getPhase2English();
         
-        if ((mathAkshara != null && mathAkshara > 0) ||
-            (mathShabda != null && mathShabda > 0) ||
-            (mathVakya != null && mathVakya > 0) ||
-            (mathSamajpurvak != null && mathSamajpurvak > 0)) {
-            subjectCounts.put("math", subjectCounts.get("math") + 1);
+        if (phase2Marathi != null && phase2Marathi > 0) {
+            phaseMap.get("phase2").put("marathi", phaseMap.get("phase2").get("marathi") + 1);
+        }
+        if (phase2Math != null && phase2Math > 0) {
+            phaseMap.get("phase2").put("math", phaseMap.get("phase2").get("math") + 1);
+        }
+        if (phase2English != null && phase2English > 0) {
+            phaseMap.get("phase2").put("english", phaseMap.get("phase2").get("english") + 1);
         }
         
-        // Count English level action taken (any level set)
-        Integer englishAkshara = student.getEnglishAksharaLevel();
-        if (englishAkshara != null && englishAkshara > 0) {
-            subjectCounts.put("english", subjectCounts.get("english") + 1);
+        // Count Phase 3
+        Integer phase3Marathi = student.getPhase3Marathi();
+        Integer phase3Math = student.getPhase3Math();
+        Integer phase3English = student.getPhase3English();
+        
+        if (phase3Marathi != null && phase3Marathi > 0) {
+            phaseMap.get("phase3").put("marathi", phaseMap.get("phase3").get("marathi") + 1);
+        }
+        if (phase3Math != null && phase3Math > 0) {
+            phaseMap.get("phase3").put("math", phaseMap.get("phase3").get("math") + 1);
+        }
+        if (phase3English != null && phase3English > 0) {
+            phaseMap.get("phase3").put("english", phaseMap.get("phase3").get("english") + 1);
+        }
+        
+        // Count Phase 4
+        Integer phase4Marathi = student.getPhase4Marathi();
+        Integer phase4Math = student.getPhase4Math();
+        Integer phase4English = student.getPhase4English();
+        
+        if (phase4Marathi != null && phase4Marathi > 0) {
+            phaseMap.get("phase4").put("marathi", phaseMap.get("phase4").get("marathi") + 1);
+        }
+        if (phase4Math != null && phase4Math > 0) {
+            phaseMap.get("phase4").put("math", phaseMap.get("phase4").get("math") + 1);
+        }
+        if (phase4English != null && phase4English > 0) {
+            phaseMap.get("phase4").put("english", phaseMap.get("phase4").get("english") + 1);
         }
     }
 %>
@@ -318,6 +353,106 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        /* Quick Actions Dropdown */
+        .quick-actions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .quick-actions-btn {
+            padding: 10px 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-weight: 600;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        
+        .quick-actions-btn:hover {
+            background: white;
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            min-width: 280px;
+            max-height: 500px;
+            overflow-y: auto;
+            z-index: 1000;
+            animation: dropdownFadeIn 0.2s ease;
+        }
+        
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+        }
+        
+        .dropdown-section {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .dropdown-section:last-child {
+            border-bottom: none;
+        }
+        
+        .section-title {
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #999;
+            letter-spacing: 0.5px;
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .dropdown-item:hover {
+            background: #f8f9fa;
+            padding-left: 20px;
+        }
+        
+        .dropdown-item span:first-child {
+            font-size: 18px;
         }
         
         .btn {
@@ -344,22 +479,15 @@
             transform: translateY(0);
         }
         
-        .btn-analytics {
-            background: #4caf50;
-            color: white;
-        }
-        
-        .btn-analytics:hover {
-            background: #45a049;
-        }
-        
         .btn-change-password {
-            background: #ff9800;
-            color: white;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            border: 2px solid rgba(255,255,255,0.3);
         }
         
         .btn-change-password:hover {
-            background: #f57c00;
+            background: white;
+            border-color: rgba(255,255,255,0.5);
         }
         
         .btn-logout {
@@ -621,9 +749,9 @@
         <div class="header-content">
             <div class="header-left">
                 <!-- Logo Section - START -->
-                <%-- <div class="header-logo">
+                 <div class="header-logo">
                     <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
-                </div> --%>
+                </div> 
                 <!-- Logo Section - END -->
                 <!-- District Icon and Name Section - START -->
                 <div class="school-icon">🏢</div>
@@ -643,58 +771,64 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <%-- <a href="<%= request.getContextPath() %>/palak-melava-status.jsp" class="btn btn-analytics" style="background: #ff9800;" title="View Palak Melava (Parent Meeting) Status">
-                        <span>👨‍👩‍👧‍👦</span>
-                        <span>Palak Melava</span>
-                    </a>
-                    <a href="<%= request.getContextPath() %>/phase-status.jsp" class="btn btn-analytics" style="background: #667eea;" title="View Phase Completion Status by School">
-                        <span>📊</span>
-                        <span>Phase Status</span>
-                    </a>
-                   
-                    <a href="<%= request.getContextPath() %>/district-dashboard-enhanced.jsp" class="btn btn-analytics" title="View detailed analytics and reports">
-                        <span>📊</span>
-                        <span>Analytics</span>
-                    </a>
-                     <a href="<%= request.getContextPath() %>/district-activity-analysis.jsp" class="btn btn-logout" style="background: #FF9800;">
-                     📈 Activity Analysis</a> --%>
-                      <a href="<%= request.getContextPath() %>/phase-status.jsp" class="btn btn-analytics" style="background: #667eea;" title="View Phase Completion Status by School">
-                        <span>📊</span>
-                        <span>Phase Status</span>
-                    </a>
-                     <a href="<%= request.getContextPath() %>/palak-melava-status.jsp" class="btn btn-analytics" style="background: #ff9800;" title="View Palak Melava (Parent Meeting) Status">
-                        <span>👨‍👩‍👧‍👦</span>
-                        <span>Palak Melava</span>
-                    </a>
-                      <a href="<%= request.getContextPath() %>/school-contacts.jsp" class="btn btn-analytics" style="background: #9c27b0;" title="View and manage school contacts directory">
-                        <span>👥</span>
-                        <span>School Contacts</span>
-                    </a>
-                    <button onclick="toggleSubjectLevelSection()" class="btn btn-analytics" style="background: #9C27B0; cursor: pointer; border: none;" title="View School-wise Student Count & Subject Level Actions">
-                        <span>📊</span>
-                        <span>Subject Level Actions</span>
-                    </button>
+                    <!-- Quick Actions Dropdown -->
+                    <div class="quick-actions-dropdown">
+                        <button class="quick-actions-btn" onclick="toggleQuickActions()">
+                            <span>⚡</span>
+                            <span>Quick Actions</span>
+                            <span style="font-size: 10px;">▼</span>
+                        </button>
+                        <div class="dropdown-menu" id="quickActionsMenu">
+                            <!-- Status & Reports Section -->
+                            <div class="dropdown-section">
+                                <div class="section-title">Status & Reports</div>
+                                <a href="<%= request.getContextPath() %>/phase-status.jsp" class="dropdown-item" title="View Phase Completion Status by School">
+                                    <span>📊</span>
+                                    <span>Phase Status</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/palak-melava-status.jsp" class="dropdown-item" title="View Palak Melava (Parent Meeting) Status">
+                                    <span>👨‍👩‍👧‍👦</span>
+                                    <span>Palak Melava</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/school-contacts.jsp" class="dropdown-item" title="View and manage school contacts directory">
+                                    <span>👥</span>
+                                    <span>School Contacts</span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="toggleSubjectLevelSection()" class="dropdown-item" title="View School-wise Student Count & Subject Level Actions">
+                                    <span>📊</span>
+                                    <span>Subject Level Actions</span>
+                                </a>
+                            </div>
+                            
+                            <!-- Teacher Management Section -->
+                            <div class="dropdown-section">
+                                <div class="section-title">Teacher Management</div>
+                                <a href="<%= request.getContextPath() %>/district-teacher-report.jsp" class="dropdown-item" title="View school-wise teacher report">
+                                    <span>👨‍🏫</span>
+                                    <span>Teacher Report</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/district-teacher-assignments.jsp" class="dropdown-item" title="View complete teacher assignment details with UDISE, school name, class, section, and subjects">
+                                    <span>👥</span>
+                                    <span>Teacher Assignments</span>
+                                </a>
+                            </div>
+                            
+                            <!-- Account Management Section -->
+                            <div class="dropdown-section">
+                                <div class="section-title">Account Management</div>
+                                <a href="<%= request.getContextPath() %>/district-credentials" class="dropdown-item" title="View login credentials and manage school coordinator passwords">
+                                    <span>🔑</span>
+                                    <span>Login Credentials</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/district-profile" class="dropdown-item" title="View profile and reset password">
+                                    <span>👤</span>
+                                    <span>My Profile</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <a href="<%= request.getContextPath() %>/district-teacher-report.jsp" class="btn btn-analytics" style="background: #4CAF50;" title="View school-wise teacher report">
-                        <span>👨‍🏫</span>
-                        <span>Teacher Report</span>
-                    </a>
-                    
-                    <a href="<%= request.getContextPath() %>/district-teacher-assignments.jsp" class="btn btn-analytics" style="background: #9C27B0;" title="View complete teacher assignment details with UDISE, school name, class, section, and subjects">
-                        <span>👥</span>
-                        <span>Teacher Assignments</span>
-                    </a>
-                    
-                    <a href="<%= request.getContextPath() %>/district-credentials" class="btn btn-analytics" style="background: #FF6B6B;" title="View login credentials and manage school coordinator passwords">
-                        <span>🔑</span>
-                        <span>Login Credentials</span>
-                    </a>
-                    
-                    <a href="<%= request.getContextPath() %>/district-profile" class="btn btn-analytics" style="background: #2196F3;" title="View profile and reset password">
-                        <span>👤</span>
-                        <span>My Profile</span>
-                    </a>
-                    
+                    <!-- Account Actions -->
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password" title="Change your password">
                         <span>🔐</span>
                         <span>Change Password</span>
@@ -707,6 +841,24 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        // Quick Actions Dropdown Toggle
+        function toggleQuickActions() {
+            const menu = document.getElementById('quickActionsMenu');
+            menu.classList.toggle('show');
+        }
+        
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.quick-actions-dropdown')) {
+                const menu = document.getElementById('quickActionsMenu');
+                if (menu) {
+                    menu.classList.remove('show');
+                }
+            }
+        });
+    </script>
     
     <div class="container">
         <!-- Breadcrumb -->
@@ -773,9 +925,14 @@
             </div>
         </div>
         
-        <!-- School-wise Student Count & Subject Level Action Section -->
+        <!-- School-wise Student Count & Subject Level Action Section (Phase-wise) -->
         <div class="section" id="subjectLevelSection" style="display: none;">
-            <h2 class="section-title">🏫 School(UDISE)-wise Student Count & Subject Level Actions</h2>
+            <h2 class="section-title">🏫 School(UDISE)-wise Student Count & Phase-wise Subject Level Actions</h2>
+            
+            <!-- Phase Info Badge -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; display: inline-block; font-weight: 600;">
+                📊 Phase-wise Data: Phase 1 | Phase 2 | Phase 3 | Phase 4 (Separate Columns)
+            </div>
             
             <!-- Filter Section -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #9C27B0;">
@@ -798,24 +955,37 @@
             </div>
             
             <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
-                Showing all <%= udiseCount.size() %> schools with total students and subject-wise level action taken counts
+                Showing all <%= udiseCount.size() %> schools with phase-wise subject level action counts
             </div>
             
             <div style="overflow-x: auto;">
-                <table class="table" style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <table class="table" style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 13px;">
                     <thead>
                         <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Sr. No.</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">School Name</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">UDISE No.</th>
-                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Total Students</th>
-                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;" colspan="3">Subject Level Action Taken</th>
+                            <th rowspan="3" style="padding: 12px; text-align: center; border: 1px solid #ddd; vertical-align: middle;">Sr.<br>No.</th>
+                            <th rowspan="3" style="padding: 12px; text-align: left; border: 1px solid #ddd; min-width: 200px; vertical-align: middle;">School Name</th>
+                            <th rowspan="3" style="padding: 12px; text-align: center; border: 1px solid #ddd; vertical-align: middle;">UDISE<br>No.</th>
+                            <th rowspan="3" style="padding: 12px; text-align: center; border: 1px solid #ddd; vertical-align: middle;">Total<br>Students</th>
+                            <th colspan="12" style="padding: 12px; text-align: center; border: 1px solid #ddd;">Subject Level Action Taken (Phase-wise)</th>
                         </tr>
-                        <tr style="background: #f0f0f0; color: #333; font-weight: 600;">
-                            <th colspan="4" style="padding: 8px; border: 1px solid #ddd;"></th>
-                            <th style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fff3e0;">📚 Marathi</th>
-                            <th style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #e3f2fd;">🔢 Math</th>
-                            <th style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #e8f5e9;">🔤 English</th>
+                        <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <th colspan="3" style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ff9800;">📚 Marathi</th>
+                            <th colspan="3" style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #2196F3;">🔢 Math</th>
+                            <th colspan="3" style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #4CAF50;">🔤 English</th>
+                        </tr>
+                        <tr style="background: #f0f0f0; color: #333; font-weight: 600; font-size: 11px;">
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #fff3e0;">P1</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #fff3e0;">P2</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #fff3e0;">P3</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #fff3e0;">P4</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e3f2fd;">P1</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e3f2fd;">P2</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e3f2fd;">P3</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e3f2fd;">P4</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e8f5e9;">P1</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e8f5e9;">P2</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e8f5e9;">P3</th>
+                            <th style="padding: 6px; text-align: center; border: 1px solid #ddd; background: #e8f5e9;">P4</th>
                         </tr>
                     </thead>
                     <tbody id="subjectLevelTableBody">
@@ -835,66 +1005,131 @@
                             int studentCount = entry.getValue();
                             String schoolName = udiseToSchoolName.getOrDefault(udise, "Unknown School");
                             
-                            // Get subject level counts for this school
-                            Map<String, Integer> subjectCounts = schoolSubjectLevelCounts.getOrDefault(udise, new HashMap<>());
-                            int marathiCount = subjectCounts.getOrDefault("marathi", 0);
-                            int mathCount = subjectCounts.getOrDefault("math", 0);
-                            int englishCount = subjectCounts.getOrDefault("english", 0);
+                            // Get phase-wise counts for this school
+                            Map<String, Map<String, Integer>> phaseCounts = schoolPhaseSubjectCounts.getOrDefault(udise, new HashMap<>());
+                            
+                            // Marathi counts
+                            int marP1 = phaseCounts.getOrDefault("phase1", new HashMap<>()).getOrDefault("marathi", 0);
+                            int marP2 = phaseCounts.getOrDefault("phase2", new HashMap<>()).getOrDefault("marathi", 0);
+                            int marP3 = phaseCounts.getOrDefault("phase3", new HashMap<>()).getOrDefault("marathi", 0);
+                            int marP4 = phaseCounts.getOrDefault("phase4", new HashMap<>()).getOrDefault("marathi", 0);
+                            
+                            // Math counts
+                            int mathP1 = phaseCounts.getOrDefault("phase1", new HashMap<>()).getOrDefault("math", 0);
+                            int mathP2 = phaseCounts.getOrDefault("phase2", new HashMap<>()).getOrDefault("math", 0);
+                            int mathP3 = phaseCounts.getOrDefault("phase3", new HashMap<>()).getOrDefault("math", 0);
+                            int mathP4 = phaseCounts.getOrDefault("phase4", new HashMap<>()).getOrDefault("math", 0);
+                            
+                            // English counts
+                            int engP1 = phaseCounts.getOrDefault("phase1", new HashMap<>()).getOrDefault("english", 0);
+                            int engP2 = phaseCounts.getOrDefault("phase2", new HashMap<>()).getOrDefault("english", 0);
+                            int engP3 = phaseCounts.getOrDefault("phase3", new HashMap<>()).getOrDefault("english", 0);
+                            int engP4 = phaseCounts.getOrDefault("phase4", new HashMap<>()).getOrDefault("english", 0);
                         %>
                         <tr class="subject-level-row" style="<%= srNo % 2 == 0 ? "background: #f8f9fa;" : "background: white;" %>">
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= srNo %></strong></td>
-                            <td style="padding: 10px; border: 1px solid #ddd;" class="school-name-cell">
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong><%= srNo %></strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;" class="school-name-cell">
                                 <strong style="color: #667eea;"><%= schoolName %></strong>
                             </td>
-                            <td style="padding: 10px; border: 1px solid #ddd;" class="udise-cell">
-                                <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 12px;"><%= udise %></code>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;" class="udise-cell">
+                                <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-size: 11px;"><%= udise %></code>
                             </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <span style="background: #667eea; color: white; padding: 5px 12px; border-radius: 15px; font-weight: 600; font-size: 14px;">
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                                <span style="background: #667eea; color: white; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 13px;">
                                     <%= studentCount %>
                                 </span>
                             </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background: #fffaf0;">
-                                <span style="<%= marathiCount > 0 ? "background: #ff9800; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 5px 12px; border-radius: 15px; font-weight: 600; font-size: 14px;">
-                                    <%= marathiCount %>
-                                </span>
+                            
+                            <!-- Marathi Phase counts -->
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #fffaf0;">
+                                <span style="<%= marP1 > 0 ? "background: #ff9800; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= marP1 %></span>
                             </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background: #f0f8ff;">
-                                <span style="<%= mathCount > 0 ? "background: #2196F3; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 5px 12px; border-radius: 15px; font-weight: 600; font-size: 14px;">
-                                    <%= mathCount %>
-                                </span>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #fffaf0;">
+                                <span style="<%= marP2 > 0 ? "background: #ff9800; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= marP2 %></span>
                             </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background: #f0fff0;">
-                                <span style="<%= englishCount > 0 ? "background: #4CAF50; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 5px 12px; border-radius: 15px; font-weight: 600; font-size: 14px;">
-                                    <%= englishCount %>
-                                </span>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #fffaf0;">
+                                <span style="<%= marP3 > 0 ? "background: #ff9800; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= marP3 %></span>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #fffaf0;">
+                                <span style="<%= marP4 > 0 ? "background: #ff9800; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= marP4 %></span>
+                            </td>
+                            
+                            <!-- Math Phase counts -->
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0f8ff;">
+                                <span style="<%= mathP1 > 0 ? "background: #2196F3; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= mathP1 %></span>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0f8ff;">
+                                <span style="<%= mathP2 > 0 ? "background: #2196F3; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= mathP2 %></span>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0f8ff;">
+                                <span style="<%= mathP3 > 0 ? "background: #2196F3; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= mathP3 %></span>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0f8ff;">
+                                <span style="<%= mathP4 > 0 ? "background: #2196F3; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= mathP4 %></span>
+                            </td>
+                            
+                            <!-- English Phase counts -->
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0fff0;">
+                                <span style="<%= engP1 > 0 ? "background: #4CAF50; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= engP1 %></span>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0fff0;">
+                                <span style="<%= engP2 > 0 ? "background: #4CAF50; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= engP2 %></span>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0fff0;">
+                                <span style="<%= engP3 > 0 ? "background: #4CAF50; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= engP3 %></span>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; background: #f0fff0;">
+                                <span style="<%= engP4 > 0 ? "background: #4CAF50; color: white;" : "background: #f5f5f5; color: #999;" %> padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; display: inline-block; min-width: 30px;"><%= engP4 %></span>
                             </td>
                         </tr>
                         <% } %>
                         
                         <!-- Summary Row -->
                         <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 700;">
-                            <td colspan="3" style="padding: 12px; border: 1px solid #ddd; text-align: right;">
+                            <td colspan="3" style="padding: 10px; border: 1px solid #ddd; text-align: right;">
                                 <strong>📊 TOTAL:</strong>
                             </td>
-                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
-                                <strong style="font-size: 16px;"><%= students.size() %></strong>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                <strong style="font-size: 15px;"><%= students.size() %></strong>
                             </td>
-                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
-                                <strong style="font-size: 16px;">
-                                    <%= schoolSubjectLevelCounts.values().stream().mapToInt(m -> m.getOrDefault("marathi", 0)).sum() %>
-                                </strong>
-                            </td>
-                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
-                                <strong style="font-size: 16px;">
-                                    <%= schoolSubjectLevelCounts.values().stream().mapToInt(m -> m.getOrDefault("math", 0)).sum() %>
-                                </strong>
-                            </td>
-                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
-                                <strong style="font-size: 16px;">
-                                    <%= schoolSubjectLevelCounts.values().stream().mapToInt(m -> m.getOrDefault("english", 0)).sum() %>
-                                </strong>
-                            </td>
+                            <%
+                            // Calculate totals for each phase and subject
+                            int marP1Total = 0, marP2Total = 0, marP3Total = 0, marP4Total = 0;
+                            int mathP1Total = 0, mathP2Total = 0, mathP3Total = 0, mathP4Total = 0;
+                            int engP1Total = 0, engP2Total = 0, engP3Total = 0, engP4Total = 0;
+                            
+                            for (Map<String, Map<String, Integer>> phaseMap : schoolPhaseSubjectCounts.values()) {
+                                marP1Total += phaseMap.getOrDefault("phase1", new HashMap<>()).getOrDefault("marathi", 0);
+                                marP2Total += phaseMap.getOrDefault("phase2", new HashMap<>()).getOrDefault("marathi", 0);
+                                marP3Total += phaseMap.getOrDefault("phase3", new HashMap<>()).getOrDefault("marathi", 0);
+                                marP4Total += phaseMap.getOrDefault("phase4", new HashMap<>()).getOrDefault("marathi", 0);
+                                
+                                mathP1Total += phaseMap.getOrDefault("phase1", new HashMap<>()).getOrDefault("math", 0);
+                                mathP2Total += phaseMap.getOrDefault("phase2", new HashMap<>()).getOrDefault("math", 0);
+                                mathP3Total += phaseMap.getOrDefault("phase3", new HashMap<>()).getOrDefault("math", 0);
+                                mathP4Total += phaseMap.getOrDefault("phase4", new HashMap<>()).getOrDefault("math", 0);
+                                
+                                engP1Total += phaseMap.getOrDefault("phase1", new HashMap<>()).getOrDefault("english", 0);
+                                engP2Total += phaseMap.getOrDefault("phase2", new HashMap<>()).getOrDefault("english", 0);
+                                engP3Total += phaseMap.getOrDefault("phase3", new HashMap<>()).getOrDefault("english", 0);
+                                engP4Total += phaseMap.getOrDefault("phase4", new HashMap<>()).getOrDefault("english", 0);
+                            }
+                            %>
+                            <!-- Marathi Totals -->
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= marP1Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= marP2Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= marP3Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= marP4Total %></strong></td>
+                            <!-- Math Totals -->
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= mathP1Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= mathP2Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= mathP3Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= mathP4Total %></strong></td>
+                            <!-- English Totals -->
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= engP1Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= engP2Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= engP3Total %></strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;"><strong><%= engP4Total %></strong></td>
                         </tr>
                     </tbody>
                 </table>

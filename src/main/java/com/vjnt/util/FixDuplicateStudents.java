@@ -15,9 +15,9 @@ public class FixDuplicateStudents {
     public static void main(String[] args) {
         String udiseNo = "27150401803";
         
-        System.out.println("=== Fix Duplicate Students Utility ===");
-        System.out.println("UDISE: " + udiseNo);
-        System.out.println("=====================================\n");
+        //System.out.println("=== Fix Duplicate Students Utility ===");
+        //System.out.println("UDISE: " + udiseNo);
+        //System.out.println("=====================================\n");
         
         Connection conn = null;
         
@@ -34,14 +34,14 @@ public class FixDuplicateStudents {
                 "SUMIT RANJIT PAWAR"
             };
             
-            System.out.println("📋 Checking duplicate students...\n");
+            //System.out.println("📋 Checking duplicate students...\n");
             
             for (String studentName : duplicateStudents) {
                 checkAndFixDuplicate(conn, udiseNo, studentName);
             }
             
-            System.out.println("\n=== Fix Complete ===");
-            System.out.println("Please refresh your dashboard to see updated Phase 2 completion percentage.");
+            //System.out.println("\n=== Fix Complete ===");
+            //System.out.println("Please refresh your dashboard to see updated Phase 2 completion percentage.");
             
         } catch (SQLException e) {
             System.err.println("\n✗ DATABASE ERROR:");
@@ -72,7 +72,7 @@ public class FixDuplicateStudents {
         Integer keepStudentId = null;
         String keepPen = null;
         
-        System.out.println("Student: " + studentName);
+        //System.out.println("Student: " + studentName);
         
         while (rs.next()) {
             recordCount++;
@@ -87,9 +87,9 @@ public class FixDuplicateStudents {
                 activeCount++;
             }
             
-            System.out.println("  Record " + recordCount + ":");
-            System.out.println("    ID: " + studentId + " | PEN: " + pen + " | Class: " + studentClass + "-" + section);
-            System.out.println("    Active: " + isActive + " | Phase2: " + (phase2Date != null ? "✓ COMPLETED" : "✗ PENDING"));
+            //System.out.println("  Record " + recordCount + ":");
+            //System.out.println("    ID: " + studentId + " | PEN: " + pen + " | Class: " + studentClass + "-" + section);
+            //System.out.println("    Active: " + isActive + " | Phase2: " + (phase2Date != null ? "✓ COMPLETED" : "✗ PENDING"));
             
             // Keep the record with real PEN and Phase 2 completed
             if (!pen.startsWith("TEMP") && phase2Date != null && keepStudentId == null) {
@@ -107,9 +107,9 @@ public class FixDuplicateStudents {
         pstmt.close();
         
         if (recordCount > 1) {
-            System.out.println("  ⚠ Found " + recordCount + " records (" + activeCount + " active)");
-            System.out.println("  → Keeping: ID " + keepStudentId + " (PEN: " + keepPen + ")");
-            System.out.println("  → Marking others as INACTIVE...");
+            //System.out.println("  ⚠ Found " + recordCount + " records (" + activeCount + " active)");
+            //System.out.println("  → Keeping: ID " + keepStudentId + " (PEN: " + keepPen + ")");
+            //System.out.println("  → Marking others as INACTIVE...");
             
             // Mark other records as inactive
             String updateSql = "UPDATE students SET is_active = 0 " +
@@ -121,13 +121,13 @@ public class FixDuplicateStudents {
             int updated = updatePstmt.executeUpdate();
             updatePstmt.close();
             
-            System.out.println("  ✓ Marked " + updated + " duplicate record(s) as inactive");
+            //System.out.println("  ✓ Marked " + updated + " duplicate record(s) as inactive");
         } else if (recordCount == 1) {
-            System.out.println("  ℹ Only 1 record found - no duplicates");
+            //System.out.println("  ℹ Only 1 record found - no duplicates");
         } else {
-            System.out.println("  ⚠ Student not found!");
+            //System.out.println("  ⚠ Student not found!");
         }
         
-        System.out.println();
+        //System.out.println();
     }
 }

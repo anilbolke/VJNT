@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Report Card - Nursery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .report-card {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            background-color: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #006400;
+        }
+        
+        .header-center {
+            flex-grow: 1;
+            text-align: center;
+            padding: 0 20px;
+        }
+        
+        .header-center h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .header-center p {
+            font-size: 12px;
+            margin: 3px 0;
+        }
+        
+        .software-link {
+            color: red;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .report-title {
+            background-color: #000;
+            color: white;
+            text-align: center;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .class-session {
+            display: flex;
+            border: 2px solid #000;
+        }
+        
+        .class-session > div {
+            padding: 8px;
+            font-weight: bold;
+        }
+        
+        .class-info {
+            flex: 1;
+            border-right: 2px solid #000;
+        }
+        
+        .session-info {
+            flex: 1;
+            text-align: right;
+        }
+        
+        .student-info {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 2fr;
+            border: 2px solid #000;
+            border-top: none;
+        }
+        
+        .student-info > div {
+            padding: 8px;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+        }
+        
+        .student-info > div:nth-child(4n) {
+            border-right: none;
+        }
+        
+        .label {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .marks-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+            border: 2px solid #000;
+        }
+        
+        .marks-table th,
+        .marks-table td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        .marks-table th {
+            background-color: #90EE90;
+            font-weight: bold;
+        }
+        
+        .subject-cell {
+            text-align: left;
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .overall-section {
+            background-color: #90EE90;
+            font-weight: bold;
+        }
+        
+        .result-row {
+            background-color: #f0f0f0;
+        }
+        
+        .co-scholastic {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            border: 2px solid #000;
+        }
+        
+        .co-scholastic th,
+        .co-scholastic td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .co-scholastic th {
+            background-color: #90EE90;
+            font-weight: bold;
+        }
+        
+        .co-scholastic td:last-child,
+        .co-scholastic td:nth-last-child(2) {
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            border: 2px solid #000;
+        }
+        
+        .attendance-table th,
+        .attendance-table td {
+            border: 1px solid #000;
+            padding: 8px;
+        }
+        
+        .attendance-table th {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        
+        .promotion {
+            margin-top: 15px;
+            padding: 10px;
+            border: 2px solid #000;
+            font-weight: bold;
+        }
+        
+        .remarks-section {
+            margin-top: 15px;
+            border: 2px solid #000;
+        }
+        
+        .remarks-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            border-bottom: 2px solid #000;
+        }
+        
+        .remarks-header > div {
+            padding: 10px;
+            font-weight: bold;
+            border-right: 2px solid #000;
+        }
+        
+        .remarks-header > div:last-child {
+            border-right: none;
+        }
+        
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            min-height: 100px;
+        }
+        
+        .signatures > div {
+            padding: 15px;
+            border-right: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .signatures > div:last-child {
+            border-right: none;
+        }
+        
+        .date-box {
+            border-right: 2px solid #000;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .date-large {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .rules {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        
+        .rules h3 {
+            margin-bottom: 10px;
+        }
+        
+        .rules ol {
+            margin-left: 20px;
+        }
+        
+        .rules li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .grading-scale {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            border: 2px solid #000;
+        }
+        
+        .grading-scale th,
+        .grading-scale td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .grading-scale th {
+            background-color: #d3d3d3;
+        }
+        
+        .pass-result {
+            color: green;
+            font-weight: bold;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            
+            .report-card {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-card">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="logo">
+                🏫
+            </div>
+            <div class="header-center">
+                <h1>INSTITUTE NAME HERE</h1>
+                <p>Institute Address Here</p>
+                <p>Affiliated to C.B.S.E Board, Affiliation No.165471</p>
+                <p>Ph: (+91) 8808xxxxxx69|8840xxxxx. Email: info@schoolname.com</p>
+                <p class="software-link">Get This Software Visit: www.resulthosting.net</p>
+            </div>
+            <div class="logo">
+                🎓
+            </div>
+        </div>
+        
+        <!-- Report Card Title -->
+        <div class="report-title">REPORT CARD</div>
+        
+        <!-- Class and Session Info -->
+        <div class="class-session">
+            <div class="class-info">Class : NURSERY</div>
+            <div class="session-info">Academic Session : 2020-21</div>
+        </div>
+        
+        <!-- Student Information -->
+        <div class="student-info">
+            <div class="label">NAME OF STUDENT</div>
+            <div>: Aman Kumar Jaiswal</div>
+            <div class="label">ROLL NO</div>
+            <div>: AAS525WS511425</div>
+            
+            <div class="label">FATHER'S NAME</div>
+            <div>: Sujit Kumar Jaiswal</div>
+            <div class="label">DATE OF BIRTH</div>
+            <div>: 2021-05-26</div>
+            
+            <div class="label">MOTHER'S NAME</div>
+            <div>: Amrita Jaiswal</div>
+            <div class="label">ATTENDANCE</div>
+            <div>: 40/120</div>
+            
+            <div class="label">ADDRESS</div>
+            <div style="grid-column: span 3">: B 21/11 Kamachha Varanasi Up - 221010</div>
+        </div>
+        
+        <!-- Marks Table -->
+        <table class="marks-table">
+            <thead>
+                <tr>
+                    <th rowspan="3" style="background-color: #90EE90;">Scholastic</th>
+                    <th colspan="4">Term I (50)</th>
+                    <th colspan="3">Term II (50)</th>
+                    <th colspan="2" class="overall-section">Overall<br>Term I (50) + Term II (50)</th>
+                    <th rowspan="3" style="background-color: #90EE90;"></th>
+                </tr>
+                <tr>
+                    <th colspan="4" style="background-color: #90EE90;"></th>
+                    <th colspan="3" style="background-color: #90EE90;"></th>
+                    <th colspan="2" class="overall-section"></th>
+                </tr>
+                <tr>
+                    <th>FA-1<br>10</th>
+                    <th>SA-1<br>30</th>
+                    <th>FA-2<br>10</th>
+                    <th>Total<br>50</th>
+                    <th>FA-3<br>10</th>
+                    <th>SA-2<br>30</th>
+                    <th>AC+BW<br>10</th>
+                    <th>Total<br>50</th>
+                    <th class="overall-section">Grand Total<br>100</th>
+                    <th class="overall-section">Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="subject-cell">Subject</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">HINDI</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>7</td>
+                    <td>7</td>
+                    <td>8</td>
+                    <td>28</td>
+                    <td>10</td>
+                    <td>46</td>
+                    <td>53</td>
+                    <td>C1</td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">ENGLISH</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>8</td>
+                    <td>8</td>
+                    <td>7</td>
+                    <td>23</td>
+                    <td>8</td>
+                    <td>38</td>
+                    <td>46</td>
+                    <td>C2</td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">MATHS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>9</td>
+                    <td>9</td>
+                    <td>9</td>
+                    <td>24</td>
+                    <td>7</td>
+                    <td>40</td>
+                    <td>49</td>
+                    <td>C2</td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">G.K</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>8</td>
+                    <td>8</td>
+                    <td>8</td>
+                    <td>23</td>
+                    <td>8</td>
+                    <td>39</td>
+                    <td>47</td>
+                    <td>C2</td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">EVS</td>
+                    <td></td>
+                    <td>0</td>
+                    <td>7</td>
+                    <td>7</td>
+                    <td>9</td>
+                    <td>28</td>
+                    <td>9</td>
+                    <td>46</td>
+                    <td>53</td>
+                    <td>C1</td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">CONVERSATION</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>9</td>
+                    <td>9</td>
+                    <td>8</td>
+                    <td>18</td>
+                    <td>9</td>
+                    <td>35</td>
+                    <td>44</td>
+                    <td>C2</td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">ART</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>9</td>
+                    <td>9</td>
+                    <td>9</td>
+                    <td>19</td>
+                    <td>8</td>
+                    <td>36</td>
+                    <td>45</td>
+                    <td>C2</td>
+                </tr>
+                <tr>
+                    <td class="subject-cell">POEM</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>8</td>
+                    <td>8</td>
+                    <td>9</td>
+                    <td>25</td>
+                    <td>9</td>
+                    <td>43</td>
+                    <td>51</td>
+                    <td>C1</td>
+                </tr>
+                <tr class="result-row">
+                    <td colspan="2" style="text-align: center; font-weight: bold;">OVERALL MARKS</td>
+                    <td colspan="2" style="font-weight: bold;">600/1200</td>
+                    <td colspan="2" style="text-align: center; font-weight: bold;">PERCENTAGE</td>
+                    <td colspan="2" style="font-weight: bold;">87%</td>
+                    <td style="text-align: center; font-weight: bold;">RESULT</td>
+                    <td colspan="2" class="pass-result">Pass</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Co-Scholastic Areas -->
+        <table class="co-scholastic">
+            <thead>
+                <tr>
+                    <th colspan="3">Co-Scholastic Areas : (5 Points Grading Scale A,A+,B,B+,C)</th>
+                    <th>Term I</th>
+                    <th>Term II</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="3">GAME</td>
+                    <td>A</td>
+                    <td>B</td>
+                </tr>
+                <tr>
+                    <td colspan="3">CONFIDENCE</td>
+                    <td>A</td>
+                    <td>B</td>
+                </tr>
+                <tr>
+                    <td colspan="3">UNIFORM</td>
+                    <td>A</td>
+                    <td>B</td>
+                </tr>
+                <tr>
+                    <td colspan="3">DISCIPLINE</td>
+                    <td>C</td>
+                    <td>B+</td>
+                </tr>
+                <tr>
+                    <td colspan="3">REGULARITY & PUNCTUALITY</td>
+                    <td>C</td>
+                    <td>B+</td>
+                </tr>
+                <tr>
+                    <td colspan="3">P.T</td>
+                    <td>C</td>
+                    <td>A+</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Attendance -->
+        <table class="attendance-table">
+            <thead>
+                <tr>
+                    <th colspan="2">A+ = Excellent &nbsp;&nbsp;&nbsp; A = Very Good &nbsp;&nbsp;&nbsp; B+ = Average Result &nbsp;&nbsp;&nbsp; B = Need Encouragement &nbsp;&nbsp;&nbsp; C = NeedAttention</th>
+                </tr>
+                <tr>
+                    <th>ATTENDANCE:</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="font-weight: bold;">TOTAL WORKING DAYS:</td>
+                    <td style="text-align: right; font-weight: bold;">100</td>
+                    <td style="text-align: center; font-weight: bold;">TERM I</td>
+                    <td style="text-align: center; font-weight: bold;">TERM II</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">TOTAL ATTENDANCE:</td>
+                    <td style="text-align: right; font-weight: bold;">80</td>
+                    <td style="text-align: center; font-weight: bold;">80</td>
+                    <td style="text-align: center; font-weight: bold;">90</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Promotion -->
+        <div class="promotion">
+            Promoted to Class : LKG_______________________________SCHOOL WILL RE-OPEN ON: ................................................ AT...........................................................
+        </div>
+        
+        <!-- Remarks and Signatures -->
+        <div class="remarks-section">
+            <div class="remarks-header">
+                <div>CLASS TEACHER'S REMARKS</div>
+                <div>Remarks Of Class Teacher Should Put Here</div>
+            </div>
+            <div class="signatures">
+                <div class="date-box">
+                    <div style="font-weight: bold; font-size: 24px;">DATE</div>
+                    <div class="date-large">24-05-2021</div>
+                </div>
+                <div style="text-align: center; align-items: center; justify-content: center;">
+                    <div style="font-weight: bold;">SIGNATURE OF CLASS TEACHER</div>
+                </div>
+                <div style="text-align: center; align-items: center; justify-content: center;">
+                    <div style="font-weight: bold;">SIGNATURE OF PRINCIPAL</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rules -->
+        <div class="rules">
+            <h3>Rules:</h3>
+            <ol>
+                <li>The students are expected to keep this card neat and clean.</li>
+                <li>In case the card is lost the duplicate card will be issued on payment of extra report card fee.</li>
+                <li>Promotion will be granted on the weight of both examinations. To pass the monthly tests is also compulsory.</li>
+                <li>For any complaint at any point, kindly contact personally.</li>
+            </ol>
+        </div>
+        
+        <!-- Instructions and Grading Scale -->
+        <div class="instructions">
+            <h3>Instructions</h3>
+            <p style="font-weight: bold; margin: 15px 0;">Grading scale for scholastic areas: Grades are awarded on a 8-point grading scale as follows-</p>
+            <table class="grading-scale">
+                <thead>
+                    <tr>
+                        <th>Marks Range in (%)</th>
+                        <th>91-100</th>
+                        <th>81-90</th>
+                        <th>71-80</th>
+                        <th>61-70</th>
+                        <th>51-60</th>
+                        <th>41-50</th>
+                        <th>33-40</th>
+                        <th>21-32</th>
+                        <th>0-20</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Grade</td>
+                        <td>A1</td>
+                        <td>A2</td>
+                        <td>B1</td>
+                        <td>B2</td>
+                        <td>C1</td>
+                        <td>C2</td>
+                        <td>D</td>
+                        <td>E1</td>
+                        <td>E2</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

@@ -38,11 +38,11 @@
         String userTypeStr = user.getUserType().toString(); // SCHOOL_COORDINATOR or HEAD_MASTER
         
         // Debug: Print user info
-        System.out.println("=== NOTIFICATION DEBUG ===");
-        System.out.println("User Type: " + userTypeStr);
-        System.out.println("Division: [" + user.getDivisionName() + "]");
-        System.out.println("District: [" + user.getDistrictName() + "]");
-        System.out.println("UDISE: [" + user.getUdiseNo() + "]");
+        //System.out.println("=== NOTIFICATION DEBUG ===");
+        //System.out.println("User Type: " + userTypeStr);
+        //System.out.println("Division: [" + user.getDivisionName() + "]");
+        //System.out.println("District: [" + user.getDistrictName() + "]");
+        //System.out.println("UDISE: [" + user.getUdiseNo() + "]");
         
         // Use TRIM to handle any whitespace issues
         String notifSql = "SELECT notification_id, title, message, notification_type, priority, " +
@@ -62,22 +62,22 @@
         pstmt.setString(3, user.getUdiseNo());
         pstmt.setString(4, userTypeStr);
         
-        System.out.println("Executing query with parameters:");
-        System.out.println("1 (Division): [" + user.getDivisionName() + "]");
-        System.out.println("2 (District): [" + user.getDistrictName() + "]");
-        System.out.println("3 (UDISE): [" + user.getUdiseNo() + "]");
-        System.out.println("4 (UserType): [" + userTypeStr + "]");
+        //System.out.println("Executing query with parameters:");
+        //System.out.println("1 (Division): [" + user.getDivisionName() + "]");
+        //System.out.println("2 (District): [" + user.getDistrictName() + "]");
+        //System.out.println("3 (UDISE): [" + user.getUdiseNo() + "]");
+        //System.out.println("4 (UserType): [" + userTypeStr + "]");
         
         rs = pstmt.executeQuery();
         
         int count = 0;
         while (rs.next()) {
             count++;
-            System.out.println("Found notification #" + count + ": " + rs.getString("title"));
-            System.out.println("  - Division: [" + rs.getString("division") + "]");
-            System.out.println("  - District: [" + rs.getString("district") + "]");
-            System.out.println("  - UDISE: [" + rs.getString("udise_code") + "]");
-            System.out.println("  - Target: [" + rs.getString("target_audience") + "]");
+            //System.out.println("Found notification #" + count + ": " + rs.getString("title"));
+            //System.out.println("  - Division: [" + rs.getString("division") + "]");
+            //System.out.println("  - District: [" + rs.getString("district") + "]");
+            //System.out.println("  - UDISE: [" + rs.getString("udise_code") + "]");
+            //System.out.println("  - Target: [" + rs.getString("target_audience") + "]");
             
             Map<String, Object> notification = new HashMap<>();
             notification.put("id", rs.getInt("notification_id"));
@@ -91,12 +91,12 @@
             notifications.add(notification);
         }
         
-        System.out.println("Total notifications found: " + count);
-        System.out.println("Notifications list size: " + notifications.size());
-        System.out.println("========================");
+        //System.out.println("Total notifications found: " + count);
+        //System.out.println("Notifications list size: " + notifications.size());
+        //System.out.println("========================");
         
     } catch (Exception e) {
-        System.out.println("ERROR fetching notifications: " + e.getMessage());
+        //System.out.println("ERROR fetching notifications: " + e.getMessage());
         e.printStackTrace();
     } finally {
         if (rs != null) try { rs.close(); } catch (SQLException e) { }
@@ -475,6 +475,129 @@
         .header-actions {
             display: flex;
             gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        /* Quick Actions Dropdown */
+        .quick-actions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .quick-actions-btn {
+            padding: 10px 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-weight: 600;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .quick-actions-btn:hover {
+            background: white;
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .badge {
+            background: #ff4757;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            min-width: 280px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            animation: dropdownFadeIn 0.2s ease;
+        }
+        
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+        }
+        
+        .dropdown-section {
+            padding: 12px 0;
+        }
+        
+        .section-title {
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #999;
+            letter-spacing: 0.5px;
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .dropdown-item:hover {
+            background: #f8f9fa;
+            padding-left: 20px;
+        }
+        
+        .dropdown-item-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dropdown-item span:first-child {
+            font-size: 18px;
+        }
+        
+        .item-badge {
+            background: #ff4757;
+            color: white;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            min-width: 20px;
+            text-align: center;
         }
         
         .btn {
@@ -507,13 +630,13 @@
         }
         
         .btn-change-password {
-            background: rgba(255,255,255,0.2);
-            color: black;
+            background: rgba(255,255,255,0.95);
+            color: #333;
             border: 2px solid rgba(255,255,255,0.3);
         }
         
         .btn-change-password:hover {
-            background: rgba(255,255,255,0.3);
+            background: white;
             border-color: rgba(255,255,255,0.5);
         }
         
@@ -2673,9 +2796,9 @@
     <div class="header">
         <div class="header-content">
             <div class="header-left">
-               <%--  <div class="header-logo">
+                 <div class="header-logo">
                     <img src="<%= request.getContextPath() %>/Document/GATEE LOGO.png?v=2" alt="GATEE Logo">
-                </div> --%>
+                </div> 
                 <div class="school-icon">🏫</div>
                 <h1><%= schoolName %></h1>
                 <div class="header-subtitle">UDISE: <%= udiseNo %> | <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %></div>
@@ -2685,41 +2808,59 @@
                     🏷️ <%= user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) ? "School Coordinator" : "Head Master" %>
                 </div> --%>
                 <div class="header-actions">
-                    
                     <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
-                        <% if (pendingApprovalsCount > 0) { %>
-                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="color: black;">
-                            ⏳ Phase Approvals (<%= pendingApprovalsCount %>)
-                        </a>
-                        <% } else { %>
-                        <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="btn" style="color: black;">
-                            📋 Phase Approvals
-                        </a>
-                        <% } %>
-                        
-                        <% if (palakMelavaPendingCount > 0) { %>
-                        <a href="<%= request.getContextPath() %>/palak-melava-approvals.jsp" class="btn" style="background: #ff5722; color: white;">
-                            👥 Palak Melava (<%= palakMelavaPendingCount %>)
-                        </a>
-                        <% } else { %>
-                        <a href="<%= request.getContextPath() %>/palak-melava-approvals.jsp" class="btn" style="background: #4caf50; color: white;">
-                            👥 Palak Melava
-                        </a>
-                        <% } %>
-                        
-                        <% if (pendingVideosCount > 0) { %>
-                        <a href="<%= request.getContextPath() %>/approve-videos.jsp" class="btn" style="background: #FF9800; color: white;">
-                            🎥 Approve Videos (<%= pendingVideosCount %>)
-                        </a>
-                        <% } else { %>
-                        <a href="<%= request.getContextPath() %>/approve-videos.jsp" class="btn" style="background: #2196F3; color: white;">
-                            🎥 Approve Videos
-                        </a>
-                        <% } %>
+                        <!-- Quick Actions Dropdown for Head Master -->
+                        <div class="quick-actions-dropdown">
+                            <button class="quick-actions-btn" onclick="toggleQuickActions()">
+                                <span>⚡</span>
+                                <span>Quick Actions</span>
+                                <% 
+                                    int totalPending = pendingApprovalsCount + palakMelavaPendingCount + pendingVideosCount;
+                                    if (totalPending > 0) { 
+                                %>
+                                    <span class="badge"><%= totalPending %></span>
+                                <% } %>
+                                <span style="font-size: 10px;">▼</span>
+                            </button>
+                            <div class="dropdown-menu" id="quickActionsMenu">
+                                <div class="dropdown-section">
+                                    <div class="section-title">Approval Actions</div>
+                                    
+                                    <a href="<%= request.getContextPath() %>/phase-approvals.jsp" class="dropdown-item" title="Approve student phase completions">
+                                        <div class="dropdown-item-content">
+                                            <span>📋</span>
+                                            <span>Phase Approvals</span>
+                                        </div>
+                                        <% if (pendingApprovalsCount > 0) { %>
+                                            <span class="item-badge"><%= pendingApprovalsCount %></span>
+                                        <% } %>
+                                    </a>
+                                    
+                                    <a href="<%= request.getContextPath() %>/palak-melava-approvals.jsp" class="dropdown-item" title="Approve Palak Melava (Parent Meeting) submissions">
+                                        <div class="dropdown-item-content">
+                                            <span>👥</span>
+                                            <span>Palak Melava</span>
+                                        </div>
+                                        <% if (palakMelavaPendingCount > 0) { %>
+                                            <span class="item-badge"><%= palakMelavaPendingCount %></span>
+                                        <% } %>
+                                    </a>
+                                    
+                                    <a href="<%= request.getContextPath() %>/approve-videos.jsp" class="dropdown-item" title="Approve uploaded videos">
+                                        <div class="dropdown-item-content">
+                                            <span>🎥</span>
+                                            <span>Approve Videos</span>
+                                        </div>
+                                        <% if (pendingVideosCount > 0) { %>
+                                            <span class="item-badge"><%= pendingVideosCount %></span>
+                                        <% } %>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     <% } %>
-                    <%-- <a href="<%= request.getContextPath() %>/authorize-youtube" class="btn" style="background: #FF0000; color: white; margin-right: 10px;" target="_blank" title="Authorize YouTube for video uploads">
-                        🎥 YouTube Setup
-                    </a> --%>
+                    
+                    <!-- Account Actions -->
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password">
                         🔐 Change Password
                     </a>
@@ -2730,6 +2871,26 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        // Quick Actions Dropdown Toggle
+        function toggleQuickActions() {
+            const menu = document.getElementById('quickActionsMenu');
+            if (menu) {
+                menu.classList.toggle('show');
+            }
+        }
+        
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.quick-actions-dropdown')) {
+                const menu = document.getElementById('quickActionsMenu');
+                if (menu) {
+                    menu.classList.remove('show');
+                }
+            }
+        });
+    </script>
     
     <div class="container">
         <!-- Welcome Card -->
@@ -2929,20 +3090,27 @@
                     <div class="quick-action-desc">Record other school activities with date, subject, guests, description, photos and video link. Requires headmaster approval.</div>
                 </a>
                 
-                  <a href="javascript:void(0);" onclick="openVideoUploadModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                  <!-- <a href="javascript:void(0);" onclick="openVideoUploadModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🎥</div>
                     <div class="quick-action-title">Video Upload</div>
                     <div class="quick-action-subtitle">व्हिडिओ अपलोड</div>
                     <div class="quick-action-desc">Upload student progress videos. Select student, subject, month and track their development journey.</div>
-                </a> 
+                </a>  -->
+                
+                 <a href="<%= request.getContextPath() %>/view-student-data.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-title">View All Student Data</div>
+                    <div class="quick-action-subtitle">सर्व विद्यार्थी डेटा</div>
+                    <div class="quick-action-desc">Display all student information registered against this UDISE number with filtering and search capabilities.</div>
+                </a>
                 
                 <!-- 12. VIEW UPLOADED VIDEOS - ENABLED -->
-                <a href="javascript:void(0);" onclick="openUploadedVideosModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+               <!--  <a href="javascript:void(0);" onclick="openUploadedVideosModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📹</div>
                     <div class="quick-action-title">View Uploaded Videos</div>
                     <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
                     <div class="quick-action-desc">View all uploaded student progress videos. Filter by subject, month, student and track learning progress with video playback.</div>
-                </a>
+                </a> -->
                  <a href="<%= request.getContextPath() %>/fln-completed-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🏆</div>
                     <div class="quick-action-title">FLN Completed Students</div>
@@ -2951,12 +3119,12 @@
                 </a>
                 <!-- 9. Student Comprehensive Report (School Coordinator) - ENABLED -->
                 <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
-               <%--   <a href="<%= request.getContextPath() %>/student-comprehensive-report-new.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                  <a href="<%= request.getContextPath() %>/student-comprehensive-report-new.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">Generate Student Report</div>
                     <div class="quick-action-subtitle">विद्यार्थी अहवाल तयार करा</div>
                     <div class="quick-action-desc">Request comprehensive student reports with academic data, activities, and progress tracking. Submit for headmaster approval.</div>
-                </a> --%>
+                </a>  
                 
                 <!-- 10. Phase-wise Subject Statistics - ENABLED -->
                 <%-- <a href="<%= request.getContextPath() %>/phase-statistics.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -3004,12 +3172,12 @@
                 <!-- Headmaster Only Actions -->
                 <% if (user.getUserType().equals(User.UserType.HEAD_MASTER)) { %>
                 <!-- 11. Approve Reports (Headmaster Only) - DISABLED -->
-                <div class="quick-action-card quick-action-disabled" style="text-decoration: none; color: inherit;">
+                 <a href="<%= request.getContextPath() %>/approve-student-reports.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">✅</div>
                     <div class="quick-action-title">Approve Reports</div>
                     <div class="quick-action-subtitle">अहवाल मंजूर करा</div>
                     <div class="quick-action-desc">Review and approve pending student comprehensive reports. View student data and approve or reject requests.</div>
-                </div>
+                </a> 
                 
                 <!-- Other School Activity Approvals (Headmaster Only) - ENABLED -->
                 <a href="<%= request.getContextPath() %>/other-school-activity-approvals.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -3272,10 +3440,10 @@
                 countRs.close();
                 countPstmt.close();
                 
-                System.out.println("=== VIDEO FETCH DEBUG START ===");
-                System.out.println("Total videos in database: " + totalVideosInDb);
-                System.out.println("User Type: " + user.getUserType());
-                System.out.println("UDISE Number: " + udiseNo);
+                //System.out.println("=== VIDEO FETCH DEBUG START ===");
+                //System.out.println("Total videos in database: " + totalVideosInDb);
+                //System.out.println("User Type: " + user.getUserType());
+                //System.out.println("UDISE Number: " + udiseNo);
                 
                 // Build query based on user role
                 String videoSql;
@@ -3289,7 +3457,7 @@
                               "LEFT JOIN students s ON v.student_id = s.student_id " +
                               "WHERE v.udise_no = ? AND v.is_active = TRUE " +
                               "ORDER BY v.upload_date DESC";
-                    System.out.println("Query: Fetching ALL videos for HEAD_MASTER");
+                    //System.out.println("Query: Fetching ALL videos for HEAD_MASTER");
                 } else {
                     // School Coordinator sees only APPROVED videos
                     videoSql = "SELECT v.video_id, v.student_id, s.student_name, s.student_pen, s.class, s.section, " +
@@ -3301,12 +3469,12 @@
                               "WHERE v.udise_no = ? AND v.is_active = TRUE " +
                               "AND v.approval_status = 'APPROVED' AND v.is_visible = TRUE " +
                               "ORDER BY v.upload_date DESC";
-                    System.out.println("Query: Fetching only APPROVED videos for SCHOOL_COORDINATOR");
+                    //System.out.println("Query: Fetching only APPROVED videos for SCHOOL_COORDINATOR");
                 }
                 
                 videoPstmt = videoConn.prepareStatement(videoSql);
                 videoPstmt.setString(1, udiseNo);
-                System.out.println("Executing query with UDISE: " + udiseNo);
+                //System.out.println("Executing query with UDISE: " + udiseNo);
                 videoRs = videoPstmt.executeQuery();
                 
                 while (videoRs.next()) {
@@ -3329,18 +3497,18 @@
                     video.put("approvalStatus", videoRs.getString("approval_status"));
                     video.put("isVisible", videoRs.getBoolean("is_visible"));
                     uploadedVideos.add(video);
-                    System.out.println("Added video: " + videoRs.getString("subject") + " - " + videoRs.getString("month"));
+                    //System.out.println("Added video: " + videoRs.getString("subject") + " - " + videoRs.getString("month"));
                 }
                 
-                System.out.println("Successfully fetched " + uploadedVideos.size() + " videos for this school");
+                //System.out.println("Successfully fetched " + uploadedVideos.size() + " videos for this school");
                 if (uploadedVideos.isEmpty() && totalVideosInDb > 0) {
-                    System.out.println("WARNING: Database has videos but none match the filters for this UDISE/user");
+                    //System.out.println("WARNING: Database has videos but none match the filters for this UDISE/user");
                 }
                 if (!uploadedVideos.isEmpty()) {
-                    System.out.println("First video - Status: " + uploadedVideos.get(0).get("approvalStatus") + 
-                                      ", Subject: " + uploadedVideos.get(0).get("subject"));
+                    //System.out.println("First video - Status: " + uploadedVideos.get(0).get("approvalStatus") + 
+                                      //", Subject: " + uploadedVideos.get(0).get("subject"));
                 }
-                System.out.println("=== VIDEO FETCH DEBUG END ===");
+                //System.out.println("=== VIDEO FETCH DEBUG END ===");
                 
             } catch (Exception e) {
                 videoFetchError = e.getMessage();
@@ -4227,6 +4395,182 @@
             }
         });
         </script>
+        
+    <!-- Phase Details Modal -->
+    <div id="phaseModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="modalPhaseTitle">Phase Student Data</h2>
+                <button class="modal-close" onclick="closePhaseModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalStudentList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        /* Phase Modal Styles */
+        #phaseModal.modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        #phaseModal.show {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #phaseModal .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            animation: slideDown 0.3s ease;
+            margin: 20px;
+        }
+        
+        #phaseModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 2px solid #f0f0f0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        #phaseModal .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        #phaseModal .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 32px;
+            font-weight: 300;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+        
+        #phaseModal .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        #phaseModal .modal-body {
+            padding: 30px;
+        }
+        
+        .modal-summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .summary-item {
+            flex: 1;
+            min-width: 150px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .summary-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .modal-controls {
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    
+    <script>
+        // Close Phase Modal Function
+        function closePhaseModal() {
+            const modal = document.getElementById('phaseModal');
+            if (modal) {
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Close modal when clicking outside the content
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('phaseModal');
+            if (modal && e.target === modal) {
+                closePhaseModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePhaseModal();
+            }
+        });
+    </script>
         
 </body>
 </html>

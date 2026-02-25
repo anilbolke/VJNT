@@ -72,15 +72,6 @@ public class ManageSchoolContactServlet extends HttpServlet {
         String districtName = request.getParameter("districtName");
         
         // Debug logging
-        System.out.println("=== ManageSchoolContactServlet Debug ===");
-        System.out.println("Mode: " + mode);
-        System.out.println("UDISE: [" + udiseNo + "]");
-        System.out.println("ContactType: [" + contactType + "]");
-        System.out.println("FullName: [" + fullName + "]");
-        System.out.println("Mobile: [" + mobile + "]");
-        System.out.println("WhatsApp: [" + whatsapp + "]");
-        System.out.println("District: [" + districtName + "]");
-        System.out.println("========================================");
         
         // Validate required fields
         if (udiseNo == null || udiseNo.trim().isEmpty()) {

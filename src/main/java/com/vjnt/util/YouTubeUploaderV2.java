@@ -43,7 +43,7 @@ public class YouTubeUploaderV2 {
                                     List<String> tags, String categoryId, String privacyStatus) 
             throws IOException, GeneralSecurityException {
         
-        System.out.println("=== YouTube Upload V2 - Database Credentials ===");
+        // //System.out.println("=== YouTube Upload V2 - Database Credentials ===");
         
         // Get credentials from database
         YouTubeCredentialManager.YouTubeCredential dbCred = 
@@ -54,7 +54,7 @@ public class YouTubeUploaderV2 {
                 "Please run /authorize-youtube to set up OAuth.");
         }
         
-        System.out.println("✓ Retrieved credentials from database");
+        // //System.out.println("✓ Retrieved credentials from database");
         
         // Check if token needs refresh
         boolean needsRefresh = false;
@@ -65,7 +65,7 @@ public class YouTubeUploaderV2 {
             // If expires in less than 5 minutes, refresh now
             if (expiry - now < 300000) {
                 needsRefresh = true;
-                System.out.println("⚠ Access token expired or expiring soon, will refresh");
+                // //System.out.println("⚠ Access token expired or expiring soon, will refresh");
             }
         }
         
@@ -83,11 +83,11 @@ public class YouTubeUploaderV2 {
         
         // Refresh if needed
         if (needsRefresh || credential.getAccessToken() == null) {
-            System.out.println("Refreshing access token...");
+            // //System.out.println("Refreshing access token...");
             boolean refreshed = credential.refreshToken();
             
             if (refreshed) {
-                System.out.println("✓ Token refreshed successfully");
+                // //System.out.println("✓ Token refreshed successfully");
                 
                 // Update database with new token
                 long expiresInSeconds = credential.getExpiresInSeconds() != null ? 
@@ -137,9 +137,9 @@ public class YouTubeUploaderV2 {
         );
         mediaContent.setLength(videoFile.length());
         
-        System.out.println("Uploading video: " + cleanTitle);
-        System.out.println("File size: " + (videoFile.length() / 1024 / 1024) + " MB");
-        System.out.println("Privacy: " + privacyStatus);
+        // //System.out.println("Uploading video: " + cleanTitle);
+        // //System.out.println("File size: " + (videoFile.length() / 1024 / 1024) + " MB");
+        // //System.out.println("Privacy: " + privacyStatus);
         
         // Create the video insert request
         YouTube.Videos.Insert videoInsert = youtubeService.videos()
@@ -155,19 +155,19 @@ public class YouTubeUploaderV2 {
             public void progressChanged(MediaHttpUploader uploader) throws IOException {
                 switch (uploader.getUploadState()) {
                     case INITIATION_STARTED:
-                        System.out.println("Initiation Started");
+                        // //System.out.println("Initiation Started");
                         break;
                     case INITIATION_COMPLETE:
-                        System.out.println("Initiation Completed");
+                        // //System.out.println("Initiation Completed");
                         break;
                     case MEDIA_IN_PROGRESS:
-                        System.out.printf("Upload progress: %.2f%%\n", uploader.getProgress() * 100);
+                        // System.out.printf("Upload progress: %.2f%%\n", uploader.getProgress() * 100);
                         break;
                     case MEDIA_COMPLETE:
-                        System.out.println("Upload Completed!");
+                        // //System.out.println("Upload Completed!");
                         break;
                     case NOT_STARTED:
-                        System.out.println("Upload Not Started!");
+                        // //System.out.println("Upload Not Started!");
                         break;
                 }
             }
@@ -176,12 +176,12 @@ public class YouTubeUploaderV2 {
         // Execute upload
         Video returnedVideo = videoInsert.execute();
         
-        System.out.println("\n=== Upload Successful ===");
-        System.out.println("Video ID: " + returnedVideo.getId());
-        System.out.println("Title: " + returnedVideo.getSnippet().getTitle());
-        System.out.println("Privacy: " + returnedVideo.getStatus().getPrivacyStatus());
-        System.out.println("URL: https://www.youtube.com/watch?v=" + returnedVideo.getId());
-        System.out.println("========================\n");
+        // //System.out.println("\n=== Upload Successful ===");
+        // //System.out.println("Video ID: " + returnedVideo.getId());
+        // //System.out.println("Title: " + returnedVideo.getSnippet().getTitle());
+        // //System.out.println("Privacy: " + returnedVideo.getStatus().getPrivacyStatus());
+        // //System.out.println("URL: https://www.youtube.com/watch?v=" + returnedVideo.getId());
+        // //System.out.println("========================\n");
         
         return returnedVideo.getId();
     }

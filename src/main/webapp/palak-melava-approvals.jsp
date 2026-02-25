@@ -487,9 +487,7 @@
                                     <% 
                                         String photo1Path = melava.getPhoto1Path();
                                         String photo2Path = melava.getPhoto2Path();
-                                        System.out.println("DEBUG: Melava ID=" + melava.getMelavaId() + 
-                                                         ", Photo1Path=" + photo1Path + 
-                                                         ", Photo2Path=" + photo2Path);
+                                       
                                     %>
                                     <% if (photo1Path != null && !photo1Path.trim().isEmpty()) { %>
                                     <img src="<%= request.getContextPath() %>/palak-melava-image-db?id=<%= melava.getMelavaId() %>&photo=1" 

@@ -37,12 +37,10 @@ public class AddTeacherServlet extends HttpServlet {
         StringBuilder jsonResponse = new StringBuilder();
         
         try {
-            System.out.println("AddTeacherServlet: POST request received");
             
             // Get session and verify user is School Coordinator
             HttpSession session = request.getSession(false);
             if (session == null) {
-                System.out.println("AddTeacherServlet: No session found");
                 jsonResponse.append("{\"success\":false,\"message\":\"Session expired. Please login again.\"}");
                 out.print(jsonResponse.toString());
                 return;
@@ -50,14 +48,12 @@ public class AddTeacherServlet extends HttpServlet {
             
             User user = (User) session.getAttribute("user");
             if (user == null) {
-                System.out.println("AddTeacherServlet: No user in session");
                 jsonResponse.append("{\"success\":false,\"message\":\"Session expired. Please login again.\"}");
                 out.print(jsonResponse.toString());
                 return;
             }
             
             if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) {
-                System.out.println("AddTeacherServlet: User is not School Coordinator: " + user.getUserType());
                 jsonResponse.append("{\"success\":false,\"message\":\"Unauthorized access. Only School Coordinators can add teachers.\"}");
                 out.print(jsonResponse.toString());
                 return;
@@ -71,7 +67,6 @@ public class AddTeacherServlet extends HttpServlet {
             String udiseCode = user.getUdiseNo();
             int userId = user.getUserId();
             
-            System.out.println("AddTeacherServlet: Parameters - Name: " + teacherName + ", Mobile: " + teacherMobile + ", Subjects: " + subjects);
             
             // Validate inputs
             if (teacherName == null || teacherName.trim().isEmpty()) {
@@ -99,7 +94,6 @@ public class AddTeacherServlet extends HttpServlet {
             
             try {
                 conn = DatabaseConnection.getConnection();
-                System.out.println("AddTeacherServlet: Database connection obtained");
                 
                 // Check if mobile number already exists for this school
                 String checkSql = "SELECT COUNT(*) FROM teachers WHERE udise_code = ? AND mobile_number = ? AND is_active = 1";
@@ -109,7 +103,6 @@ public class AddTeacherServlet extends HttpServlet {
                 rs = pstmt.executeQuery();
                 
                 if (rs.next() && rs.getInt(1) > 0) {
-                    System.out.println("AddTeacherServlet: Duplicate mobile number found");
                     jsonResponse.append("{\"success\":false,\"message\":\"A teacher with this mobile number already exists\"}");
                     out.print(jsonResponse.toString());
                     return;
@@ -127,7 +120,6 @@ public class AddTeacherServlet extends HttpServlet {
                 pstmt.setString(5, description != null ? description.trim() : null);
                 pstmt.setInt(6, userId);
                 
-                System.out.println("AddTeacherServlet: Executing insert query");
                 int rowsAffected = pstmt.executeUpdate();
                 
                 if (rowsAffected > 0) {
@@ -139,7 +131,6 @@ public class AddTeacherServlet extends HttpServlet {
                     }
                     generatedKeys.close();
                     
-                    System.out.println("AddTeacherServlet: Teacher added successfully with ID: " + teacherId);
                     
                     jsonResponse.append("{\"success\":true,\"message\":\"Teacher added successfully\",");
                     jsonResponse.append("\"teacherId\":").append(teacherId).append(",");
@@ -147,7 +138,6 @@ public class AddTeacherServlet extends HttpServlet {
                     jsonResponse.append("\"mobile\":\"").append(teacherMobile).append("\",");
                     jsonResponse.append("\"subjects\":\"").append(subjects.replace("\"", "\\\"")).append("\"}");
                 } else {
-                    System.out.println("AddTeacherServlet: Insert failed - no rows affected");
                     jsonResponse.append("{\"success\":false,\"message\":\"Failed to add teacher. Please try again.\"}");
                 }
                 
@@ -169,7 +159,6 @@ public class AddTeacherServlet extends HttpServlet {
         
         out.print(jsonResponse.toString());
         out.flush();
-        System.out.println("AddTeacherServlet: Response sent: " + jsonResponse.toString());
     }
     
     @Override

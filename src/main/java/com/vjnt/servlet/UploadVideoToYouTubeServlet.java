@@ -48,7 +48,6 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
         
         // Wrap entire method in try-catch to prevent 502 errors
         try {
-            System.out.println("=== YouTube Upload Request Started ===");
             
         try {
             // Get form parameters
@@ -62,17 +61,6 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
             String privacyStatus = request.getParameter("privacyStatus"); // public, private, unlisted
             
             // Log received parameters for debugging
-            System.out.println("========== Upload Video Request ==========");
-            System.out.println("Raw Title: [" + title + "]");
-            System.out.println("Title null: " + (title == null));
-            System.out.println("Title length: " + (title != null ? title.length() : 0));
-            System.out.println("Description: " + description);
-            System.out.println("Category: " + category);
-            System.out.println("SubCategory: " + subCategory);
-            System.out.println("Student ID: " + studentIdStr);
-            System.out.println("Student PEN: " + studentPen);
-            System.out.println("Privacy: " + privacyStatus);
-            System.out.println("==========================================");
             
             // Validate required fields
             if (title == null || title.trim().isEmpty()) {
@@ -85,14 +73,11 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
             
             // Clean and validate title
             title = title.trim();
-            System.out.println("Trimmed Title: [" + title + "]");
-            System.out.println("Trimmed Title length: " + title.length());
             
             if (title.length() > 100) {
                 title = title.substring(0, 100); // YouTube title max length is 100 chars
             }
             
-            System.out.println("Final Title for upload: [" + title + "]");
             
             // Get uploaded file
             Part filePart = request.getPart("videoFile");
@@ -115,7 +100,6 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                 return;
             }
             
-            System.out.println("Video file size: " + fileSize + " bytes (" + (fileSize / (1024.0 * 1024.0)) + " MB)");
             
             // Get filename
             String fileName = getFileName(filePart);
@@ -141,8 +125,6 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                 }
             }
             
-            System.out.println("File saved to temp: " + tempFile.getAbsolutePath());
-            System.out.println("File size: " + tempFile.length() + " bytes");
             
             // Prepare tags for YouTube
             List<String> tags = Arrays.asList(category, subCategory, "Education", "VJNT");
@@ -159,7 +141,6 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                     privacyStatus != null ? privacyStatus : "unlisted"
                 );
                 
-                System.out.println("Video uploaded to YouTube: " + youtubeVideoId);
                 
             } catch (com.google.api.client.auth.oauth2.TokenResponseException e) {
                 // Token has expired or been revoked
@@ -207,7 +188,6 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
             if (studentIdStr != null && !studentIdStr.isEmpty()) {
                 try {
                     uploadedByStudentId = Integer.parseInt(studentIdStr);
-                    System.out.println("Video will be mapped to student ID: " + uploadedByStudentId);
                 } catch (NumberFormatException e) {
                     System.err.println("Invalid student ID: " + studentIdStr);
                 }
@@ -219,7 +199,6 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                     if (student != null) {
                         uploadedByStudentId = student.getStudentId();
                         uploaderName = student.getStudentName();
-                        System.out.println("Found student by PEN: " + studentPen + " -> ID: " + uploadedByStudentId);
                     }
                 } catch (Exception e) {
                     System.err.println("Error looking up student by PEN: " + e.getMessage());
@@ -232,14 +211,14 @@ public class UploadVideoToYouTubeServlet extends HttpServlet {
                 if (session != null && session.getAttribute("userId") != null) {
                     uploadedByStudentId = (Integer) session.getAttribute("userId");
                     uploaderName = (String) session.getAttribute("userName");
-                    System.out.println("No student specified, using logged-in user: " + uploadedByStudentId);
+                    //System.out.println("No student specified, using logged-in user: " + uploadedByStudentId);
                 }
             }
             
             video.setUploadedBy(uploadedByStudentId);
             video.setUploaderName(uploaderName);
             
-            System.out.println("Video will be saved with uploadedBy=" + uploadedByStudentId + ", uploaderName=" + uploaderName);
+            //System.out.println("Video will be saved with uploadedBy=" + uploadedByStudentId + ", uploaderName=" + uploaderName);
             
             // Save to database
             boolean saved = videoDAO.saveVideo(video);

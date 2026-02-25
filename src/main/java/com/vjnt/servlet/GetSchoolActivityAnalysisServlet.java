@@ -34,8 +34,6 @@ public class GetSchoolActivityAnalysisServlet extends HttpServlet {
         User user = (User) session.getAttribute("user");
         String districtName = user.getDistrictName();
         
-        System.out.println("GetSchoolActivityAnalysisServlet - User: " + user.getUsername());
-        System.out.println("GetSchoolActivityAnalysisServlet - District: " + districtName);
 
         JsonObject result = new JsonObject();
         JsonArray schoolsArray = new JsonArray();
@@ -80,8 +78,6 @@ public class GetSchoolActivityAnalysisServlet extends HttpServlet {
             }
             
             long endTime = System.currentTimeMillis();
-            System.out.println("GetSchoolActivityAnalysisServlet - Data fetched in " + (endTime - startTime) + "ms");
-            System.out.println("GetSchoolActivityAnalysisServlet - Total schools: " + schoolsArray.size());
 
             result.addProperty("success", true);
             result.addProperty("district", districtName);

@@ -65,11 +65,9 @@ public class UserDAO {
      */
     public int batchCreateUsers(List<User> users) {
         if (users == null || users.isEmpty()) {
-            System.out.println("⚠ batchCreateUsers called with empty user list");
             return 0;
         }
         
-        System.out.println("📝 batchCreateUsers called with " + users.size() + " users to process");
         
         String sql = "INSERT INTO users (username, password, user_type, division_name, district_name, " +
                     "udise_no, is_first_login, must_change_password, is_active, created_by, full_name) " +
@@ -95,12 +93,10 @@ public class UserDAO {
                 if (rs.next() && rs.getInt(1) > 0) {
                     // Username already exists, skip this user
                     skippedDuplicates++;
-                    System.out.println("⚠ Skipping duplicate user: " + user.getUsername() + " (UDISE: " + user.getUdiseNo() + ")");
                     continue;
                 }
                 
                 // Username doesn't exist, add to batch
-                System.out.println("✓ Adding to batch: " + user.getUsername() + " (Type: " + user.getUserType() + ", UDISE: " + user.getUdiseNo() + ")");
                 pstmt.setString(1, user.getUsername());
                 pstmt.setString(2, user.getPassword());
                 pstmt.setString(3, user.getUserType().name());
@@ -117,7 +113,6 @@ public class UserDAO {
                 addedToBatch++;
             }
             
-            System.out.println("📊 Batch summary: " + addedToBatch + " users to insert, " + skippedDuplicates + " duplicates skipped");
             
             // Execute batch only if there are items to insert
             if (addedToBatch > 0) {
@@ -129,15 +124,11 @@ public class UserDAO {
                         totalInserted++;
                     }
                 }
-                System.out.println("✓ Batch executed successfully: " + totalInserted + " users inserted");
             } else {
-                System.out.println("⚠ No users to insert - all were duplicates");
                 conn.commit();
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Batch user insert completed: " + totalInserted + " users inserted, " + 
-                             skippedDuplicates + " duplicates skipped in " + duration + "ms");
             return totalInserted;
             
         } catch (SQLException e) {
@@ -159,7 +150,6 @@ public class UserDAO {
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
             
-            System.out.println(rs);
             if (rs.next()) {
                 return extractUserFromResultSet(rs);
             }
@@ -175,7 +165,6 @@ public class UserDAO {
      * Authenticate user
      */
     public User authenticateUser(String username, String password) {
-        System.out.println("[UserDAO] Authenticating user: " + username);
         
         // List all users in database for debugging
         listAllDatabaseUsers();
@@ -183,28 +172,11 @@ public class UserDAO {
         User user = findByUsername(username);
         
         if (user == null) {
-            System.out.println("[UserDAO] User NOT found in database: " + username);
-            
-            // Helpful hints for common mistakes
-            if ("admin".equalsIgnoreCase(username)) {
-                System.out.println("[UserDAO] HINT: Did you mean 'dataadmin'? Try username: dataadmin");
-            }
-            if (username != null && username.contains(" ")) {
-                System.out.println("[UserDAO] HINT: Username contains spaces. Remove spaces and try again.");
-            }
-            
             return null;
         }
         
-        System.out.println("[UserDAO] User found: " + username);
-        System.out.println("[UserDAO] - User Type: " + user.getUserType());
-        System.out.println("[UserDAO] - Is Active: " + user.isActive());
-        System.out.println("[UserDAO] - Is Locked: " + user.isAccountLocked());
-        System.out.println("[UserDAO] - DB Password: [" + user.getPassword() + "]");
-        System.out.println("[UserDAO] - Input Password: [" + password + "]");
         
         boolean passwordMatch = PasswordUtil.verifyPassword(password, user.getPassword());
-        System.out.println("[UserDAO] - Password Match: " + passwordMatch);
         
         if (user != null && passwordMatch) {
             if (user.isAccountLocked()) {
@@ -229,9 +201,6 @@ public class UserDAO {
      * List all database users for debugging
      */
     public void listAllDatabaseUsers() {
-        System.out.println("\n============================================");
-        System.out.println("ALL USERS IN DATABASE:");
-        System.out.println("============================================");
         
         String sql = "SELECT user_id, username, user_type, is_active, account_locked, division_name, district_name, udise_no FROM users ORDER BY user_id";
         
@@ -243,7 +212,6 @@ public class UserDAO {
             e.printStackTrace();
         }
         
-        System.out.println("============================================\n");
     }
     
     /**
@@ -369,11 +337,9 @@ public class UserDAO {
         Set<String> existingUdises = new HashSet<>();
         
         if (udiseNumbers == null || udiseNumbers.isEmpty()) {
-            System.out.println("⚠ No UDISE numbers to check");
             return existingUdises;
         }
         
-        System.out.println("🔍 Checking " + udiseNumbers.size() + " UDISE numbers against database...");
         
         // Process in chunks of 1000 to avoid SQL query size limits
         List<String> udiseList = new ArrayList<>(udiseNumbers);
@@ -412,9 +378,7 @@ public class UserDAO {
             }
         }
         
-        System.out.println("✓ Found " + existingUdises.size() + " UDISE numbers with existing users in database");
         if (existingUdises.size() > 0 && existingUdises.size() <= 10) {
-            System.out.println("  Existing UDISE numbers: " + existingUdises);
         }
         
         return existingUdises;
@@ -534,7 +498,6 @@ public class UserDAO {
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Fetched " + users.size() + " users by type (paginated) in " + duration + "ms");
             
         } catch (SQLException e) {
             System.err.println("Error getting users by type paginated: " + e.getMessage());
@@ -660,7 +623,6 @@ public class UserDAO {
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Fetched " + users.size() + " users (paginated) in " + duration + "ms");
             
         } catch (SQLException e) {
             System.err.println("Error getting paginated users: " + e.getMessage());
@@ -786,7 +748,6 @@ public class UserDAO {
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Fetched " + users.size() + " users by division (paginated) in " + duration + "ms");
             
         } catch (SQLException e) {
             System.err.println("Error getting users by division paginated: " + e.getMessage());
@@ -887,7 +848,6 @@ public class UserDAO {
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Fetched " + users.size() + " users by district (paginated) in " + duration + "ms");
             
         } catch (SQLException e) {
             System.err.println("Error getting users by district paginated: " + e.getMessage());
@@ -1063,7 +1023,6 @@ public class UserDAO {
             }
             
             long duration = System.currentTimeMillis() - startTime;
-            System.out.println("✓ Fetched " + users.size() + " school users by district (paginated) in " + duration + "ms");
             
         } catch (SQLException e) {
             System.err.println("Error getting school users by district paginated: " + e.getMessage());

@@ -38,10 +38,10 @@ public class YouTubeConfig {
             InputStream configStream = YouTubeConfig.class.getClassLoader().getResourceAsStream(CONFIG_FILE);
             if (configStream != null) {
                 properties.load(configStream);
-                System.out.println("✓ Loaded YouTube configuration from " + CONFIG_FILE);
+                //System.out.println("✓ Loaded YouTube configuration from " + CONFIG_FILE);
                 configStream.close();
             } else {
-                System.out.println("No youtube.properties found, using default values");
+                //System.out.println("No youtube.properties found, using default values");
             }
         } catch (IOException e) {
             System.err.println("Warning: Could not load youtube.properties: " + e.getMessage());

@@ -11,8 +11,6 @@ import java.sql.SQLException;
 public class DatabaseSchemaUpdater {
     
     public static void main(String[] args) {
-        System.out.println("=== Database Schema Updater ===");
-        System.out.println("Adding missing columns to student_videos table...\n");
         
         Connection conn = null;
         Statement stmt = null;
@@ -27,10 +25,8 @@ public class DatabaseSchemaUpdater {
                     "ALTER TABLE student_videos ADD COLUMN approval_status VARCHAR(20) DEFAULT 'PENDING' " +
                     "COMMENT 'PENDING, APPROVED, REJECTED'"
                 );
-                System.out.println("✓ Added column: approval_status");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate column")) {
-                    System.out.println("✓ Column approval_status already exists");
                 } else {
                     throw e;
                 }
@@ -42,10 +38,8 @@ public class DatabaseSchemaUpdater {
                     "ALTER TABLE student_videos ADD COLUMN approved_by INT DEFAULT NULL " +
                     "COMMENT 'User ID of headmaster who approved/rejected'"
                 );
-                System.out.println("✓ Added column: approved_by");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate column")) {
-                    System.out.println("✓ Column approved_by already exists");
                 } else {
                     throw e;
                 }
@@ -57,10 +51,10 @@ public class DatabaseSchemaUpdater {
                     "ALTER TABLE student_videos ADD COLUMN approved_by_name VARCHAR(255) DEFAULT NULL " +
                     "COMMENT 'Name of headmaster who approved/rejected'"
                 );
-                System.out.println("✓ Added column: approved_by_name");
+                //System.out.println("✓ Added column: approved_by_name");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate column")) {
-                    System.out.println("✓ Column approved_by_name already exists");
+                    //System.out.println("✓ Column approved_by_name already exists");
                 } else {
                     throw e;
                 }
@@ -72,10 +66,10 @@ public class DatabaseSchemaUpdater {
                     "ALTER TABLE student_videos ADD COLUMN approval_date DATETIME DEFAULT NULL " +
                     "COMMENT 'Date and time of approval/rejection'"
                 );
-                System.out.println("✓ Added column: approval_date");
+                //System.out.println("✓ Added column: approval_date");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate column")) {
-                    System.out.println("✓ Column approval_date already exists");
+                    //System.out.println("✓ Column approval_date already exists");
                 } else {
                     throw e;
                 }
@@ -87,10 +81,10 @@ public class DatabaseSchemaUpdater {
                     "ALTER TABLE student_videos ADD COLUMN rejection_reason TEXT DEFAULT NULL " +
                     "COMMENT 'Reason for rejection if status is REJECTED'"
                 );
-                System.out.println("✓ Added column: rejection_reason");
+                //System.out.println("✓ Added column: rejection_reason");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate column")) {
-                    System.out.println("✓ Column rejection_reason already exists");
+                    //System.out.println("✓ Column rejection_reason already exists");
                 } else {
                     throw e;
                 }
@@ -102,10 +96,10 @@ public class DatabaseSchemaUpdater {
                     "ALTER TABLE student_videos ADD COLUMN is_visible BOOLEAN DEFAULT TRUE " +
                     "COMMENT 'Whether video is visible to students'"
                 );
-                System.out.println("✓ Added column: is_visible");
+                //System.out.println("✓ Added column: is_visible");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate column")) {
-                    System.out.println("✓ Column is_visible already exists");
+                    //System.out.println("✓ Column is_visible already exists");
                 } else {
                     throw e;
                 }
@@ -114,34 +108,34 @@ public class DatabaseSchemaUpdater {
             // Add indexes
             try {
                 stmt.executeUpdate("ALTER TABLE student_videos ADD INDEX idx_approval_status (approval_status)");
-                System.out.println("✓ Added index: idx_approval_status");
+                //System.out.println("✓ Added index: idx_approval_status");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate key")) {
-                    System.out.println("✓ Index idx_approval_status already exists");
+                    //System.out.println("✓ Index idx_approval_status already exists");
                 } else {
-                    System.out.println("⚠ Warning: Could not add index idx_approval_status: " + e.getMessage());
+                    //System.out.println("⚠ Warning: Could not add index idx_approval_status: " + e.getMessage());
                 }
             }
             
             try {
                 stmt.executeUpdate("ALTER TABLE student_videos ADD INDEX idx_udise_approval (udise_no, approval_status)");
-                System.out.println("✓ Added index: idx_udise_approval");
+                //System.out.println("✓ Added index: idx_udise_approval");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate key")) {
-                    System.out.println("✓ Index idx_udise_approval already exists");
+                    //System.out.println("✓ Index idx_udise_approval already exists");
                 } else {
-                    System.out.println("⚠ Warning: Could not add index idx_udise_approval: " + e.getMessage());
+                    //System.out.println("⚠ Warning: Could not add index idx_udise_approval: " + e.getMessage());
                 }
             }
             
             try {
                 stmt.executeUpdate("ALTER TABLE student_videos ADD INDEX idx_approved_by (approved_by)");
-                System.out.println("✓ Added index: idx_approved_by");
+                //System.out.println("✓ Added index: idx_approved_by");
             } catch (SQLException e) {
                 if (e.getMessage().contains("Duplicate key")) {
-                    System.out.println("✓ Index idx_approved_by already exists");
+                    //System.out.println("✓ Index idx_approved_by already exists");
                 } else {
-                    System.out.println("⚠ Warning: Could not add index idx_approved_by: " + e.getMessage());
+                    //System.out.println("⚠ Warning: Could not add index idx_approved_by: " + e.getMessage());
                 }
             }
             
@@ -157,7 +151,7 @@ public class DatabaseSchemaUpdater {
                 "WHERE u.user_type = 'HEAD_MASTER' " +
                 "AND (sv.approval_status IS NULL OR sv.approval_status = 'PENDING')"
             );
-            System.out.println("✓ Auto-approved " + headmasterVideos + " videos uploaded by headmasters");
+            //System.out.println("✓ Auto-approved " + headmasterVideos + " videos uploaded by headmasters");
             
             // Update existing videos to PENDING if uploaded by school coordinator
             int coordinatorVideos = stmt.executeUpdate(
@@ -168,11 +162,11 @@ public class DatabaseSchemaUpdater {
                 "WHERE u.user_type = 'SCHOOL_COORDINATOR' " +
                 "AND sv.approval_status IS NULL"
             );
-            System.out.println("✓ Set " + coordinatorVideos + " videos to PENDING status for coordinator uploads");
+            //System.out.println("✓ Set " + coordinatorVideos + " videos to PENDING status for coordinator uploads");
             
-            System.out.println("\n=== Schema Update Completed Successfully! ===");
-            System.out.println("The student_videos table now has all required columns.");
-            System.out.println("You can now restart your application.");
+            //System.out.println("\n=== Schema Update Completed Successfully! ===");
+            //System.out.println("The student_videos table now has all required columns.");
+            //System.out.println("You can now restart your application.");
             
         } catch (SQLException e) {
             System.err.println("\n✗ ERROR updating database schema:");

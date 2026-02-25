@@ -42,13 +42,13 @@
     List<Map<String, Object>> allSchools = phaseApprovalDAO.getPhaseStatusByDistrict(districtName);
     
     // Debug: Log the data retrieval
-    System.out.println("=== PHASE STATUS DEBUG ===");
-    System.out.println("District: " + districtName);
-    System.out.println("Total schools retrieved: " + (allSchools != null ? allSchools.size() : 0));
+    //System.out.println("=== PHASE STATUS DEBUG ===");
+    //System.out.println("District: " + districtName);
+    //System.out.println("Total schools retrieved: " + (allSchools != null ? allSchools.size() : 0));
     if (allSchools != null && allSchools.size() > 0) {
-        System.out.println("First school sample data: " + allSchools.get(0));
+        //System.out.println("First school sample data: " + allSchools.get(0));
     }
-    System.out.println("=========================");
+    //System.out.println("=========================");
     
     // Handle null or empty result
     if (allSchools == null) {

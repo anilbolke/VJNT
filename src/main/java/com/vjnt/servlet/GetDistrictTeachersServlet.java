@@ -74,8 +74,6 @@ public class GetDistrictTeachersServlet extends HttpServlet {
             JsonArray teachersArray = new JsonArray();
             int teacherCount = 0;
             
-            System.out.println("=== Teacher Details Request (from teachers table) ===");
-            System.out.println("District: " + district);
             
             while (rs.next()) {
                 teacherCount++;
@@ -96,12 +94,8 @@ public class GetDistrictTeachersServlet extends HttpServlet {
                 
                 teachersArray.add(teacher);
                 
-                System.out.println("Teacher " + teacherCount + ": " + rs.getString("teacher_name") + 
-                                 " at " + rs.getString("school_name"));
             }
             
-            System.out.println("Total teachers found: " + teacherCount);
-            System.out.println("====================================================");
             
             response.getWriter().write(new Gson().toJson(teachersArray));
             

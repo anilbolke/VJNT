@@ -92,6 +92,9 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
         levels.put("marathi", getMarathiLevelText(marathiLevel));
         levels.put("math", getMathLevelText(mathLevel));
         levels.put("english", getEnglishLevelText(englishLevel));
+        levels.put("marathiLevelNum", String.valueOf(marathiLevel));
+        levels.put("mathLevelNum", String.valueOf(mathLevel));
+        levels.put("englishLevelNum", String.valueOf(englishLevel));
         
         // Calculate overall progress based on how many subjects are assessed
         int assessedCount = 0;
@@ -157,15 +160,23 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
         
         // Join with teacher_assignments table to get teacher's name based on school, class, section, and subject
         // Use COLLATE to fix collation mismatch between tables
+        // Map English language names → Marathi script names used in teacher subjects
         String sql = "SELECT swa.language, swa.week_number, swa.day_number, swa.activity_text, " +
                     "swa.activity_identifier, swa.activity_count, swa.completed, swa.assigned_by, " +
-                    "swa.assigned_date, ta.teacher_name " +
+                    "swa.assigned_date, ta.teacher_name, u.full_name, " +
+                    "(SELECT t.teacher_name FROM teachers t " +
+                    "    WHERE t.udise_code COLLATE utf8mb4_0900_ai_ci = swa.udise_no COLLATE utf8mb4_0900_ai_ci " +
+                    "    AND (FIND_IN_SET(swa.language COLLATE utf8mb4_0900_ai_ci, t.subjects_taught COLLATE utf8mb4_0900_ai_ci) > 0 " +
+                    "         OR FIND_IN_SET(CASE swa.language WHEN 'Marathi' THEN 'मराठी' WHEN 'English' THEN 'इंग्रजी' WHEN 'Math' THEN 'गणित' ELSE swa.language END COLLATE utf8mb4_0900_ai_ci, t.subjects_taught COLLATE utf8mb4_0900_ai_ci) > 0) " +
+                    "    AND t.is_active = 1 LIMIT 1) AS subject_teacher_name " +
                     "FROM student_weekly_activities swa " +
                     "LEFT JOIN teacher_assignments ta ON swa.udise_no COLLATE utf8mb4_0900_ai_ci = ta.udise_code COLLATE utf8mb4_0900_ai_ci " +
                     "    AND swa.student_class COLLATE utf8mb4_0900_ai_ci = ta.class COLLATE utf8mb4_0900_ai_ci " +
                     "    AND swa.section COLLATE utf8mb4_0900_ai_ci = ta.section COLLATE utf8mb4_0900_ai_ci " +
                     "    AND ta.is_active = 1 " +
-                    "    AND FIND_IN_SET(swa.language COLLATE utf8mb4_0900_ai_ci, ta.subjects_assigned COLLATE utf8mb4_0900_ai_ci) > 0 " +
+                    "    AND (FIND_IN_SET(swa.language COLLATE utf8mb4_0900_ai_ci, ta.subjects_assigned COLLATE utf8mb4_0900_ai_ci) > 0 " +
+                    "         OR FIND_IN_SET(CASE swa.language WHEN 'Marathi' THEN 'मराठी' WHEN 'English' THEN 'इंग्रजी' WHEN 'Math' THEN 'गणित' ELSE swa.language END COLLATE utf8mb4_0900_ai_ci, ta.subjects_assigned COLLATE utf8mb4_0900_ai_ci) > 0) " +
+                    "LEFT JOIN users u ON swa.assigned_by COLLATE utf8mb4_0900_ai_ci = u.username COLLATE utf8mb4_0900_ai_ci " +
                     "WHERE swa.student_pen = ? " +
                     "ORDER BY swa.language, swa.week_number, swa.day_number";
         
@@ -183,12 +194,16 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
                 activity.put("activityCount", rs.getInt("activity_count"));
                 activity.put("completed", rs.getBoolean("completed"));
                 
-                // Use teacher's name from teacher_assignments table if available
+                // Priority: teacher_assignments (class/section specific) → teachers table (subject match) → users full_name → raw username
                 String teacherName = rs.getString("teacher_name");
+                String subjectTeacherName = rs.getString("subject_teacher_name");
+                String userFullName = rs.getString("full_name");
                 String assignedBy = rs.getString("assigned_by");
                 
-                // Priority: teacher_name from teacher_assignments, then assigned_by username
-                activity.put("assignedBy", teacherName != null ? teacherName : (assignedBy != null ? assignedBy : "Not Assigned"));
+                activity.put("assignedBy", teacherName != null ? teacherName :
+                                           (subjectTeacherName != null ? subjectTeacherName :
+                                           (userFullName != null ? userFullName :
+                                           (assignedBy != null ? assignedBy : "Not Assigned"))));
                 
                 activity.put("assignedDate", rs.getTimestamp("assigned_date") != null ? 
                            rs.getTimestamp("assigned_date").toString() : null);
