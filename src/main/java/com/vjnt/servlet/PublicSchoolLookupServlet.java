@@ -42,29 +42,86 @@ public class PublicSchoolLookupServlet extends HttpServlet {
             throws ServletException, IOException {
         
         String udiseNo = request.getParameter("udise");
-        
-        if (udiseNo == null || udiseNo.trim().isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return;
-        }
-        
         response.setContentType("text/html; charset=UTF-8");
         PrintWriter out = response.getWriter();
         
-        // Fetch data server-side
-        School school = schoolDAO.getSchoolByUdise(udiseNo);
-        List<SchoolContact> contacts = school != null ? contactDAO.getContactsByUdise(udiseNo) : new ArrayList<>();
-        List<PalakMelava> melavas = school != null ? melavaDAO.getByUdise(udiseNo) : new ArrayList<>();
-        List<OtherSchoolActivity> activities = null;
-		try {
-			activities = school != null ? activityDAO.getByUdise(udiseNo) : new ArrayList<>();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        // Validate UDISE parameter existence
+        if (udiseNo == null || udiseNo.trim().isEmpty()) {
+            out.println(returnErrorPage("Missing UDISE Parameter", 
+                "❌ UDISE number is required to view school information.", 
+                "Please provide a valid UDISE number in the URL parameter."));
+            out.flush();
+            return;
+        }
         
-        out.println(returnHtmlPage(school, contacts, melavas, activities));
-        out.flush();
+        udiseNo = udiseNo.trim();
+        
+        // Validate UDISE format (should be numeric, typically 11 digits)
+        if (!udiseNo.matches("^[0-9]+$")) {
+            out.println(returnErrorPage("Invalid UDISE Format", 
+                "❌ UDISE number must contain only digits.", 
+                "Valid UDISE: 27150408704 (11 digits typically)"));
+            out.flush();
+            return;
+        }
+        
+        if (udiseNo.length() < 10 || udiseNo.length() > 12) {
+            out.println(returnErrorPage("Invalid UDISE Format", 
+                "❌ UDISE number should be between 10-12 digits.", 
+                "Provided UDISE: " + escapeHtml(udiseNo) + " (" + udiseNo.length() + " digits)"));
+            out.flush();
+            return;
+        }
+        
+        try {
+            // Fetch data server-side
+            School school = schoolDAO.getSchoolByUdise(udiseNo);
+            
+            // Check if school exists
+            if (school == null) {
+                out.println(returnErrorPage("School Not Found", 
+                    "❌ No school found with UDISE number: " + escapeHtml(udiseNo), 
+                    "Please verify the UDISE number and try again."));
+                out.flush();
+                return;
+            }
+            
+            List<SchoolContact> contacts = new ArrayList<>();
+            List<PalakMelava> melavas = new ArrayList<>();
+            List<OtherSchoolActivity> activities = new ArrayList<>();
+            
+            try {
+                contacts = contactDAO.getContactsByUdise(udiseNo);
+                if (contacts == null) contacts = new ArrayList<>();
+            } catch (Exception e) {
+                System.err.println("Error fetching contacts: " + e.getMessage());
+            }
+            
+            try {
+                melavas = melavaDAO.getByUdise(udiseNo);
+                if (melavas == null) melavas = new ArrayList<>();
+            } catch (Exception e) {
+                System.err.println("Error fetching melavas: " + e.getMessage());
+            }
+            
+            try {
+                activities = activityDAO.getByUdise(udiseNo);
+                if (activities == null) activities = new ArrayList<>();
+            } catch (Exception e) {
+                System.err.println("Error fetching activities: " + e.getMessage());
+            }
+            
+            out.println(returnHtmlPage(school, contacts, melavas, activities));
+            out.flush();
+            
+        } catch (Exception e) {
+            System.err.println("Database error while fetching school data: " + e.getMessage());
+            e.printStackTrace();
+            out.println(returnErrorPage("Database Error", 
+                "❌ An error occurred while retrieving school information.", 
+                "Please try again later or contact the administrator."));
+            out.flush();
+        }
     }
     
     private String returnHtmlPage(School school, List<SchoolContact> contacts, List<PalakMelava> melavas, List<OtherSchoolActivity> activities) {
@@ -265,6 +322,74 @@ public class PublicSchoolLookupServlet extends HttpServlet {
         html.append("            document.body.appendChild(modal);\n");
         html.append("        }\n");
         html.append("    </script>\n");
+        html.append("</body>\n");
+        html.append("</html>\n");
+        
+        return html.toString();
+    }
+    
+    private String returnErrorPage(String errorTitle, String errorMessage, String errorDetails) {
+        StringBuilder html = new StringBuilder();
+        
+        html.append("<!DOCTYPE html>\n");
+        html.append("<html lang=\"en\">\n");
+        html.append("<head>\n");
+        html.append("    <meta charset=\"UTF-8\">\n");
+        html.append("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
+        html.append("    <title>Error - School Information Portal</title>\n");
+        html.append("    <style>\n");
+        html.append("        * { margin: 0; padding: 0; box-sizing: border-box; }\n");
+        html.append("        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; }\n");
+        html.append("        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 0; position: sticky; top: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 100; }\n");
+        html.append("        .header-content { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }\n");
+        html.append("        .logo { font-size: 1.5rem; font-weight: bold; }\n");
+        html.append("        nav a { color: white; margin-left: 2rem; text-decoration: none; transition: opacity 0.3s; }\n");
+        html.append("        nav a:hover { opacity: 0.8; }\n");
+        html.append("        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3rem 20px; text-align: center; }\n");
+        html.append("        .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; }\n");
+        html.append("        .hero p { font-size: 1.1rem; opacity: 0.9; }\n");
+        html.append("        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }\n");
+        html.append("        .error-container { background: white; margin: 3rem 0; padding: 3rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-align: center; }\n");
+        html.append("        .error-icon { font-size: 4rem; margin-bottom: 1rem; }\n");
+        html.append("        .error-title { font-size: 2rem; color: #d32f2f; margin-bottom: 1rem; font-weight: bold; }\n");
+        html.append("        .error-message { font-size: 1.1rem; color: #666; margin-bottom: 1rem; line-height: 1.6; }\n");
+        html.append("        .error-details { font-size: 0.95rem; color: #999; margin-bottom: 2rem; line-height: 1.6; padding: 1.5rem; background: #f9f9f9; border-left: 4px solid #d32f2f; border-radius: 5px; text-align: left; display: inline-block; }\n");
+        html.append("        .error-actions { margin-top: 2rem; }\n");
+        html.append("        .btn { display: inline-block; margin: 0.5rem; padding: 0.75rem 1.5rem; background: #667eea; color: white; text-decoration: none; border-radius: 5px; transition: background 0.3s; }\n");
+        html.append("        .btn:hover { background: #764ba2; }\n");
+        html.append("        .btn-secondary { background: #666; }\n");
+        html.append("        .btn-secondary:hover { background: #555; }\n");
+        html.append("        footer { background: #333; color: white; text-align: center; padding: 2rem; margin-top: 3rem; }\n");
+        html.append("    </style>\n");
+        html.append("</head>\n");
+        html.append("<body>\n");
+        html.append("    <header>\n");
+        html.append("        <div class=\"header-content\">\n");
+        html.append("            <div class=\"logo\">🏫 School Info</div>\n");
+        html.append("            <nav>\n");
+        html.append("                <a href=\"/VJNT_Class_Managment/\">Home</a>\n");
+        html.append("            </nav>\n");
+        html.append("        </div>\n");
+        html.append("    </header>\n");
+        html.append("    <div class=\"hero\">\n");
+        html.append("        <h1>School Information Portal</h1>\n");
+        html.append("        <p>Find details about your school</p>\n");
+        html.append("    </div>\n");
+        html.append("    <div class=\"container\">\n");
+        html.append("        <div class=\"error-container\">\n");
+        html.append("            <div class=\"error-icon\">⚠️</div>\n");
+        html.append("            <div class=\"error-title\">").append(escapeHtml(errorTitle)).append("</div>\n");
+        html.append("            <div class=\"error-message\">").append(escapeHtml(errorMessage)).append("</div>\n");
+        html.append("            <div class=\"error-details\">").append(escapeHtml(errorDetails)).append("</div>\n");
+        html.append("            <div class=\"error-actions\">\n");
+        html.append("                <button class=\"btn\" onclick=\"window.history.back()\">← Go Back</button>\n");
+        html.append("                <a href=\"/VJNT_Class_Managment/\" class=\"btn btn-secondary\">🏠 Home</a>\n");
+        html.append("            </div>\n");
+        html.append("        </div>\n");
+        html.append("    </div>\n");
+        html.append("    <footer>\n");
+        html.append("        <p>&copy; 2026 VJNT Class Management System. All rights reserved.</p>\n");
+        html.append("    </footer>\n");
         html.append("</body>\n");
         html.append("</html>\n");
         
