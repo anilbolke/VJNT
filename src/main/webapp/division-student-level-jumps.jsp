@@ -1612,17 +1612,17 @@
             }
         }
         
-        // Add event listener to district filter dropdown
-        document.addEventListener('DOMContentLoaded', function() {
-            const districtFilter = document.getElementById('filterDistrict');
-            if (districtFilter) {
-                districtFilter.addEventListener('change', function() {
-                    console.log('District changed to:', this.value);
-                    populateSchoolsByDistrict(this.value);
-                    applyFilters();
-                });
-            }
-        });
+        // Add event listener to district filter dropdown (attach immediately, not on DOMContentLoaded)
+        const districtFilter = document.getElementById('filterDistrict');
+        if (districtFilter) {
+            districtFilter.addEventListener('change', function() {
+                console.log('District changed to:', this.value);
+                populateSchoolsByDistrict(this.value);
+                applyFilters();
+            });
+        } else {
+            console.warn('⚠️ District filter element not found!');
+        }
         
         
         // Student Selection Checkboxes
