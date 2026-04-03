@@ -1036,27 +1036,26 @@
     <script>
         // Complete district-to-schools map (includes ALL districts/schools, not just paginated ones)
         const allSchoolsByDistrict = <%
-            // Convert Java map to JSON
-            java.util.List<String> jsonLines = new java.util.ArrayList<>();
-            jsonLines.add("{");
+            // Convert Java map to JSON (single line, no newlines that could break JavaScript)
+            StringBuilder json = new StringBuilder();
+            json.append("{");
             int districtCount = 0;
             for (String district : districtSchoolsMap.keySet()) {
-                if (districtCount > 0) jsonLines.add(",");
-                jsonLines.add("  \"" + district + "\": [");
+                if (districtCount > 0) json.append(",");
+                json.append("\"").append(district).append("\":[");
                 java.util.List<String> schools = new java.util.ArrayList<>(districtSchoolsMap.get(district));
                 java.util.Collections.sort(schools);
                 int schoolCount = 0;
                 for (String school : schools) {
-                    if (schoolCount > 0) jsonLines.add(",");
-                    jsonLines.add("    \"" + school.replace("\"", "\\\"") + "\"");
+                    if (schoolCount > 0) json.append(",");
+                    json.append("\"").append(school.replace("\"", "\\\"")).append("\"");
                     schoolCount++;
                 }
-                jsonLines.add("  ]");
+                json.append("]");
                 districtCount++;
             }
-            jsonLines.add("}");
-            String json = String.join("\n", jsonLines);
-            out.print(json);
+            json.append("}");
+            out.print(json.toString());
         %>;
         console.log('✓ Loaded complete District-Schools Map:', allSchoolsByDistrict);
     </script>
