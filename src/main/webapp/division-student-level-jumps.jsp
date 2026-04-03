@@ -182,6 +182,20 @@
                       .add(student);
     }
     
+    // Build COMPLETE district-to-schools map from ALL jumped students (for JavaScript)
+    Map<String, Set<String>> districtSchoolsMap = new TreeMap<>();
+    for (Student student : levelJumpStudents) {
+        String district = student.getDistrict();
+        if (district == null || district.isEmpty()) continue;
+        
+        String udiseNo = student.getUdiseNo();
+        String schoolName = schoolNameCache.get(udiseNo);
+        if (schoolName == null) schoolName = udiseNo;
+        
+        // Initialize district set if not exists
+        districtSchoolsMap.computeIfAbsent(district, k -> new TreeSet<>()).add(schoolName);
+    }
+    
     // PAGINATION: Calculate total schools and paginate them
     int studentsPerPage = 50;  // Number of students per page
     int currentPage = 1;
@@ -1018,6 +1032,35 @@
             </div>
         </div>
     
+    <!-- Pass complete district-schools map to JavaScript as JSON -->
+    <script>
+        // Complete district-to-schools map (includes ALL districts/schools, not just paginated ones)
+        const allSchoolsByDistrict = <%
+            // Convert Java map to JSON
+            java.util.List<String> jsonLines = new java.util.ArrayList<>();
+            jsonLines.add("{");
+            int districtCount = 0;
+            for (String district : districtSchoolsMap.keySet()) {
+                if (districtCount > 0) jsonLines.add(",");
+                jsonLines.add("  \"" + district + "\": [");
+                java.util.List<String> schools = new java.util.ArrayList<>(districtSchoolsMap.get(district));
+                java.util.Collections.sort(schools);
+                int schoolCount = 0;
+                for (String school : schools) {
+                    if (schoolCount > 0) jsonLines.add(",");
+                    jsonLines.add("    \"" + school.replace("\"", "\\\"") + "\"");
+                    schoolCount++;
+                }
+                jsonLines.add("  ]");
+                districtCount++;
+            }
+            jsonLines.add("}");
+            String json = String.join("\n", jsonLines);
+            out.print(json);
+        %>;
+        console.log('✓ Loaded complete District-Schools Map:', allSchoolsByDistrict);
+    </script>
+    
     <script>
         function toggleSchool(element) {
             const classContents = element.parentElement.querySelectorAll('.class-content');
@@ -1622,11 +1665,10 @@
         
         // Load data by default (on page load, show all schools and students)
         window.addEventListener('load', function() {
-            // Initialize the district-schools map from page data
-            initializeDistrictSchoolsMap();
+            // District-schools map is already loaded from server (see <script> tag above)
             
             // Show all school sections by default (they should already be visible from server)
-            console.log('Page loaded - data should be displayed by default');
+            console.log('✓ Page loaded - data should be displayed by default');
             
             // Optionally, you can programmatically trigger the display here if needed
             const allSchoolSections = document.querySelectorAll('.school-section');
