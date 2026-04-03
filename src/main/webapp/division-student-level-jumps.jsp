@@ -995,10 +995,20 @@
         <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e0e0e0; text-align: center;">
             <h3 style="margin-bottom: 15px; color: #333;">📄 Pagination</h3>
             <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <!-- Build pagination URL with district parameter if present -->
+                <%
+                    String paginationQueryString = "";
+                    if (districtParam != null && !districtParam.isEmpty()) {
+                        paginationQueryString = "?district=" + java.net.URLEncoder.encode(districtParam, "UTF-8") + "&page=";
+                    } else {
+                        paginationQueryString = "?page=";
+                    }
+                %>
+                
                 <!-- Previous Button -->
                 <% if (currentPage > 1) { %>
-                    <a href="?page=1" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">« First</a>
-                    <a href="?page=<%= currentPage - 1 %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">‹ Previous</a>
+                    <a href="<%= paginationQueryString %>1" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">« First</a>
+                    <a href="<%= paginationQueryString %><%= currentPage - 1 %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">‹ Previous</a>
                 <% } else { %>
                     <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">« First</span>
                     <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">‹ Previous</span>
@@ -1011,7 +1021,7 @@
                         int endPage = Math.min(totalPages, currentPage + 2);
                     %>
                     <% if (startPage > 1) { %>
-                        <a href="?page=1" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white;">1</a>
+                        <a href="<%= paginationQueryString %>1" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white;">1</a>
                         <% if (startPage > 2) { %><span style="padding: 6px 10px;">...</span><% } %>
                     <% } %>
                     
@@ -1019,20 +1029,20 @@
                         <% if (i == currentPage) { %>
                             <span style="padding: 6px 10px; border: 2px solid #667eea; color: white; background: #667eea; border-radius: 3px; font-weight: bold;"><%= i %></span>
                         <% } else { %>
-                            <a href="?page=<%= i %>" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white; cursor: pointer;"><%= i %></a>
+                            <a href="<%= paginationQueryString %><%= i %>" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white; cursor: pointer;"><%= i %></a>
                         <% } %>
                     <% } %>
                     
                     <% if (endPage < totalPages) { %>
                         <% if (endPage < totalPages - 1) { %><span style="padding: 6px 10px;">...</span><% } %>
-                        <a href="?page=<%= totalPages %>" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white;"><%= totalPages %></a>
+                        <a href="<%= paginationQueryString %><%= totalPages %>" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white;"><%= totalPages %></a>
                     <% } %>
                 </div>
                 
                 <!-- Next Button -->
                 <% if (currentPage < totalPages) { %>
-                    <a href="?page=<%= currentPage + 1 %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">Next ›</a>
-                    <a href="?page=<%= totalPages %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">Last »</a>
+                    <a href="<%= paginationQueryString %><%= currentPage + 1 %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">Next ›</a>
+                    <a href="<%= paginationQueryString %><%= totalPages %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">Last »</a>
                 <% } else { %>
                     <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">Next ›</span>
                     <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">Last »</span>
