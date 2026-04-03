@@ -1613,18 +1613,23 @@
         }
         
         // Add event listener to district filter dropdown (attach immediately, not on DOMContentLoaded)
-        console.log('🔍 Looking for district filter element...');
-        const districtFilter = document.getElementById('filterDistrict');
-        console.log('📍 Found districtFilter:', districtFilter);
-        if (districtFilter) {
-            console.log('✓ Attaching change listener to district filter');
-            districtFilter.addEventListener('change', function() {
-                console.log('🎯 District changed to:', this.value);
-                populateSchoolsByDistrict(this.value);
-                applyFilters();
-            });
-        } else {
-            console.warn('⚠️ District filter element not found!');
+        try {
+            console.log('🔍 Looking for district filter element...');
+            const districtFilter = document.getElementById('filterDistrict');
+            console.log('📍 Found districtFilter:', districtFilter);
+            if (districtFilter) {
+                console.log('✓ Attaching change listener to district filter');
+                districtFilter.addEventListener('change', function() {
+                    console.log('🎯 District changed to:', this.value);
+                    populateSchoolsByDistrict(this.value);
+                    applyFilters();
+                });
+                console.log('✓ Event listener successfully attached');
+            } else {
+                console.warn('⚠️ District filter element not found!');
+            }
+        } catch (error) {
+            console.error('❌ Error setting up district filter:', error);
         }
         
         
