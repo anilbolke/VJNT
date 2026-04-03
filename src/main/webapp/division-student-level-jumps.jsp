@@ -1522,43 +1522,8 @@
         });
         
         // ===== DISTRICT TO SCHOOLS AUTO-POPULATION =====
-        // Store all schools with their districts on page load
-        let allSchoolsByDistrict = {};
-        
-        function initializeDistrictSchoolsMap() {
-            allSchoolsByDistrict = {};
-            
-            // Read directly from the .school-section elements on the page
-            document.querySelectorAll('.school-section').forEach(schoolSection => {
-                const district = schoolSection.getAttribute('data-district');
-                if (!district || district === 'Unknown') return;
-                
-                const schoolHeader = schoolSection.querySelector('.school-header');
-                if (!schoolHeader) return;
-                
-                // Extract school name from header text
-                // Format: "🏫 School Name (UDISE) AND 667 Active Students: X | 🎯 Jumped: Y"
-                const headerText = schoolHeader.textContent.trim();
-                const afterEmoji = headerText.split('🏫')[1];
-                if (!afterEmoji) return;
-                
-                // Get the school name with UDISE (everything before "AND")
-                const schoolNameWithUdise = afterEmoji.split('AND')[0].trim();
-                if (!schoolNameWithUdise) return;
-                
-                // Initialize district array if not exists
-                if (!allSchoolsByDistrict[district]) {
-                    allSchoolsByDistrict[district] = [];
-                }
-                
-                // Add school if not already present
-                if (!allSchoolsByDistrict[district].includes(schoolNameWithUdise)) {
-                    allSchoolsByDistrict[district].push(schoolNameWithUdise);
-                }
-            });
-            
-            console.log('Initialized District-Schools Map:', allSchoolsByDistrict);
-        }
+        // The allSchoolsByDistrict object is loaded from the server (see first <script> tag)
+        // No need to initialize from DOM anymore
         
         // Populate schools dropdown based on selected district
         function populateSchoolsByDistrict(selectedDistrict) {
