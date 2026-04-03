@@ -1480,38 +1480,42 @@
         });
         
         // ===== DISTRICT TO SCHOOLS AUTO-POPULATION =====
-        // Build a map of districts to their schools from the original school filter dropdown
-        function buildDistrictSchoolsMap() {
-            const districtSchoolsMap = {};
+        // Store all schools with their districts on page load
+        let allSchoolsByDistrict = {};
+        
+        function initializeDistrictSchoolsMap() {
+            allSchoolsByDistrict = {};
             
-            // Get all school options from the hidden select (which contains the complete, unfiltered list)
-            document.querySelectorAll('#filterSchool option').forEach(option => {
-                const schoolName = option.value;
-                if (schoolName) {  // Skip empty option
-                    // Find the corresponding school section to get its district
-                    let found = false;
-                    document.querySelectorAll('.school-section').forEach(schoolSection => {
-                        const schoolHeader = schoolSection.querySelector('.school-header');
-                        const sectionText = schoolHeader ? schoolHeader.textContent.trim() : '';
-                        
-                        if (sectionText.includes(schoolName)) {
-                            const district = schoolSection.getAttribute('data-district');
-                            if (district) {
-                                if (!districtSchoolsMap[district]) {
-                                    districtSchoolsMap[district] = [];
-                                }
-                                if (!districtSchoolsMap[district].includes(schoolName)) {
-                                    districtSchoolsMap[district].push(schoolName);
-                                }
-                                found = true;
-                            }
-                        }
-                    });
+            // Read directly from the .school-section elements on the page
+            document.querySelectorAll('.school-section').forEach(schoolSection => {
+                const district = schoolSection.getAttribute('data-district');
+                if (!district || district === 'Unknown') return;
+                
+                const schoolHeader = schoolSection.querySelector('.school-header');
+                if (!schoolHeader) return;
+                
+                // Extract school name from header text
+                // Format: "🏫 School Name (UDISE) AND 667 Active Students: X | 🎯 Jumped: Y"
+                const headerText = schoolHeader.textContent.trim();
+                const afterEmoji = headerText.split('🏫')[1];
+                if (!afterEmoji) return;
+                
+                // Get the school name with UDISE (everything before "AND")
+                const schoolNameWithUdise = afterEmoji.split('AND')[0].trim();
+                if (!schoolNameWithUdise) return;
+                
+                // Initialize district array if not exists
+                if (!allSchoolsByDistrict[district]) {
+                    allSchoolsByDistrict[district] = [];
+                }
+                
+                // Add school if not already present
+                if (!allSchoolsByDistrict[district].includes(schoolNameWithUdise)) {
+                    allSchoolsByDistrict[district].push(schoolNameWithUdise);
                 }
             });
             
-            console.log('District-Schools Map:', districtSchoolsMap);
-            return districtSchoolsMap;
+            console.log('Initialized District-Schools Map:', allSchoolsByDistrict);
         }
         
         // Populate schools dropdown based on selected district
@@ -1534,12 +1538,9 @@
             allOption.onclick = function() { selectSchool('', this); };
             schoolDropdownList.appendChild(allOption);
             
-            // Get the district-schools map
-            const districtSchoolsMap = buildDistrictSchoolsMap();
-            
-            if (selectedDistrict && districtSchoolsMap[selectedDistrict]) {
+            if (selectedDistrict && allSchoolsByDistrict[selectedDistrict]) {
                 // Show only schools from selected district
-                districtSchoolsMap[selectedDistrict].forEach(schoolName => {
+                allSchoolsByDistrict[selectedDistrict].forEach(schoolName => {
                     const option = document.createElement('div');
                     option.style.cssText = 'padding: 8px 10px; cursor: pointer;';
                     option.title = schoolName;
@@ -1547,22 +1548,25 @@
                     option.onclick = function() { selectSchool(schoolName, this); };
                     schoolDropdownList.appendChild(option);
                 });
-                console.log('Populated ' + districtSchoolsMap[selectedDistrict].length + ' schools for district: ' + selectedDistrict);
+                console.log('✓ Populated ' + allSchoolsByDistrict[selectedDistrict].length + ' schools for district: ' + selectedDistrict);
             } else if (!selectedDistrict) {
-                // Show all schools when no district selected - use the filterSchool hidden select
-                document.querySelectorAll('#filterSchool option').forEach(option => {
-                    const schoolName = option.value;
-                    if (schoolName) {  // Skip empty option
-                        const optionDiv = document.createElement('div');
-                        optionDiv.style.cssText = 'padding: 8px 10px; cursor: pointer;';
-                        optionDiv.title = schoolName;
-                        optionDiv.textContent = schoolName;
-                        optionDiv.onclick = function() { selectSchool(schoolName, this); };
-                        schoolDropdownList.appendChild(optionDiv);
-                    }
+                // Show all schools when no district selected
+                const allSchools = new Set();
+                Object.values(allSchoolsByDistrict).forEach(schools => {
+                    schools.forEach(school => allSchools.add(school));
                 });
+                
+                allSchools.forEach(schoolName => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.style.cssText = 'padding: 8px 10px; cursor: pointer;';
+                    optionDiv.title = schoolName;
+                    optionDiv.textContent = schoolName;
+                    optionDiv.onclick = function() { selectSchool(schoolName, this); };
+                    schoolDropdownList.appendChild(optionDiv);
+                });
+                console.log('✓ Populated all ' + allSchools.size + ' schools');
             } else {
-                console.log('No schools found for district: ' + selectedDistrict);
+                console.log('✗ No schools found for district: ' + selectedDistrict);
             }
         }
         
@@ -1618,6 +1622,9 @@
         
         // Load data by default (on page load, show all schools and students)
         window.addEventListener('load', function() {
+            // Initialize the district-schools map from page data
+            initializeDistrictSchoolsMap();
+            
             // Show all school sections by default (they should already be visible from server)
             console.log('Page loaded - data should be displayed by default');
             
