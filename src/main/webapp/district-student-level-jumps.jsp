@@ -9,26 +9,18 @@
 
 <%
     User user = (User) session.getAttribute("user");
-    if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+    if (user == null || (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && 
+                        !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR))) {
         response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }
     
-    String divisionName = user.getDivisionName();
+    String districtName = user.getDistrictName();
     StudentDAO studentDAO = new StudentDAO();
     SchoolDAO schoolDAO = new SchoolDAO();
     
-    // Get all active students from all districts in division
-    List<Student> allStudents = studentDAO.getStudentsByDivision(divisionName);
-    
-    // Extract unique districts from all students
-    Set<String> districtSet = new TreeSet<>();
-    for (Student student : allStudents) {
-        if (student.getDistrict() != null && !student.getDistrict().isEmpty()) {
-            districtSet.add(student.getDistrict());
-        }
-    }
-    List<String> distinctDistricts = new ArrayList<>(districtSet);
+    // Get all active students from district
+    List<Student> allStudents = studentDAO.getStudentsByDistrict(districtName);
     
     // Filter: Keep only students with level jumps (>1 level difference in any subject/phase transition)
     List<Student> levelJumpStudents = new ArrayList<>();
@@ -92,58 +84,8 @@
         }
     }
     
-    // OPTIMIZATION: Batch-load all schools at once instead of querying inside loops
-    // Extract all unique UDISE numbers from students
-    Set<String> allUdiseNumbers = new HashSet<>();
-    for (Student student : allStudents) {
-        if (student.getUdiseNo() != null) {
-            allUdiseNumbers.add(student.getUdiseNo());
-        }
-    }
-    
-    // Batch load all schools in one query with error handling
-    Map<String, School> schoolMap = new HashMap<>();
+    // Cache school names to avoid repeated database lookups
     Map<String, String> schoolNameCache = new HashMap<>();
-    
-    if (!allUdiseNumbers.isEmpty()) {
-        try {
-            List<School> schools = schoolDAO.getSchoolsByUdises(new ArrayList<>(allUdiseNumbers));
-            if (schools != null && !schools.isEmpty()) {
-                for (School school : schools) {
-                    schoolMap.put(school.getUdiseNo(), school);
-                }
-                // Build school name cache from loaded schools
-                for (String udiseNo : allUdiseNumbers) {
-                    School school = schoolMap.get(udiseNo);
-                    String schoolName = (school != null) ? school.getSchoolName() + " (" + udiseNo + ")" : udiseNo;
-                    schoolNameCache.put(udiseNo, schoolName);
-                }
-            } else {
-                // Fallback: Load schools individually if batch fails
-                for (String udiseNo : allUdiseNumbers) {
-                    School school = schoolDAO.getSchoolByUdise(udiseNo);
-                    if (school != null) {
-                        schoolMap.put(udiseNo, school);
-                        schoolNameCache.put(udiseNo, school.getSchoolName() + " (" + udiseNo + ")");
-                    } else {
-                        schoolNameCache.put(udiseNo, udiseNo);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Fallback: Load schools individually if batch method fails
-            System.err.println("Warning: Batch school loading failed, falling back to individual queries: " + e.getMessage());
-            for (String udiseNo : allUdiseNumbers) {
-                School school = schoolDAO.getSchoolByUdise(udiseNo);
-                if (school != null) {
-                    schoolMap.put(udiseNo, school);
-                    schoolNameCache.put(udiseNo, school.getSchoolName() + " (" + udiseNo + ")");
-                } else {
-                    schoolNameCache.put(udiseNo, udiseNo);
-                }
-            }
-        }
-    }
     
     // Create maps for total counts (all students) by school and class
     Map<String, Integer> schoolTotalCounts = new HashMap<>();  // schoolName -> total count
@@ -153,7 +95,15 @@
     for (Student student : allStudents) {
         String udiseNo = student.getUdiseNo();
         String schoolName = schoolNameCache.get(udiseNo);
-        if (schoolName == null) schoolName = udiseNo;
+        
+        if (schoolName == null) {
+            schoolName = udiseNo;
+            School school = schoolDAO.getSchoolByUdise(udiseNo);
+            if (school != null) {
+                schoolName = school.getSchoolName() + " (" + udiseNo + ")";
+            }
+            schoolNameCache.put(udiseNo, schoolName);
+        }
         
         String studentClass = student.getStudentClass() != null ? student.getStudentClass() : "N/A";
         
@@ -171,7 +121,15 @@
     for (Student student : levelJumpStudents) {
         String udiseNo = student.getUdiseNo();
         String schoolName = schoolNameCache.get(udiseNo);
-        if (schoolName == null) schoolName = udiseNo;
+        
+        if (schoolName == null) {
+            schoolName = udiseNo;
+            School school = schoolDAO.getSchoolByUdise(udiseNo);
+            if (school != null) {
+                schoolName = school.getSchoolName() + " (" + udiseNo + ")";
+            }
+            schoolNameCache.put(udiseNo, schoolName);
+        }
         
         String studentClass = student.getStudentClass() != null ? student.getStudentClass() : "N/A";
         String section = student.getSection() != null ? student.getSection() : "N/A";
@@ -180,73 +138,6 @@
                       .computeIfAbsent(studentClass, k -> new TreeMap<>())
                       .computeIfAbsent(section, k -> new ArrayList<>())
                       .add(student);
-    }
-    
-    // Build COMPLETE district-to-schools map from ALL jumped students (for JavaScript)
-    Map<String, Set<String>> districtSchoolsMap = new TreeMap<>();
-    for (Student student : levelJumpStudents) {
-        String district = student.getDistrict();
-        if (district == null || district.isEmpty()) continue;
-        
-        String udiseNo = student.getUdiseNo();
-        String schoolName = schoolNameCache.get(udiseNo);
-        if (schoolName == null) schoolName = udiseNo;
-        
-        // Initialize district set if not exists
-        districtSchoolsMap.computeIfAbsent(district, k -> new TreeSet<>()).add(schoolName);
-    }
-    
-    // PAGINATION: Calculate total schools and paginate them
-    int studentsPerPage = 50;  // Number of students per page
-    int currentPage = 1;
-    String pageParam = request.getParameter("page");
-    if (pageParam != null && !pageParam.isEmpty()) {
-        try {
-            currentPage = Integer.parseInt(pageParam);
-            if (currentPage < 1) currentPage = 1;
-        } catch (NumberFormatException e) {
-            currentPage = 1;
-        }
-    }
-    
-    // FILTER BY DISTRICT (if provided in URL)
-    String districtParam = request.getParameter("district");
-    if (districtParam != null && !districtParam.isEmpty()) {
-        List<Student> filteredStudents = new ArrayList<>();
-        for (Student student : levelJumpStudents) {
-            if (student.getDistrict() != null && student.getDistrict().equals(districtParam)) {
-                filteredStudents.add(student);
-            }
-        }
-        levelJumpStudents = filteredStudents;
-    }
-    
-    // Calculate total students and pages
-    int totalStudents = levelJumpStudents.size();
-    int totalPages = (int) Math.ceil((double) totalStudents / studentsPerPage);
-    if (totalPages < 1) totalPages = 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-    
-    // Paginate students for current page
-    int startIndex = (currentPage - 1) * studentsPerPage;
-    int endIndex = Math.min(startIndex + studentsPerPage, totalStudents);
-    List<Student> paginatedStudents = levelJumpStudents.subList(startIndex, endIndex);
-    
-    // Rebuild groupedStudents with only paginated students
-    Map<String, Map<String, Map<String, List<Student>>>> paginatedGroupedStudents = new TreeMap<>();
-    
-    for (Student student : paginatedStudents) {
-        String udiseNo = student.getUdiseNo();
-        String schoolName = schoolNameCache.get(udiseNo);
-        if (schoolName == null) schoolName = udiseNo;
-        
-        String studentClass = student.getStudentClass() != null ? student.getStudentClass() : "N/A";
-        String section = student.getSection() != null ? student.getSection() : "N/A";
-        
-        paginatedGroupedStudents.computeIfAbsent(schoolName, k -> new TreeMap<>())
-                               .computeIfAbsent(studentClass, k -> new TreeMap<>())
-                               .computeIfAbsent(section, k -> new ArrayList<>())
-                               .add(student);
     }
 %>
 
@@ -280,7 +171,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Level Jumps - Division Management</title>
+    <title>Student Level Jumps - District Management</title>
     <style type="text/css">
         * {
             margin: 0;
@@ -440,28 +331,6 @@
         .student-table tbody tr:hover {
             background: #f9f9f9;
         }
-        
-        /* Checkbox styles */
-        .student-table input[type="checkbox"],
-        #selectAllStudents {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            vertical-align: middle;
-        }
-        
-        .student-table th input[type="checkbox"] {
-            margin-top: 2px;
-        }
-        
-        .student-row {
-            transition: background-color 0.2s ease;
-        }
-        
-        .student-row input[type="checkbox"]:checked {
-            accent-color: #667eea;
-        }
-        
         
         .phase-box {
             background: #f8f9fa;
@@ -649,10 +518,10 @@
         <div class="header">
             <div>
                 <h1>📊 Student Level Jump Analysis</h1>
-                <p>Division: <strong><%= divisionName %></strong> (All Districts)</p>
+                <p>District: <strong><%= districtName %></strong></p>
             </div>
             <div class="header-right">
-                <a href="<%= request.getContextPath() %>/division-dashboard.jsp" style="display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin-right: 15px; font-weight: 600; cursor: pointer; border: none;">← Back to Dashboard</a>
+                <a href="<%= request.getContextPath() %>/district-dashboard.jsp" style="display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin-right: 15px; font-weight: 600; cursor: pointer; border: none;">← Back to Dashboard</a>
                 <p style="margin-bottom: 5px;">Last Updated: <strong><%= new java.text.SimpleDateFormat("dd-MMM-yyyy HH:mm").format(new java.util.Date()) %></strong></p>
             </div>
         </div>
@@ -660,23 +529,15 @@
         <!-- Statistics -->
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-label">📍 Schools on This Page</div>
-                <div class="stat-value"><%= paginatedGroupedStudents.size() %></div>
+                <div class="stat-label">📍 Total Schools</div>
+                <div class="stat-value"><%= groupedStudents.size() %></div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">👥 Students on This Page</div>
-                <div class="stat-value"><%= paginatedStudents.size() %></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">📄 Page <%= currentPage %> of <%= totalPages %></div>
-                <div class="stat-value"><%= startIndex + 1 %>-<%= endIndex %> / <%= totalStudents %></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">👥 Total Students with Jumps</div>
+                <div class="stat-label">👥 Students with Level Jumps</div>
                 <div class="stat-value"><%= levelJumpStudents.size() %></div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">📈 Total Students in Division</div>
+                <div class="stat-label">📈 Total Students in District</div>
                 <div class="stat-value"><%= allStudents.size() %></div>
             </div>
             <div class="stat-card">
@@ -689,17 +550,6 @@
         <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e0e0e0;">
             <h3 style="margin-bottom: 15px; color: #333;">🔍 Filters</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                <!-- District Filter -->
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #555;">District:</label>
-                    <select id="filterDistrict" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
-                        <option value="">-- All Districts --</option>
-                        <% for (String district : distinctDistricts) { %>
-                            <option value="<%= district %>" <%= districtParam != null && district.equals(districtParam) ? "selected" : "" %>><%= district %></option>
-                        <% } %>
-                    </select>
-                </div>
-                
                 <!-- Student Name Filter -->
                 <div>
                     <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #555;">Student Name:</label>
@@ -715,13 +565,13 @@
                                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
                         <select id="filterSchool" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; display: none;">
                             <option value="">-- All Schools --</option>
-                            <% for (String schoolName : paginatedGroupedStudents.keySet()) { %>
+                            <% for (String schoolName : groupedStudents.keySet()) { %>
                                 <option value="<%= schoolName %>"><%= schoolName %></option>
                             <% } %>
                         </select>
                         <div id="schoolDropdownList" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; max-height: 250px; overflow-y: auto; z-index: 1000; display: none;">
                             <div style="padding: 8px 10px; cursor: pointer; hover-color: #f0f0f0;" onclick="selectSchool('', this)">-- All Schools --</div>
-                            <% for (String schoolName : paginatedGroupedStudents.keySet()) { %>
+                            <% for (String schoolName : groupedStudents.keySet()) { %>
                                 <div style="padding: 8px 10px; cursor: pointer;" onclick="selectSchool('<%= schoolName.replace("'", "\\'") %>', this)" title="<%= schoolName %>">
                                     <%= schoolName %>
                                 </div>
@@ -783,28 +633,18 @@
             <div class="empty-state">
                 <div class="empty-state-icon">✅</div>
                 <h3>No Level Jumps Found</h3>
-                <p>All students in the division have normal level progression (no skipped levels).</p>
+                <p>All students in the district have normal level progression (no skipped levels).</p>
             </div>
         <% } else { %>
-            <% for (String schoolName : paginatedGroupedStudents.keySet()) { 
+            <% for (String schoolName : groupedStudents.keySet()) { 
                 Map<String, Map<String, List<Student>>> classBySchool = groupedStudents.get(schoolName);
                 int schoolJumpedCount = classBySchool.values().stream().mapToInt(m -> m.values().stream().mapToInt(List::size).sum()).sum();
                 int schoolTotalCount = schoolTotalCounts.getOrDefault(schoolName, 0);
-                
-                // Extract district for this school
-                String districtForSchool = "Unknown";
-                for (Student student : levelJumpStudents) {
-                    School school = schoolDAO.getSchoolByUdise(student.getUdiseNo());
-                    if (school != null && (school.getSchoolName() + " (" + student.getUdiseNo() + ")").equals(schoolName)) {
-                        districtForSchool = student.getDistrict() != null ? student.getDistrict() : "Unknown";
-                        break;
-                    }
-                }
             %>
-                <div class="school-section" data-district="<%= districtForSchool %>">
+                <div class="school-section">
                     <div class="school-header" onclick="toggleSchool(this)">
                         <span>
-                            🏫 <%= schoolName %> AND 667 
+                            🏫 <%= schoolName %>
                             <span class="jump-indicator"></span>
                             <small style="margin-left: 10px; font-weight: normal; opacity: 0.7;">
                                 Active Students: <%= schoolTotalCount %> | 
@@ -842,7 +682,6 @@
                                     <table class="student-table">
                                         <thead>
                                             <tr>
-                                                <th><input type="checkbox" id="selectAllStudents" title="Select all students"></th>
                                                 <th>Student Name</th>
                                                 <th>PEN</th>
                                                 <th>Marathi Progress</th>
@@ -852,8 +691,7 @@
                                         </thead>
                                         <tbody>
                                             <% for (Student s : sectionStudents) { %>
-                                                <tr class="student-row" data-student-id="<%= s.getStudentId() %>">
-                                                    <td style="text-align: center;"><input type="checkbox" class="student-checkbox" value="<%= s.getStudentId() %>" title="Select <%= s.getStudentName() %>"></td>
+                                                <tr>
                                                     <td><strong><%= s.getStudentName() %></strong></td>
                                                     <td><%= s.getStudentPen() %></td>
                                                     
@@ -990,98 +828,7 @@
                 </div>
             <% } %>
             <% } %>
-        </div>
-        
-        <!-- Pagination Controls -->
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e0e0e0; text-align: center;">
-            <h3 style="margin-bottom: 15px; color: #333;">📄 Pagination</h3>
-            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center;">
-                <!-- Build pagination URL with district parameter if present -->
-                <%
-                    String paginationQueryString = "";
-                    if (districtParam != null && !districtParam.isEmpty()) {
-                        paginationQueryString = "?district=" + java.net.URLEncoder.encode(districtParam, "UTF-8") + "&page=";
-                    } else {
-                        paginationQueryString = "?page=";
-                    }
-                %>
-                
-                <!-- Previous Button -->
-                <% if (currentPage > 1) { %>
-                    <a href="<%= paginationQueryString %>1" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">« First</a>
-                    <a href="<%= paginationQueryString %><%= currentPage - 1 %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">‹ Previous</a>
-                <% } else { %>
-                    <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">« First</span>
-                    <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">‹ Previous</span>
-                <% } %>
-                
-                <!-- Page Numbers -->
-                <div style="display: flex; gap: 5px; align-items: center;">
-                    <% 
-                        int startPage = Math.max(1, currentPage - 2);
-                        int endPage = Math.min(totalPages, currentPage + 2);
-                    %>
-                    <% if (startPage > 1) { %>
-                        <a href="<%= paginationQueryString %>1" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white;">1</a>
-                        <% if (startPage > 2) { %><span style="padding: 6px 10px;">...</span><% } %>
-                    <% } %>
-                    
-                    <% for (int i = startPage; i <= endPage; i++) { %>
-                        <% if (i == currentPage) { %>
-                            <span style="padding: 6px 10px; border: 2px solid #667eea; color: white; background: #667eea; border-radius: 3px; font-weight: bold;"><%= i %></span>
-                        <% } else { %>
-                            <a href="<%= paginationQueryString %><%= i %>" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white; cursor: pointer;"><%= i %></a>
-                        <% } %>
-                    <% } %>
-                    
-                    <% if (endPage < totalPages) { %>
-                        <% if (endPage < totalPages - 1) { %><span style="padding: 6px 10px;">...</span><% } %>
-                        <a href="<%= paginationQueryString %><%= totalPages %>" style="padding: 6px 10px; border: 1px solid #ddd; color: #333; text-decoration: none; border-radius: 3px; background: white;"><%= totalPages %></a>
-                    <% } %>
-                </div>
-                
-                <!-- Next Button -->
-                <% if (currentPage < totalPages) { %>
-                    <a href="<%= paginationQueryString %><%= currentPage + 1 %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">Next ›</a>
-                    <a href="<%= paginationQueryString %><%= totalPages %>" style="padding: 8px 12px; border: 1px solid #667eea; color: #667eea; text-decoration: none; border-radius: 5px; background: white; cursor: pointer;">Last »</a>
-                <% } else { %>
-                    <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">Next ›</span>
-                    <span style="padding: 8px 12px; border: 1px solid #ccc; color: #999; border-radius: 5px; background: #f0f0f0;">Last »</span>
-                <% } %>
-            </div>
-            <div style="margin-top: 15px; color: #666; font-size: 13px;">
-                Showing <%= startIndex + 1 %> to <%= endIndex %> of <%= totalStudents %> students with level jumps
-                (Page <%= currentPage %> of <%= totalPages %>)
-            </div>
-        </div>
-    
-    <!-- Pass complete district-schools map to JavaScript as JSON -->
-    <script>
-        // Complete district-to-schools map (includes ALL districts/schools, not just paginated ones)
-        const allSchoolsByDistrict = <%
-            // Convert Java map to JSON (single line, no newlines that could break JavaScript)
-            StringBuilder json = new StringBuilder();
-            json.append("{");
-            int districtCount = 0;
-            for (String district : districtSchoolsMap.keySet()) {
-                if (districtCount > 0) json.append(",");
-                json.append("\"").append(district).append("\":[");
-                java.util.List<String> schools = new java.util.ArrayList<>(districtSchoolsMap.get(district));
-                java.util.Collections.sort(schools);
-                int schoolCount = 0;
-                for (String school : schools) {
-                    if (schoolCount > 0) json.append(",");
-                    json.append("\"").append(school.replace("\"", "\\\"")).append("\"");
-                    schoolCount++;
-                }
-                json.append("]");
-                districtCount++;
-            }
-            json.append("}");
-            out.print(json.toString());
-        %>;
-        console.log('✓ Loaded complete District-Schools Map:', allSchoolsByDistrict);
-    </script>
+    </div>
     
     <script>
         function toggleSchool(element) {
@@ -1351,33 +1098,19 @@
         }
         
         function applyFilters() {
-            const district = document.getElementById('filterDistrict').value.trim();
             const studentName = document.getElementById('filterStudentName').value.toLowerCase().trim();
             const school = document.getElementById('filterSchool').value.trim();
             const studentClass = document.getElementById('filterClass').value.trim();
             const subject = document.getElementById('filterSubject').value.trim();
-
-            console.log('Applying filters:', {district, studentName, school, studentClass, subject});
-
+            
+            console.log('Applying filters:', {studentName, school, studentClass, subject});
+            
             let visibleSchoolCount = 0;
-
+            
             // Iterate through each school section
             document.querySelectorAll('.school-section').forEach(schoolSection => {
                 const schoolHeader = schoolSection.querySelector('.school-header');
                 const schoolText = schoolHeader ? schoolHeader.textContent.trim() : '';
-                
-                // Check district match first
-                let districtMatches = true;
-                if (district) {
-                    // Extract district from school section data attribute or parse from school name
-                    const districtFromSection = schoolSection.getAttribute('data-district');
-                    districtMatches = districtFromSection ? districtFromSection === district : schoolText.includes(district);
-                }
-                
-                if (!districtMatches) {
-                    schoolSection.style.display = 'none';
-                    return;
-                }
                 
                 // Check school match
                 let schoolMatches = true;
@@ -1478,31 +1211,27 @@
         }
         
          function clearFilters() {
-              document.getElementById('filterDistrict').value = '';
-              document.getElementById('filterStudentName').value = '';
-              document.getElementById('filterSchool').value = '';
-              document.getElementById('filterClass').value = '';
-              document.getElementById('filterSubject').value = '';
-              
-              // Reset class dropdown to all classes
-              updateClassDropdown();
-              
-              // Reset schools dropdown to show all schools
-              populateSchoolsByDistrict('');
-              
-              // Show all
-              document.querySelectorAll('.school-section').forEach(el => {
-                  el.style.display = '';
-              });
-              document.querySelectorAll('.class-section').forEach(el => {
-                  el.style.display = '';
-              });
-              document.querySelectorAll('tbody tr').forEach(el => {
+             document.getElementById('filterStudentName').value = '';
+             document.getElementById('filterSchool').value = '';
+             document.getElementById('filterClass').value = '';
+             document.getElementById('filterSubject').value = '';
+             
+             // Reset class dropdown to all classes
+             updateClassDropdown();
+             
+             // Show all
+             document.querySelectorAll('.school-section').forEach(el => {
                  el.style.display = '';
              });
-             
-             console.log('Filters cleared');
-         }
+             document.querySelectorAll('.class-section').forEach(el => {
+                 el.style.display = '';
+             });
+             document.querySelectorAll('tbody tr').forEach(el => {
+                el.style.display = '';
+            });
+            
+            console.log('Filters cleared');
+        }
         
         // Real-time search as user types
         const filterStudentName = document.getElementById('filterStudentName');
@@ -1538,148 +1267,29 @@
             const schoolDiv = document.querySelector('[id="schoolSearchInput"]')?.parentElement.parentElement;
             const dropdown = document.getElementById('schoolDropdownList');
             const searchInput = document.getElementById('schoolSearchInput');
-
+            
             if (!event.target.closest('#schoolSearchInput') && !event.target.closest('#schoolDropdownList')) {
                 dropdown.style.display = 'none';
             }
         });
         
-        // ===== DISTRICT TO SCHOOLS AUTO-POPULATION =====
-        // The allSchoolsByDistrict object is loaded from the server (see first <script> tag)
-        // No need to initialize from DOM anymore
         
-        // Populate schools dropdown based on selected district
-        function populateSchoolsByDistrict(selectedDistrict) {
-            const schoolSearchInput = document.getElementById('schoolSearchInput');
-            const schoolDropdownList = document.getElementById('schoolDropdownList');
-            const filterSchool = document.getElementById('filterSchool');
-            
-            // Clear school search input but keep selected school value
-            // User can see all schools from new district
-            schoolSearchInput.value = '';
-            
-            // Clear and rebuild dropdown
-            schoolDropdownList.innerHTML = '';
-            
-            // Add "All Schools" option
-            const allOption = document.createElement('div');
-            allOption.style.cssText = 'padding: 8px 10px; cursor: pointer;';
-            allOption.textContent = '-- All Schools --';
-            allOption.onclick = function() { selectSchool('', this); };
-            schoolDropdownList.appendChild(allOption);
-            
-            if (selectedDistrict && allSchoolsByDistrict[selectedDistrict]) {
-                // Show only schools from selected district
-                allSchoolsByDistrict[selectedDistrict].forEach(schoolName => {
-                    const option = document.createElement('div');
-                    option.style.cssText = 'padding: 8px 10px; cursor: pointer;';
-                    option.title = schoolName;
-                    option.textContent = schoolName;
-                    option.onclick = function() { selectSchool(schoolName, this); };
-                    schoolDropdownList.appendChild(option);
-                });
-                console.log('✓ Populated ' + allSchoolsByDistrict[selectedDistrict].length + ' schools for district: ' + selectedDistrict);
-            } else if (!selectedDistrict) {
-                // Show all schools when no district selected
-                const allSchools = new Set();
-                Object.values(allSchoolsByDistrict).forEach(schools => {
-                    schools.forEach(school => allSchools.add(school));
-                });
-                
-                allSchools.forEach(schoolName => {
-                    const optionDiv = document.createElement('div');
-                    optionDiv.style.cssText = 'padding: 8px 10px; cursor: pointer;';
-                    optionDiv.title = schoolName;
-                    optionDiv.textContent = schoolName;
-                    optionDiv.onclick = function() { selectSchool(schoolName, this); };
-                    schoolDropdownList.appendChild(optionDiv);
-                });
-                console.log('✓ Populated all ' + allSchools.size + ' schools');
-            } else {
-                console.log('✗ No schools found for district: ' + selectedDistrict);
-            }
-        }
-        
-        // Add event listener to district filter dropdown (attach immediately, not on DOMContentLoaded)
-        try {
-            console.log('🔍 Looking for district filter element...');
-            const districtFilter = document.getElementById('filterDistrict');
-            console.log('📍 Found districtFilter:', districtFilter);
-            if (districtFilter) {
-                console.log('✓ Attaching change listener to district filter');
-                districtFilter.addEventListener('change', function() {
-                    console.log('🎯 District changed to:', this.value);
-                    // When district changes, reload the page with the new district as a URL parameter
-                    // This ensures the server returns students only from that district
-                    if (this.value) {
-                        window.location.href = window.location.pathname + '?district=' + encodeURIComponent(this.value) + '&page=1';
-                    } else {
-                        // If clearing district, reload to show all students
-                        window.location.href = window.location.pathname + '?page=1';
-                    }
-                });
-                console.log('✓ Event listener successfully attached');
-            } else {
-                console.warn('⚠️ District filter element not found!');
-            }
-        } catch (error) {
-            console.error('❌ Error setting up district filter:', error);
-        }
-        
-        
-        // Student Selection Checkboxes
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectAllCheckbox = document.getElementById('selectAllStudents');
-            const studentCheckboxes = document.querySelectorAll('.student-checkbox');
-            
-            // Select All functionality
-            if (selectAllCheckbox) {
-                selectAllCheckbox.addEventListener('change', function() {
-                    studentCheckboxes.forEach(checkbox => {
-                        checkbox.checked = this.checked;
-                    });
+        // Add filter triggers to other dropdowns - fires on change
+        ['filterClass', 'filterSubject'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', function() {
+                    console.log('Filter changed:', id, '=', this.value);
+                    applyFilters();
                 });
             }
-            
-            // Update "Select All" state when individual checkboxes change
-            studentCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const allChecked = Array.from(studentCheckboxes).every(cb => cb.checked);
-                    const someChecked = Array.from(studentCheckboxes).some(cb => cb.checked);
-                    
-                    if (selectAllCheckbox) {
-                        selectAllCheckbox.checked = allChecked;
-                        selectAllCheckbox.indeterminate = someChecked && !allChecked;
-                    }
-                });
-            });
         });
         
-        // Get selected student IDs
-        function getSelectedStudents() {
-            const selected = [];
-            document.querySelectorAll('.student-checkbox:checked').forEach(checkbox => {
-                selected.push(checkbox.value);
-            });
-            return selected;
-        }
-        
-        // Load data by default (on page load, show all schools and students)
-        window.addEventListener('load', function() {
-            // District-schools map is already loaded from server (see <script> tag above)
-            
-            // Show all school sections by default (they should already be visible from server)
-            console.log('✓ Page loaded - data should be displayed by default');
-            
-            // Optionally, you can programmatically trigger the display here if needed
-            const allSchoolSections = document.querySelectorAll('.school-section');
-            console.log('Found ' + allSchoolSections.length + ' school sections');
-        });
-        
-        // Make getSelectedStudents globally accessible
-        window.getSelectedStudents = getSelectedStudents;
-        
+        // Make applyFilters and updateClassDropdown globally accessible for Apply button
+        window.applyFilters = applyFilters;
+        window.clearFilters = clearFilters;
+        window.selectSchool = selectSchool;
+        window.filterSchools = filterSchools;
     </script>
 </body>
 </html>
-
