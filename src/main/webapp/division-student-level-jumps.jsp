@@ -209,6 +209,18 @@
         }
     }
     
+    // FILTER BY DISTRICT (if provided in URL)
+    String districtParam = request.getParameter("district");
+    if (districtParam != null && !districtParam.isEmpty()) {
+        List<Student> filteredStudents = new ArrayList<>();
+        for (Student student : levelJumpStudents) {
+            if (student.getDistrict() != null && student.getDistrict().equals(districtParam)) {
+                filteredStudents.add(student);
+            }
+        }
+        levelJumpStudents = filteredStudents;
+    }
+    
     // Calculate total students and pages
     int totalStudents = levelJumpStudents.size();
     int totalPages = (int) Math.ceil((double) totalStudents / studentsPerPage);
@@ -682,7 +694,7 @@
                     <select id="filterDistrict" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
                         <option value="">-- All Districts --</option>
                         <% for (String district : distinctDistricts) { %>
-                            <option value="<%= district %>"><%= district %></option>
+                            <option value="<%= district %>" <%= districtParam != null && district.equals(districtParam) ? "selected" : "" %>><%= district %></option>
                         <% } %>
                     </select>
                 </div>
@@ -1586,8 +1598,14 @@
                 console.log('✓ Attaching change listener to district filter');
                 districtFilter.addEventListener('change', function() {
                     console.log('🎯 District changed to:', this.value);
-                    populateSchoolsByDistrict(this.value);
-                    applyFilters();
+                    // When district changes, reload the page with the new district as a URL parameter
+                    // This ensures the server returns students only from that district
+                    if (this.value) {
+                        window.location.href = window.location.pathname + '?district=' + encodeURIComponent(this.value) + '&page=1';
+                    } else {
+                        // If clearing district, reload to show all students
+                        window.location.href = window.location.pathname + '?page=1';
+                    }
                 });
                 console.log('✓ Event listener successfully attached');
             } else {
