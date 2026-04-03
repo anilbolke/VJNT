@@ -1531,8 +1531,8 @@
             const schoolDropdownList = document.getElementById('schoolDropdownList');
             const filterSchool = document.getElementById('filterSchool');
             
-            // Reset school selection when district changes
-            filterSchool.value = '';
+            // Clear school search input but keep selected school value
+            // User can see all schools from new district
             schoolSearchInput.value = '';
             
             // Clear and rebuild dropdown
