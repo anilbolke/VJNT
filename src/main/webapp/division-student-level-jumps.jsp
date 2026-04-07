@@ -221,6 +221,78 @@
         levelJumpStudents = filteredStudents;
     }
     
+    // FILTER BY STUDENT NAME (if provided in URL)
+    String studentNameParam = request.getParameter("studentName");
+    if (studentNameParam != null && !studentNameParam.isEmpty()) {
+        String searchName = studentNameParam.toLowerCase().trim();
+        List<Student> filteredStudents = new ArrayList<>();
+        for (Student student : levelJumpStudents) {
+            if (student.getStudentName() != null && student.getStudentName().toLowerCase().contains(searchName)) {
+                filteredStudents.add(student);
+            }
+        }
+        levelJumpStudents = filteredStudents;
+    }
+    
+    // FILTER BY SCHOOL (if provided in URL)
+    String schoolParam = request.getParameter("school");
+    if (schoolParam != null && !schoolParam.isEmpty()) {
+        List<Student> filteredStudents = new ArrayList<>();
+        for (Student student : levelJumpStudents) {
+            String udiseNo = student.getUdiseNo();
+            String schoolName = schoolNameCache.get(udiseNo);
+            if (schoolName == null) schoolName = udiseNo;
+            if (schoolName.contains(schoolParam)) {
+                filteredStudents.add(student);
+            }
+        }
+        levelJumpStudents = filteredStudents;
+    }
+    
+    // FILTER BY CLASS (if provided in URL)
+    String classParam = request.getParameter("class");
+    if (classParam != null && !classParam.isEmpty()) {
+        List<Student> filteredStudents = new ArrayList<>();
+        for (Student student : levelJumpStudents) {
+            if (student.getStudentClass() != null && student.getStudentClass().equals(classParam)) {
+                filteredStudents.add(student);
+            }
+        }
+        levelJumpStudents = filteredStudents;
+    }
+    
+    // FILTER BY SUBJECT (if provided in URL)
+    String subjectParam = request.getParameter("subject");
+    if (subjectParam != null && !subjectParam.isEmpty()) {
+        List<Student> filteredStudents = new ArrayList<>();
+        for (Student student : levelJumpStudents) {
+            boolean hasSubjectJump = false;
+            if ("marathi".equalsIgnoreCase(subjectParam)) {
+                if ((student.getPhase1Marathi() != null && student.getPhase2Marathi() != null && student.getPhase2Marathi() - student.getPhase1Marathi() > 1) ||
+                    (student.getPhase2Marathi() != null && student.getPhase3Marathi() != null && student.getPhase3Marathi() - student.getPhase2Marathi() > 1) ||
+                    (student.getPhase3Marathi() != null && student.getPhase4Marathi() != null && student.getPhase4Marathi() - student.getPhase3Marathi() > 1)) {
+                    hasSubjectJump = true;
+                }
+            } else if ("math".equalsIgnoreCase(subjectParam)) {
+                if ((student.getPhase1Math() != null && student.getPhase2Math() != null && student.getPhase2Math() - student.getPhase1Math() > 1) ||
+                    (student.getPhase2Math() != null && student.getPhase3Math() != null && student.getPhase3Math() - student.getPhase2Math() > 1) ||
+                    (student.getPhase3Math() != null && student.getPhase4Math() != null && student.getPhase4Math() - student.getPhase3Math() > 1)) {
+                    hasSubjectJump = true;
+                }
+            } else if ("english".equalsIgnoreCase(subjectParam)) {
+                if ((student.getPhase1English() != null && student.getPhase2English() != null && student.getPhase2English() - student.getPhase1English() > 1) ||
+                    (student.getPhase2English() != null && student.getPhase3English() != null && student.getPhase3English() - student.getPhase2English() > 1) ||
+                    (student.getPhase3English() != null && student.getPhase4English() != null && student.getPhase4English() - student.getPhase3English() > 1)) {
+                    hasSubjectJump = true;
+                }
+            }
+            if (hasSubjectJump) {
+                filteredStudents.add(student);
+            }
+        }
+        levelJumpStudents = filteredStudents;
+    }
+    
     // Calculate total students and pages
     int totalStudents = levelJumpStudents.size();
     int totalPages = (int) Math.ceil((double) totalStudents / studentsPerPage);
@@ -998,11 +1070,39 @@
             <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; align-items: center;">
                 <!-- Build pagination URL with district parameter if present -->
                 <%
-                    String paginationQueryString = "";
+                    StringBuilder paginationQueryBuilder = new StringBuilder("?");
+                    boolean firstParam = true;
+                    
                     if (districtParam != null && !districtParam.isEmpty()) {
-                        paginationQueryString = "?district=" + java.net.URLEncoder.encode(districtParam, "UTF-8") + "&page=";
-                    } else {
+                        paginationQueryBuilder.append("district=").append(java.net.URLEncoder.encode(districtParam, "UTF-8"));
+                        firstParam = false;
+                    }
+                    if (studentNameParam != null && !studentNameParam.isEmpty()) {
+                        if (!firstParam) paginationQueryBuilder.append("&");
+                        paginationQueryBuilder.append("studentName=").append(java.net.URLEncoder.encode(studentNameParam, "UTF-8"));
+                        firstParam = false;
+                    }
+                    if (schoolParam != null && !schoolParam.isEmpty()) {
+                        if (!firstParam) paginationQueryBuilder.append("&");
+                        paginationQueryBuilder.append("school=").append(java.net.URLEncoder.encode(schoolParam, "UTF-8"));
+                        firstParam = false;
+                    }
+                    if (classParam != null && !classParam.isEmpty()) {
+                        if (!firstParam) paginationQueryBuilder.append("&");
+                        paginationQueryBuilder.append("class=").append(java.net.URLEncoder.encode(classParam, "UTF-8"));
+                        firstParam = false;
+                    }
+                    if (subjectParam != null && !subjectParam.isEmpty()) {
+                        if (!firstParam) paginationQueryBuilder.append("&");
+                        paginationQueryBuilder.append("subject=").append(java.net.URLEncoder.encode(subjectParam, "UTF-8"));
+                        firstParam = false;
+                    }
+                    
+                    String paginationQueryString = paginationQueryBuilder.toString();
+                    if (paginationQueryString.equals("?")) {
                         paginationQueryString = "?page=";
+                    } else {
+                        paginationQueryString += "&page=";
                     }
                 %>
                 
@@ -1352,132 +1452,32 @@
         
         function applyFilters() {
             const district = document.getElementById('filterDistrict').value.trim();
-            const studentName = document.getElementById('filterStudentName').value.toLowerCase().trim();
+            const studentName = document.getElementById('filterStudentName').value.trim();
             const school = document.getElementById('filterSchool').value.trim();
             const studentClass = document.getElementById('filterClass').value.trim();
             const subject = document.getElementById('filterSubject').value.trim();
 
             console.log('Applying filters:', {district, studentName, school, studentClass, subject});
 
-            let visibleSchoolCount = 0;
-
-            // Iterate through each school section
-            document.querySelectorAll('.school-section').forEach(schoolSection => {
-                const schoolHeader = schoolSection.querySelector('.school-header');
-                const schoolText = schoolHeader ? schoolHeader.textContent.trim() : '';
-                
-                // Check district match first
-                let districtMatches = true;
-                if (district) {
-                    // Extract district from school section data attribute or parse from school name
-                    const districtFromSection = schoolSection.getAttribute('data-district');
-                    districtMatches = districtFromSection ? districtFromSection === district : schoolText.includes(district);
-                }
-                
-                if (!districtMatches) {
-                    schoolSection.style.display = 'none';
-                    return;
-                }
-                
-                // Check school match
-                let schoolMatches = true;
-                if (school) {
-                    schoolMatches = schoolText.includes(school);
-                }
-                
-                if (!schoolMatches) {
-                    schoolSection.style.display = 'none';
-                    return;
-                }
-                
-                let schoolHasVisibleRows = false;
-                
-                // Iterate through each class in this school
-                schoolSection.querySelectorAll('.class-section').forEach(classSection => {
-                    const classHeader = classSection.querySelector('.class-header');
-                    const classHeaderText = classHeader ? classHeader.textContent.trim() : '';
-                    
-                    let classMatches = true;
-                    if (studentClass) {
-                        // Extract and normalize class from header (handles Roman numerals like I, II, III)
-                        const normalizedHeaderClass = extractNormalizedClass(classHeaderText);
-                        console.log('Class filter check:', {
-                            selectedClass: studentClass,
-                            headerText: classHeaderText,
-                            normalizedHeaderClass: normalizedHeaderClass,
-                            matches: normalizedHeaderClass === studentClass
-                        });
-                        classMatches = (normalizedHeaderClass === studentClass);
-                    }
-                    
-                    if (!classMatches) {
-                        classSection.style.display = 'none';
-                        return;
-                    }
-                    
-                    let classHasVisibleRows = false;
-                    
-                    // Check each table in this class
-                    classSection.querySelectorAll('table tbody').forEach(tbody => {
-                        tbody.querySelectorAll('tr').forEach(row => {
-                            let shouldShow = true;
-                            
-                            // Get student name from first column
-                            const nameCell = row.querySelector('td:nth-child(1)');
-                            const studentNameText = nameCell ? nameCell.textContent.toLowerCase().trim() : '';
-                            
-                            // Filter 1: Student Name
-                            if (studentName && !studentNameText.includes(studentName)) {
-                                shouldShow = false;
-                            }
-                            
-                            // Filter 2: Subject with Jump
-                            if (shouldShow && subject) {
-                                let hasSubjectJump = false;
-                                
-                                if (subject === 'marathi') {
-                                    // Check Marathi column (3rd <td>) for any JUMP badge
-                                    const marathiCell = row.querySelector('td:nth-child(3)');
-                                    hasSubjectJump = marathiCell && marathiCell.innerHTML.includes('⚠️ JUMP');
-                                } else if (subject === 'math') {
-                                    // Check Math column (4th <td>) for any JUMP badge
-                                    const mathCell = row.querySelector('td:nth-child(4)');
-                                    hasSubjectJump = mathCell && mathCell.innerHTML.includes('⚠️ JUMP');
-                                } else if (subject === 'english') {
-                                    // Check English column (5th <td>) for any JUMP badge
-                                    const englishCell = row.querySelector('td:nth-child(5)');
-                                    hasSubjectJump = englishCell && englishCell.innerHTML.includes('⚠️ JUMP');
-                                }
-                                
-                                if (!hasSubjectJump) {
-                                    shouldShow = false;
-                                }
-                            }
-                            
-                            // Apply visibility
-                            row.style.display = shouldShow ? '' : 'none';
-                            if (shouldShow) {
-                                classHasVisibleRows = true;
-                                schoolHasVisibleRows = true;
-                            }
-                        });
-                    });
-                    
-                    // Show/hide class section based on visible rows
-                    classSection.style.display = classHasVisibleRows ? '' : 'none';
-                });
-                
-                // Show/hide school section based on visible rows
-                schoolSection.style.display = schoolHasVisibleRows ? '' : 'none';
-                if (schoolHasVisibleRows) {
-                    visibleSchoolCount++;
-                }
-            });
+            // Build URL with all filter parameters - reload page server-side to filter all records
+            let filterParams = [];
+            if (district) filterParams.push('district=' + encodeURIComponent(district));
+            if (studentName) filterParams.push('studentName=' + encodeURIComponent(studentName));
+            if (school) filterParams.push('school=' + encodeURIComponent(school));
+            if (studentClass) filterParams.push('class=' + encodeURIComponent(studentClass));
+            if (subject) filterParams.push('subject=' + encodeURIComponent(subject));
             
-            console.log('Visible schools:', visibleSchoolCount);
+            let url = window.location.pathname;
+            if (filterParams.length > 0) {
+                url += '?' + filterParams.join('&') + '&page=1';
+            } else {
+                url += '?page=1';
+            }
+            
+            console.log('Navigating to:', url);
+            window.location.href = url;
         }
-        
-         function clearFilters() {
+                  function clearFilters() {
               document.getElementById('filterDistrict').value = '';
               document.getElementById('filterStudentName').value = '';
               document.getElementById('filterSchool').value = '';
