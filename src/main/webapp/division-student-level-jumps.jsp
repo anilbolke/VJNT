@@ -1578,9 +1578,12 @@
             const schoolDropdownList = document.getElementById('schoolDropdownList');
             const filterSchool = document.getElementById('filterSchool');
             
-            // Clear school search input but keep selected school value
-            // User can see all schools from new district
-            schoolSearchInput.value = '';
+            // Get school from URL parameter to preserve selection across page reloads
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedSchool = urlParams.get('school') || '';
+            
+            // Set school search input to the selected school (or empty if none)
+            schoolSearchInput.value = selectedSchool;
             
             // Clear and rebuild dropdown
             schoolDropdownList.innerHTML = '';
@@ -1691,6 +1694,16 @@
         // Load data by default (on page load, show all schools and students)
         window.addEventListener('load', function() {
             // District-schools map is already loaded from server (see <script> tag above)
+            
+            // Restore filter values from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedSchool = urlParams.get('school') || '';
+            
+            // Update hidden select element with selected school from URL
+            const filterSchool = document.getElementById('filterSchool');
+            if (filterSchool) {
+                filterSchool.value = selectedSchool;
+            }
             
             // Populate schools dropdown with all schools (or filtered by current district)
             const districtFilter = document.getElementById('filterDistrict');
