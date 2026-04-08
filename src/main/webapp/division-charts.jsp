@@ -331,32 +331,47 @@
             background: #f5f5f5;
             padding: 10px;
             border-radius: 5px;
+            overflow-x: auto;
         }
         
         .heatmap-row {
             display: grid;
-            grid-template-columns: 150px repeat(3, 1fr);
+            grid-template-columns: 180px repeat(3, 1fr);
             gap: 2px;
+            min-width: max-content;
         }
         
         .heatmap-cell {
-            padding: 12px;
+            padding: 15px 10px;
             text-align: center;
             font-weight: 500;
             border-radius: 3px;
             color: white;
             font-size: 13px;
+            min-width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-wrap: break-word;
+            white-space: normal;
         }
         
         .heatmap-cell.header {
             background: #667eea;
             color: white;
+            font-weight: 600;
+            font-size: 13px;
         }
         
         .heatmap-cell.label {
             background: #999;
             color: white;
-            text-align: left;
+            text-align: center;
+            font-weight: 500;
+            padding: 15px 5px;
+            word-break: break-word;
+            white-space: normal;
+            font-size: 12px;
         }
         
         .heatmap-cell.low {
@@ -481,6 +496,18 @@
         <!-- 6. Heatmap -->
         <div class="heatmap-container">
             <div class="heatmap-title">🔥 District vs Subject Heatmap</div>
+            <% 
+                int maxValue = 0;
+                for (Map.Entry<String, Map<String, Integer>> entry : districtSubjectMatrix.entrySet()) {
+                    for (Integer val : entry.getValue().values()) {
+                        maxValue = Math.max(maxValue, val);
+                    }
+                }
+                
+                if (districtSubjectMatrix.isEmpty()) {
+                    out.println("<div style='padding: 20px; color: #999;'>No data available for heatmap</div>");
+                } else {
+            %>
             <div class="heatmap">
                 <div class="heatmap-row">
                     <div class="heatmap-cell header">District</div>
@@ -489,13 +516,6 @@
                     <div class="heatmap-cell header">English</div>
                 </div>
                 <% 
-                    int maxValue = 0;
-                    for (Map.Entry<String, Map<String, Integer>> entry : districtSubjectMatrix.entrySet()) {
-                        for (Integer val : entry.getValue().values()) {
-                            maxValue = Math.max(maxValue, val);
-                        }
-                    }
-                    
                     for (Map.Entry<String, Map<String, Integer>> entry : districtSubjectMatrix.entrySet()) {
                         String district = entry.getKey();
                         Map<String, Integer> subjects = entry.getValue();
@@ -505,7 +525,10 @@
                     <%
                         for (String subject : new String[]{"Marathi", "Math", "English"}) {
                             int val = subjects.get(subject);
-                            String intensity = val == 0 ? "low" : (val < maxValue / 2 ? "medium" : "high");
+                            String intensity = "low";
+                            if (maxValue > 0) {
+                                intensity = val == 0 ? "low" : (val < maxValue / 2 ? "medium" : "high");
+                            }
                     %>
                     <div class="heatmap-cell <%= intensity %>"><%= val %></div>
                     <%
@@ -514,6 +537,7 @@
                 </div>
                 <% } %>
             </div>
+            <% } %>
         </div>
         
         <!-- Footer -->

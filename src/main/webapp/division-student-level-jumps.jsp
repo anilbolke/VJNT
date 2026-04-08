@@ -905,7 +905,6 @@
                                     <table class="student-table">
                                         <thead>
                                             <tr>
-                                                <th><input type="checkbox" id="selectAllStudents" title="Select all students"></th>
                                                 <th>Student Name</th>
                                                 <th>PEN</th>
                                                 <th>Marathi Progress</th>
@@ -916,7 +915,6 @@
                                         <tbody>
                                             <% for (Student s : sectionStudents) { %>
                                                 <tr class="student-row" data-student-id="<%= s.getStudentId() %>">
-                                                    <td style="text-align: center;"><input type="checkbox" class="student-checkbox" value="<%= s.getStudentId() %>" title="Select <%= s.getStudentName() %>"></td>
                                                     <td><strong><%= s.getStudentName() %></strong></td>
                                                     <td><%= s.getStudentPen() %></td>
                                                     
