@@ -188,12 +188,23 @@
         }
     }
     
-    // 7. District Percentages
+    // 7. District Percentages with Ranking
     Map<String, Double> districtPercentage = new LinkedHashMap<>();
     int totalStudents = levelJumpStudents.size();
-    for (Map.Entry<String, Integer> entry : districtCount.entrySet()) {
+    
+    // Sort districts by count (descending) for ranking
+    List<Map.Entry<String, Integer>> sortedDistricts = new ArrayList<>(districtCount.entrySet());
+    sortedDistricts.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+    
+    // Calculate percentages and create ranking
+    Map<String, Integer> districtRank = new HashMap<>();
+    int rank = 1;
+    for (Map.Entry<String, Integer> entry : sortedDistricts) {
+        String district = entry.getKey();
         double percentage = (totalStudents > 0) ? (entry.getValue() * 100.0) / totalStudents : 0;
-        districtPercentage.put(entry.getKey(), percentage);
+        districtPercentage.put(district, percentage);
+        districtRank.put(district, rank);
+        rank++;
     }
 %>
 
@@ -445,6 +456,167 @@
             opacity: 0.9;
         }
         
+        .district-cards-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .district-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-top: 4px solid #667eea;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .district-card:hover {
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        .district-card.high {
+            border-top-color: #2ecc71;
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.05) 0%, rgba(46, 204, 113, 0.02) 100%);
+        }
+        
+        .district-card.medium {
+            border-top-color: #f39c12;
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.05) 0%, rgba(243, 156, 18, 0.02) 100%);
+        }
+        
+        .district-card.low {
+            border-top-color: #e74c3c;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.05) 0%, rgba(231, 76, 60, 0.02) 100%);
+        }
+        
+        .district-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .district-rank-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .district-name-large {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+            flex: 1;
+            padding-right: 10px;
+        }
+        
+        .district-stats-large {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .stat-box .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-box .label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .percentage-bar-large {
+            width: 100%;
+            height: 28px;
+            background: #e8e8e8;
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            margin-top: 10px;
+        }
+        
+        .percentage-fill-large {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 0 12px;
+            transition: width 0.5s ease;
+        }
+        
+        .district-card.high .percentage-fill-large {
+            background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%);
+        }
+        
+        .district-card.medium .percentage-fill-large {
+            background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+        }
+        
+        .district-card.low .percentage-fill-large {
+            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .performance-label {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .performance-label.high {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+        
+        .performance-label.medium {
+            background: #fce8cd;
+            color: #e67e22;
+        }
+        
+        .performance-label.low {
+            background: #fadbd8;
+            color: #c0392b;
+        }
+        
         .district-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -572,29 +744,66 @@
         <!-- District Percentage Section -->
         <div class="charts-grid">
             <div class="district-percentage-container">
-                <div class="district-percentage-title">📊 District-wise Distribution</div>
+                <div class="district-percentage-title">📊 District-wise Distribution & Performance</div>
                 
                 <div class="total-students-card">
                     <div class="number"><%= totalStudents %></div>
                     <div class="label">Total Students with Level Jumps</div>
                 </div>
                 
-                <div class="district-list">
+                <div class="district-cards-wrapper">
                     <% for (Map.Entry<String, Double> entry : districtPercentage.entrySet()) { 
                         String districtName = entry.getKey();
                         double percentage = entry.getValue();
                         int count = districtCount.get(districtName);
+                        int rank = districtRank.get(districtName);
+                        
+                        // Determine performance level
+                        String performanceClass = "low";
+                        String performanceLabel = "Below Average";
+                        String rankEmoji = "🥇";
+                        
+                        if (rank == 1) {
+                            rankEmoji = "🥇";
+                        } else if (rank == 2) {
+                            rankEmoji = "🥈";
+                        } else if (rank == 3) {
+                            rankEmoji = "🥉";
+                        }
+                        
+                        // Color code based on percentage (high: >30%, medium: 15-30%, low: <15%)
+                        if (percentage >= 30) {
+                            performanceClass = "high";
+                            performanceLabel = "High Performance";
+                        } else if (percentage >= 15) {
+                            performanceClass = "medium";
+                            performanceLabel = "Medium Performance";
+                        }
                     %>
-                    <div class="district-item">
-                        <div class="district-name"><%= districtName %></div>
-                        <div class="district-stats">
-                            <div class="student-count"><%= count %></div>
-                            <div class="percentage-bar">
-                                <div class="percentage-fill" style="width: <%= percentage %>%;">
-                                    <%= String.format("%.1f%%", percentage) %>
-                                </div>
+                    <div class="district-card <%= performanceClass %>">
+                        <div class="district-header">
+                            <div class="district-name-large"><%= districtName %></div>
+                            <div class="district-rank-badge"><%= rankEmoji %></div>
+                        </div>
+                        
+                        <div class="district-stats-large">
+                            <div class="stat-box">
+                                <div class="number"><%= count %></div>
+                                <div class="label">Students</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="number"><%= String.format("%.1f", percentage) %>%</div>
+                                <div class="label">Share</div>
                             </div>
                         </div>
+                        
+                        <div class="percentage-bar-large">
+                            <div class="percentage-fill-large" style="width: <%= percentage %>%;">
+                                <%= String.format("%.1f%%", percentage) %>
+                            </div>
+                        </div>
+                        
+                        <span class="performance-label <%= performanceClass %>"><%= performanceLabel %></span>
                     </div>
                     <% } %>
                 </div>
