@@ -194,7 +194,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Level Jump Analytics - <%= divisionName %></title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -547,182 +547,241 @@
     </div>
     
     <script>
-        // Color scheme
-        const chartColors = {
-            primary: '#667eea',
-            secondary: '#764ba2',
-            success: '#51cf66',
-            danger: '#ff6b6b',
-            warning: '#ffd93d',
-            info: '#4ecdc4'
-        };
-        
-        const defaultOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: {
-                        font: { size: 12 },
-                        padding: 15
-                    }
-                }
+        // Wait for DOM to be ready and Chart.js to be loaded
+        function initializeCharts() {
+            // Check if Chart library is available
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js library not loaded');
+                setTimeout(initializeCharts, 500);
+                return;
             }
-        };
-        
-        // 1. District Distribution Chart
-        const districtCtx = document.getElementById('districtChart').getContext('2d');
-        new Chart(districtCtx, {
-            type: 'bar',
-            data: {
-                labels: [<% for (String d : districtCount.keySet()) { %>'<%= d %>',<% } %>],
-                datasets: [{
-                    label: 'Number of Students',
-                    data: [<% for (Integer c : districtCount.values()) { %><%= c %>,<% } %>],
-                    backgroundColor: chartColors.primary,
-                    borderColor: chartColors.secondary,
-                    borderWidth: 2,
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                ...defaultOptions,
-                indexAxis: 'y',
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
-        
-        // 2. Subject Analysis Chart
-        const subjectCtx = document.getElementById('subjectChart').getContext('2d');
-        new Chart(subjectCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Marathi', 'Math', 'English'],
-                datasets: [{
-                    data: [<%= marathiJumps %>, <%= mathJumps %>, <%= englishJumps %>],
-                    backgroundColor: [
-                        chartColors.primary,
-                        chartColors.secondary,
-                        chartColors.success
-                    ],
-                    borderWidth: 2,
-                    borderColor: white
-                }]
-            },
-            options: {
-                ...defaultOptions,
+            
+            // Color scheme
+            const chartColors = {
+                primary: '#667eea',
+                secondary: '#764ba2',
+                success: '#51cf66',
+                danger: '#ff6b6b',
+                warning: '#ffd93d',
+                info: '#4ecdc4'
+            };
+            
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        labels: {
+                            font: { size: 12 },
+                            padding: 15
+                        }
                     }
                 }
+            };
+            
+            try {
+                // 1. District Distribution Chart
+                const districtChartElement = document.getElementById('districtChart');
+                if (districtChartElement) {
+                    const districtCtx = districtChartElement.getContext('2d');
+                    new Chart(districtCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: [<% for (String d : districtCount.keySet()) { %>'<%= d %>',<% } %>],
+                            datasets: [{
+                                label: 'Number of Students',
+                                data: [<% for (Integer c : districtCount.values()) { %><%= c %>,<% } %>],
+                                backgroundColor: chartColors.primary,
+                                borderColor: chartColors.secondary,
+                                borderWidth: 2,
+                                borderRadius: 5
+                            }]
+                        },
+                        options: {
+                            ...defaultOptions,
+                            indexAxis: 'y',
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1 }
+                                }
+                            }
+                        }
+                    });
+                    console.log('✓ District chart initialized');
+                }
+            } catch (e) {
+                console.error('Error initializing district chart:', e);
             }
-        });
+            
+            try {
+                // 2. Subject Analysis Chart
+                const subjectChartElement = document.getElementById('subjectChart');
+                if (subjectChartElement) {
+                    const subjectCtx = subjectChartElement.getContext('2d');
+                    new Chart(subjectCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Marathi', 'Math', 'English'],
+                            datasets: [{
+                                data: [<%= marathiJumps %>, <%= mathJumps %>, <%= englishJumps %>],
+                                backgroundColor: [
+                                    chartColors.primary,
+                                    chartColors.secondary,
+                                    chartColors.success
+                                ],
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            ...defaultOptions,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                    console.log('✓ Subject chart initialized');
+                }
+            } catch (e) {
+                console.error('Error initializing subject chart:', e);
+            }
+            
+            try {
+                // 3. Class Distribution Chart
+                const classChartElement = document.getElementById('classChart');
+                if (classChartElement) {
+                    const classCtx = classChartElement.getContext('2d');
+                    new Chart(classCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: [<% for (String c : classCount.keySet()) { %>'<%= c %>',<% } %>],
+                            datasets: [{
+                                label: 'Number of Students',
+                                data: [<% for (Integer c : classCount.values()) { %><%= c %>,<% } %>],
+                                backgroundColor: [
+                                    chartColors.primary,
+                                    chartColors.secondary,
+                                    chartColors.success,
+                                    chartColors.danger,
+                                    chartColors.warning,
+                                    chartColors.info
+                                ],
+                                borderWidth: 2,
+                                borderRadius: 5
+                            }]
+                        },
+                        options: {
+                            ...defaultOptions,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1 }
+                                }
+                            }
+                        }
+                    });
+                    console.log('✓ Class chart initialized');
+                }
+            } catch (e) {
+                console.error('Error initializing class chart:', e);
+            }
+            
+            try {
+                // 4. Phase Transitions Chart
+                const phaseChartElement = document.getElementById('phaseChart');
+                if (phaseChartElement) {
+                    const phaseCtx = phaseChartElement.getContext('2d');
+                    new Chart(phaseCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Phase 1→2', 'Phase 2→3', 'Phase 3→4'],
+                            datasets: [{
+                                label: 'Number of Students',
+                                data: [<%= phase1To2 %>, <%= phase2To3 %>, <%= phase3To4 %>],
+                                backgroundColor: [
+                                    chartColors.primary,
+                                    chartColors.secondary,
+                                    chartColors.success
+                                ],
+                                borderWidth: 2,
+                                borderRadius: 5
+                            }]
+                        },
+                        options: {
+                            ...defaultOptions,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1 }
+                                }
+                            }
+                        }
+                    });
+                    console.log('✓ Phase chart initialized');
+                }
+            } catch (e) {
+                console.error('Error initializing phase chart:', e);
+            }
+            
+            try {
+                // 5. Top Schools Chart
+                const schoolChartElement = document.getElementById('schoolChart');
+                if (schoolChartElement) {
+                    const schoolCtx = schoolChartElement.getContext('2d');
+                    new Chart(schoolCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: [<% for (Map.Entry<String, Integer> entry : topSchools) { %>'<%= entry.getKey().substring(0, Math.min(30, entry.getKey().length())) %>...',<% } %>],
+                            datasets: [{
+                                label: 'Students',
+                                data: [<% for (Map.Entry<String, Integer> entry : topSchools) { %><%= entry.getValue() %>,<% } %>],
+                                backgroundColor: chartColors.primary,
+                                borderColor: chartColors.secondary,
+                                borderWidth: 2,
+                                borderRadius: 3
+                            }]
+                        },
+                        options: {
+                            ...defaultOptions,
+                            indexAxis: 'y',
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1 }
+                                }
+                            }
+                        }
+                    });
+                    console.log('✓ School chart initialized');
+                }
+            } catch (e) {
+                console.error('Error initializing school chart:', e);
+            }
+            
+            console.log('✓ All charts initialized successfully');
+        }
         
-        // 3. Class Distribution Chart
-        const classCtx = document.getElementById('classChart').getContext('2d');
-        new Chart(classCtx, {
-            type: 'bar',
-            data: {
-                labels: [<% for (String c : classCount.keySet()) { %>'<%= c %>',<% } %>],
-                datasets: [{
-                    label: 'Number of Students',
-                    data: [<% for (Integer c : classCount.values()) { %><%= c %>,<% } %>],
-                    backgroundColor: [
-                        chartColors.primary,
-                        chartColors.secondary,
-                        chartColors.success,
-                        chartColors.danger,
-                        chartColors.warning,
-                        chartColors.info
-                    ],
-                    borderWidth: 2,
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                ...defaultOptions,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
-        
-        // 4. Phase Transitions Chart
-        const phaseCtx = document.getElementById('phaseChart').getContext('2d');
-        new Chart(phaseCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Phase 1→2', 'Phase 2→3', 'Phase 3→4'],
-                datasets: [{
-                    label: 'Number of Students',
-                    data: [<%= phase1To2 %>, <%= phase2To3 %>, <%= phase3To4 %>],
-                    backgroundColor: [
-                        chartColors.primary,
-                        chartColors.secondary,
-                        chartColors.success
-                    ],
-                    borderWidth: 2,
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                ...defaultOptions,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
-        
-        // 5. Top Schools Chart
-        const schoolCtx = document.getElementById('schoolChart').getContext('2d');
-        new Chart(schoolCtx, {
-            type: 'barH',
-            data: {
-                labels: [<% for (Map.Entry<String, Integer> entry : topSchools) { %>'<%= entry.getKey().substring(0, Math.min(30, entry.getKey().length())) %>...',<% } %>],
-                datasets: [{
-                    label: 'Students',
-                    data: [<% for (Map.Entry<String, Integer> entry : topSchools) { %><%= entry.getValue() %>,<% } %>],
-                    backgroundColor: chartColors.primary,
-                    borderColor: chartColors.secondary,
-                    borderWidth: 2,
-                    borderRadius: 3
-                }]
-            },
-            options: {
-                ...defaultOptions,
-                indexAxis: 'y',
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
+        // Initialize charts when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeCharts);
+        } else {
+            initializeCharts();
+        }
     </script>
 </body>
 </html>
