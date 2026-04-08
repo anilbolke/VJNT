@@ -109,6 +109,42 @@ public class SchoolDAO {
     }
     
     /**
+     * Get multiple schools by UDISE numbers (batch fetch for performance)
+     */
+    public List<School> getSchoolsByUdises(List<String> udiseNumbers) {
+        List<School> schools = new ArrayList<>();
+        if (udiseNumbers == null || udiseNumbers.isEmpty()) {
+            return schools;
+        }
+        
+        StringBuilder sql = new StringBuilder("SELECT * FROM schools WHERE udise_no IN (");
+        for (int i = 0; i < udiseNumbers.size(); i++) {
+            if (i > 0) sql.append(",");
+            sql.append("?");
+        }
+        sql.append(")");
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            
+            for (int i = 0; i < udiseNumbers.size(); i++) {
+                pstmt.setString(i + 1, udiseNumbers.get(i));
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                schools.add(extractSchoolFromResultSet(rs));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting schools by UDISE numbers: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return schools;
+    }
+    
+    /**
      * Get all schools
      */
     public List<School> getAllSchools() {

@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - img "GATEE Logo" [ref=e5]
+    - heading "GATEE" [level=1] [ref=e6]
+    - heading "PORTAL" [level=1] [ref=e7]
+    - paragraph [ref=e8]: Growth Achievement Transformation Excellence in Education
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - heading "Welcome" [level=2] [ref=e11]
+      - paragraph [ref=e12]: Please login to access the GATEE PORTAL
+      - generic [ref=e13]: 🔒 Secure Login Portal
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: Username
+        - generic [ref=e17]:
+          - generic [ref=e18]: 👤
+          - textbox "Username" [active] [ref=e19]:
+            - /placeholder: Enter your username
+      - generic [ref=e20]:
+        - generic [ref=e21]: Password
+        - generic [ref=e22]:
+          - generic [ref=e23]: 🔒
+          - textbox "Password" [ref=e24]:
+            - /placeholder: Enter your password
+          - generic [ref=e25] [cursor=pointer]: 👁️
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - checkbox "Remember me" [ref=e28] [cursor=pointer]
+          - generic [ref=e29] [cursor=pointer]: Remember me
+        - link "Forgot Password?" [ref=e30] [cursor=pointer]:
+          - /url: "#"
+      - button "Sign In" [ref=e31] [cursor=pointer]
+    - generic [ref=e32]:
+      - generic [ref=e33]: ℹ️ First Time Login Information
+      - generic [ref=e34]:
+        - generic [ref=e35]: "Default Password:"
+        - generic [ref=e36]: Pass@123
+      - generic [ref=e37]: ⚠️ You will be required to change your password on first login
+    - generic [ref=e38]:
+      - strong [ref=e39]: Need Help?
+      - text: Contact your system administrator
+      - text: © 2025 GATEE PORTAL . All rights reserved.
+```

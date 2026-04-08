@@ -867,7 +867,7 @@
                 <div class="school-section" data-district="<%= districtForSchool %>">
                     <div class="school-header" onclick="toggleSchool(this)">
                         <span>
-                            🏫 <%= schoolName %> AND 667 
+                            🏫 <%= schoolName %> 
                             <span class="jump-indicator"></span>
                             <small style="margin-left: 10px; font-weight: normal; opacity: 0.7;">
                                 Active Students: <%= schoolTotalCount %> | 

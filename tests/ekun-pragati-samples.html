@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<title>⭐ एकूण प्रगती – Sample Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; padding: 30px; }
+
+  h1 { text-align: center; color: #2c3e50; margin-bottom: 6px; font-size: 24px; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 14px; }
+
+  /* ── CALCULATOR ── */
+  .calc-card {
+    background: white; border-radius: 12px; padding: 24px;
+    max-width: 600px; margin: 0 auto 36px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  }
+  .calc-card h2 { font-size: 16px; color: #34495e; margin-bottom: 18px; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
+  .sliders { display: flex; flex-direction: column; gap: 16px; }
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  .slider-row label { width: 90px; font-weight: bold; font-size: 14px; color: #444; }
+  .slider-row input[type=range] { flex: 1; accent-color: #3498db; }
+  .level-badge {
+    min-width: 36px; text-align: center; font-size: 13px; font-weight: bold;
+    background: #ecf0f1; border-radius: 6px; padding: 3px 8px; color: #2c3e50;
+  }
+  .level-text { font-size: 12px; color: #666; width: 200px; }
+  .result-box {
+    margin-top: 22px; background: #fff9c4; border: 2px solid #f1c40f;
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .result-box .label { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .result-box .value { font-size: 22px; font-weight: bold; color: #e67e22; }
+  .result-box .calc-detail { font-size: 12px; color: #999; margin-top: 6px; }
+
+  /* ── SAMPLES TABLE ── */
+  .table-card {
+    background: white; border-radius: 12px; padding: 24px;
+    max-width: 900px; margin: 0 auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+  }
+  .table-card h2 { font-size: 16px; color: #34495e; margin-bottom: 18px; border-bottom: 2px solid #27ae60; padding-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #2c3e50; color: white; padding: 10px 12px; text-align: center; }
+  td { padding: 9px 12px; text-align: center; border-bottom: 1px solid #eee; }
+  tr:hover td { background: #f9f9f9; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: bold;
+  }
+  .l0 { background:#ecf0f1; color:#7f8c8d; }
+  .l1 { background:#fadbd8; color:#c0392b; }
+  .l2 { background:#fdebd0; color:#e67e22; }
+  .l3 { background:#d5f5e3; color:#1e8449; }
+  .l4 { background:#d6eaf8; color:#1a5276; }
+  .l5 { background:#e8daef; color:#6c3483; }
+  .na { background:#f8f9fa; color:#aaa; font-style:italic; }
+  .result-cell { font-weight: bold; font-size: 14px; }
+
+  .note {
+    max-width: 900px; margin: 20px auto 0;
+    background: #fef9e7; border-left: 4px solid #f1c40f;
+    padding: 12px 16px; border-radius: 6px; font-size: 13px; color: #6d4c00;
+  }
+  .note strong { display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<h1>⭐ एकूण प्रगती – Level Calculator</h1>
+<p class="subtitle">GetStudentComprehensiveDataServlet.java — getAssessmentLevelsFromActivities() logic</p>
+
+<!-- LIVE CALCULATOR -->
+<div class="calc-card">
+  <h2>🧮 Live Calculator — Try Your Own Values</h2>
+  <div class="sliders">
+
+    <div class="slider-row">
+      <label>मराठी</label>
+      <input type="range" id="marathi" min="0" max="6" value="3" oninput="calc()">
+      <span class="level-badge" id="marathi-num">3</span>
+      <span class="level-text" id="marathi-text">शब्द स्तर</span>
+    </div>
+
+    <div class="slider-row">
+      <label>गणित</label>
+      <input type="range" id="math" min="0" max="5" value="2" oninput="calc()">
+      <span class="level-badge" id="math-num">2</span>
+      <span class="level-text" id="math-text"></span>
+    </div>
+
+    <div class="slider-row">
+      <label>इंग्रजी</label>
+      <input type="range" id="english" min="0" max="5" value="0" oninput="calc()">
+      <span class="level-badge" id="english-num">0</span>
+      <span class="level-text" id="english-text">Not Assessed</span>
+    </div>
+
+  </div>
+
+  <div class="result-box" id="result-box">
+    <div class="label">⭐ एकूण प्रगती</div>
+    <div class="value" id="result-value">—</div>
+    <div class="calc-detail" id="result-detail"></div>
+  </div>
+</div>
+
+<!-- SAMPLES TABLE -->
+<div class="table-card">
+  <h2>📋 All Sample Combinations</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>मराठी Level</th>
+        <th>गणित Level</th>
+        <th>इंग्रजी Level</th>
+        <th>Assessed</th>
+        <th>Sum</th>
+        <th>Average</th>
+        <th>Rounded</th>
+        <th>⭐ एकूण प्रगती</th>
+      </tr>
+    </thead>
+    <tbody id="sample-tbody"></tbody>
+  </table>
+</div>
+
+<div class="note">
+  <strong>⚠️ Important Note — मराठी Level 6</strong>
+  मराठी DB stores up to Level 6 ("मराठी वाचन व लेखन FLN स्तर 100% पूर्ण"), but the overall level array only goes to 5.
+  If average rounds to 6, it falls back to raw "Level 6" text. Consider capping मराठी at 5 for the average.
+  <br><br>
+  <strong>Rounding Rule:</strong> Java's Math.round() — 0.5 rounds UP. Example: avg 2.5 → 3 → Level 3 – प्रवीण
+</div>
+
+<script>
+const marathiTexts = {
+  0: 'Not Assessed',
+  1: 'प्रारंभिक स्तर',
+  2: 'अक्षर स्तर',
+  3: 'शब्द स्तर',
+  4: 'वाक्य स्तर',
+  5: 'समजपूर्वक उतारा वाचन',
+  6: 'FLN 100% पूर्ण'
+};
+const mathTexts = {
+  0: 'Not Assessed',
+  1: 'संख्या ओळख',
+  2: 'बेरीज/वजाबाकी',
+  3: 'गुणाकार/भागाकार',
+  4: 'समस्या सोडवणे',
+  5: 'गणित FLN 100%'
+};
+const englishTexts = {
+  0: 'Not Assessed',
+  1: 'Letter Recognition',
+  2: 'Word Reading',
+  3: 'Sentence Reading',
+  4: 'Para Reading',
+  5: 'English FLN 100%'
+};
+const overallNames = ['', 'Level 1 – सुरुवात', 'Level 2 – विकसित', 'Level 3 – प्रवीण', 'Level 4 – प्रगत', 'Level 5 – तज्ज्ञ'];
+const levelClass = ['l0','l1','l2','l3','l4','l5'];
+
+function getOverall(m, ma, e) {
+  let sum = 0, count = 0;
+  // Cap marathi at 5 for overall (since array only goes to 5)
+  const mCapped = Math.min(m, 5);
+  if (m > 0)  { sum += mCapped; count++; }
+  if (ma > 0) { sum += ma;      count++; }
+  if (e > 0)  { sum += e;       count++; }
+  if (count === 0) return { text: 'अद्याप मूल्यांकन नाही', avg: null, rounded: null, count: 0, sum: 0 };
+  const avg = sum / count;
+  const rounded = Math.round(avg);
+  const text = (rounded >= 1 && rounded <= 5) ? overallNames[rounded] : 'Level ' + rounded;
+  return { text, avg: avg.toFixed(2), rounded, count, sum };
+}
+
+function badgeHtml(level, labelMap) {
+  const cls = levelClass[Math.min(level, 5)];
+  const text = labelMap[level] || level;
+  return `<span class="badge ${cls}">${level === 0 ? '0 – N/A' : level + ' – ' + text}</span>`;
+}
+
+function calc() {
+  const m  = parseInt(document.getElementById('marathi').value);
+  const ma = parseInt(document.getElementById('math').value);
+  const e  = parseInt(document.getElementById('english').value);
+
+  document.getElementById('marathi-num').textContent  = m;
+  document.getElementById('math-num').textContent     = ma;
+  document.getElementById('english-num').textContent  = e;
+  document.getElementById('marathi-text').textContent  = marathiTexts[m] || '';
+  document.getElementById('math-text').textContent     = mathTexts[ma] || '';
+  document.getElementById('english-text').textContent  = englishTexts[e] || '';
+
+  const r = getOverall(m, ma, e);
+  const box = document.getElementById('result-box');
+  document.getElementById('result-value').textContent = r.text;
+
+  if (r.count > 0) {
+    document.getElementById('result-detail').textContent =
+      `Assessed: ${r.count} subject(s) | Sum: ${r.sum} | Avg: ${r.avg} | Rounded: ${r.rounded}`;
+    box.style.background = '#d5f5e3';
+    box.style.borderColor = '#27ae60';
+    document.getElementById('result-value').style.color = '#1e8449';
+  } else {
+    document.getElementById('result-detail').textContent = 'No subjects assessed yet';
+    box.style.background = '#fef9e7';
+    box.style.borderColor = '#f1c40f';
+    document.getElementById('result-value').style.color = '#e67e22';
+  }
+}
+
+// Build samples table
+const samples = [
+  [0, 0, 0],
+  [1, 0, 0],
+  [2, 0, 0],
+  [3, 0, 0],
+  [0, 2, 0],
+  [0, 0, 3],
+  [2, 2, 0],
+  [3, 3, 3],
+  [1, 2, 3],
+  [2, 3, 4],
+  [4, 0, 3],
+  [3, 4, 0],
+  [4, 5, 5],
+  [5, 5, 5],
+  [1, 1, 2],
+  [6, 5, 5],
+  [6, 0, 0],
+];
+
+const tbody = document.getElementById('sample-tbody');
+samples.forEach(([m, ma, e], i) => {
+  const r = getOverall(m, ma, e);
+  const avgDisp  = r.count > 0 ? r.avg : '—';
+  const roundDisp = r.count > 0 ? r.rounded : '—';
+  const sumDisp  = r.count > 0 ? r.sum : '—';
+  const lc = r.rounded ? levelClass[Math.min(r.rounded, 5)] : 'l0';
+
+  tbody.innerHTML += `
+    <tr>
+      <td>${i+1}</td>
+      <td>${badgeHtml(m, marathiTexts)}</td>
+      <td>${badgeHtml(ma, mathTexts)}</td>
+      <td>${badgeHtml(e, englishTexts)}</td>
+      <td>${r.count}</td>
+      <td>${sumDisp}</td>
+      <td>${avgDisp}</td>
+      <td>${roundDisp}</td>
+      <td class="result-cell"><span class="badge ${lc}">${r.text}</span></td>
+    </tr>`;
+});
+
+calc(); // init
+</script>
+</body>
+</html>

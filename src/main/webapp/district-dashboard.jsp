@@ -798,6 +798,10 @@
                                     <span>📊</span>
                                     <span>Subject Level Actions</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/district-student-level-jumps.jsp" class="dropdown-item" title="Analyze students with level jumps across phases (level 1→3, 2→4, etc.)">
+                                    <span>⚠️</span>
+                                    <span>Student Level Jumps</span>
+                                </a>
                             </div>
                             
                             <!-- Teacher Management Section -->

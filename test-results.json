@@ -1,0 +1,1818 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\playwright.config.ts",
+    "rootDir": "C:/Users/Admin/V2Project/VJNT Class Managment/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Admin/V2Project/VJNT Class Managment/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Admin/V2Project/VJNT Class Managment/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Admin/V2Project/VJNT Class Managment/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "C:/Users/Admin/V2Project/VJNT Class Managment/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Admin/V2Project/VJNT Class Managment/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "C:/Users/Admin/V2Project/VJNT Class Managment/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "login-activity.spec.ts",
+      "file": "login-activity.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Login Page & Activity Features",
+          "file": "login-activity.spec.ts",
+          "line": 15,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Login Page - UI & Accessibility",
+              "file": "login-activity.spec.ts",
+              "line": 22,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should load login page without errors",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1605,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:10.346Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-15d216d97f72fafd09e5",
+                  "file": "login-activity.spec.ts",
+                  "line": 23,
+                  "column": 9
+                },
+                {
+                  "title": "should display login form with required fields",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1134,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:12.447Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-40f530595cfa74af344b",
+                  "file": "login-activity.spec.ts",
+                  "line": 30,
+                  "column": 9
+                },
+                {
+                  "title": "should have proper page title",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1725,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:13.589Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-de08c0f4bf498df596c5",
+                  "file": "login-activity.spec.ts",
+                  "line": 46,
+                  "column": 9
+                },
+                {
+                  "title": "should display login branding/header",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1171,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:15.319Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-b3ac51a25a9ad99a7442",
+                  "file": "login-activity.spec.ts",
+                  "line": 53,
+                  "column": 9
+                },
+                {
+                  "title": "should have responsive layout",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1434,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:16.500Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-aba17b91d36c91181ad6",
+                  "file": "login-activity.spec.ts",
+                  "line": 64,
+                  "column": 9
+                },
+                {
+                  "title": "should not require login to view login page",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1860,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:17.941Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-fb9e401569dd4446d59d",
+                  "file": "login-activity.spec.ts",
+                  "line": 76,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Valid Login - UDISE 27150201202",
+              "file": "login-activity.spec.ts",
+              "line": 84,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should login successfully with valid credentials",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3747,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:19.808Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-a1878a73a5212d2ac1eb",
+                  "file": "login-activity.spec.ts",
+                  "line": 85,
+                  "column": 9
+                },
+                {
+                  "title": "should redirect to dashboard after successful login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2695,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:23.562Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-5a02c24c824f02fae0b9",
+                  "file": "login-activity.spec.ts",
+                  "line": 92,
+                  "column": 9
+                },
+                {
+                  "title": "should display logout button after login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2493,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:26.266Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-8313e2513f7fc1bc7f18",
+                  "file": "login-activity.spec.ts",
+                  "line": 104,
+                  "column": 9
+                },
+                {
+                  "title": "should maintain session after login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2700,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:28.767Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-8b9caa102c8eb46b3967",
+                  "file": "login-activity.spec.ts",
+                  "line": 113,
+                  "column": 9
+                },
+                {
+                  "title": "should handle first login scenario",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "timedOut",
+                          "duration": 37422,
+                          "error": {
+                            "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                            "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                          },
+                          "errors": [
+                            {
+                              "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                            },
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\utils\\loginTestUtils.ts",
+                                "column": 14,
+                                "line": 23
+                              },
+                              "message": "Error: page.goto: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8080/VJNT_Class_Managment/login\", waiting until \"load\"\u001b[22m\n\n\n\u001b[90m   at \u001b[39m..\\utils\\loginTestUtils.ts:23\n\n\u001b[0m \u001b[90m 21 |\u001b[39m \u001b[90m */\u001b[39m\n \u001b[90m 22 |\u001b[39m \u001b[36mexport\u001b[39m \u001b[36masync\u001b[39m \u001b[36mfunction\u001b[39m navigateToLogin(page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 23 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/VJNT_Class_Managment/login'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m              \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 24 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForLoadState(\u001b[32m'domcontentloaded'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 25 |\u001b[39m }\n \u001b[90m 26 |\u001b[39m\u001b[0m\n\u001b[2m    at navigateToLogin (C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\utils\\loginTestUtils.ts:23:14)\u001b[22m\n\u001b[2m    at performLogin (C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\utils\\loginTestUtils.ts:115:9)\u001b[22m\n\u001b[2m    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:123:25\u001b[22m"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:01:31.476Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ecc41-handle-first-login-scenario-chromium\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ecc41-handle-first-login-scenario-chromium\\error-context.md"
+                            }
+                          ]
+                        },
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2887,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 1,
+                          "startTime": "2026-03-20T10:02:09.934Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "trace",
+                              "contentType": "application/zip",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ecc41-handle-first-login-scenario-chromium-retry1\\trace.zip"
+                            }
+                          ]
+                        }
+                      ],
+                      "status": "flaky"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-f20e9b5f4f936801342d",
+                  "file": "login-activity.spec.ts",
+                  "line": 122,
+                  "column": 9
+                },
+                {
+                  "title": "should load user dashboard with content",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2565,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:13.302Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-f83ade914f7ddc31d28c",
+                  "file": "login-activity.spec.ts",
+                  "line": 133,
+                  "column": 9
+                },
+                {
+                  "title": "should display user information",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2255,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:15.879Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-cce21996db98adbca584",
+                  "file": "login-activity.spec.ts",
+                  "line": 140,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Invalid Login - Error Handling",
+              "file": "login-activity.spec.ts",
+              "line": 154,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should reject login with invalid username",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1826,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:18.146Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-832ebb879f5013046047",
+                  "file": "login-activity.spec.ts",
+                  "line": 155,
+                  "column": 9
+                },
+                {
+                  "title": "should reject login with invalid password",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2159,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:19.982Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-72a1e5f4c9b353e9cbf5",
+                  "file": "login-activity.spec.ts",
+                  "line": 162,
+                  "column": 9
+                },
+                {
+                  "title": "should display error message on invalid login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1916,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:22.152Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-4a1ae29dac3baa177f43",
+                  "file": "login-activity.spec.ts",
+                  "line": 169,
+                  "column": 9
+                },
+                {
+                  "title": "should stay on login page after failed attempt",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2258,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:24.080Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-019b906dafa1829682a6",
+                  "file": "login-activity.spec.ts",
+                  "line": 180,
+                  "column": 9
+                },
+                {
+                  "title": "should allow retry after failed login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3367,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:26.351Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-da72ec1492cc9a58e434",
+                  "file": "login-activity.spec.ts",
+                  "line": 187,
+                  "column": 9
+                },
+                {
+                  "title": "should not crash with empty credentials",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3118,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:29.732Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-6e86cca15c1e28fa9799",
+                  "file": "login-activity.spec.ts",
+                  "line": 201,
+                  "column": 9
+                },
+                {
+                  "title": "should handle special characters in password field",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2001,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:32.860Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-2ec6a343d97d6611f80d",
+                  "file": "login-activity.spec.ts",
+                  "line": 213,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Logout Functionality",
+              "file": "login-activity.spec.ts",
+              "line": 221,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should logout successfully after login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2500,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:34.870Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-2c1e1d46a01787cdc758",
+                  "file": "login-activity.spec.ts",
+                  "line": 222,
+                  "column": 9
+                },
+                {
+                  "title": "should clear session on logout",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2746,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:37.379Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-d47fd5d2b531a0fa0283",
+                  "file": "login-activity.spec.ts",
+                  "line": 236,
+                  "column": 9
+                },
+                {
+                  "title": "should allow login again after logout",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3823,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:40.135Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-8d4e2e9e63ad08d379f8",
+                  "file": "login-activity.spec.ts",
+                  "line": 249,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Activity Features - After Login",
+              "file": "login-activity.spec.ts",
+              "line": 261,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should access activity page if available",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2592,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:43.967Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-3dd6ff8b5ca88381a53e",
+                  "file": "login-activity.spec.ts",
+                  "line": 268,
+                  "column": 9
+                },
+                {
+                  "title": "should display activity form if accessible",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2583,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:46.570Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-c4cecc96506986eb0169",
+                  "file": "login-activity.spec.ts",
+                  "line": 283,
+                  "column": 9
+                },
+                {
+                  "title": "should have activity navigation menu or links",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2219,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:49.167Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-d4d5f14e12d90bbfe185",
+                  "file": "login-activity.spec.ts",
+                  "line": 300,
+                  "column": 9
+                },
+                {
+                  "title": "should support activity form fields",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2532,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:51.399Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-3d3f0dd0a7d8a5fac6ea",
+                  "file": "login-activity.spec.ts",
+                  "line": 311,
+                  "column": 9
+                },
+                {
+                  "title": "should handle activity page navigation",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2399,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:53.942Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-a2e40b51a8c35ccd3611",
+                  "file": "login-activity.spec.ts",
+                  "line": 329,
+                  "column": 9
+                },
+                {
+                  "title": "should maintain login while accessing activity features",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 2460,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:357:26",
+                            "location": {
+                              "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                              "column": 26,
+                              "line": 357
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 355 |\u001b[39m\n \u001b[90m 356 |\u001b[39m         \u001b[36mconst\u001b[39m loggedIn \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m isLoggedIn(page)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 357 |\u001b[39m         expect(loggedIn)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 358 |\u001b[39m       }\n \u001b[90m 359 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 360 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                                "column": 26,
+                                "line": 357
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n\u001b[0m \u001b[90m 355 |\u001b[39m\n \u001b[90m 356 |\u001b[39m         \u001b[36mconst\u001b[39m loggedIn \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m isLoggedIn(page)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 357 |\u001b[39m         expect(loggedIn)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 358 |\u001b[39m       }\n \u001b[90m 359 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 360 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:357:26\u001b[22m"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:02:56.352Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ffe66-accessing-activity-features-chromium\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ffe66-accessing-activity-features-chromium\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ffe66-accessing-activity-features-chromium\\error-context.md"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                            "column": 26,
+                            "line": 357
+                          }
+                        },
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 3849,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:357:26",
+                            "location": {
+                              "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                              "column": 26,
+                              "line": 357
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 355 |\u001b[39m\n \u001b[90m 356 |\u001b[39m         \u001b[36mconst\u001b[39m loggedIn \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m isLoggedIn(page)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 357 |\u001b[39m         expect(loggedIn)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 358 |\u001b[39m       }\n \u001b[90m 359 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 360 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                                "column": 26,
+                                "line": 357
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n\u001b[0m \u001b[90m 355 |\u001b[39m\n \u001b[90m 356 |\u001b[39m         \u001b[36mconst\u001b[39m loggedIn \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m isLoggedIn(page)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 357 |\u001b[39m         expect(loggedIn)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 358 |\u001b[39m       }\n \u001b[90m 359 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 360 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:357:26\u001b[22m"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 1,
+                          "startTime": "2026-03-20T10:02:59.935Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ffe66-accessing-activity-features-chromium-retry1\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ffe66-accessing-activity-features-chromium-retry1\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ffe66-accessing-activity-features-chromium-retry1\\error-context.md"
+                            },
+                            {
+                              "name": "trace",
+                              "contentType": "application/zip",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--ffe66-accessing-activity-features-chromium-retry1\\trace.zip"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                            "column": 26,
+                            "line": 357
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-3f130e7b51265d0599b7",
+                  "file": "login-activity.spec.ts",
+                  "line": 345,
+                  "column": 9
+                },
+                {
+                  "title": "should support activity approvals if user has permission",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2726,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:05.390Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-866b3ae3ccd78cb4a516",
+                  "file": "login-activity.spec.ts",
+                  "line": 361,
+                  "column": 9
+                },
+                {
+                  "title": "should handle Palak Melava activity if available",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2623,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:08.417Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-f2fa476d26f645372ea8",
+                  "file": "login-activity.spec.ts",
+                  "line": 378,
+                  "column": 9
+                },
+                {
+                  "title": "should display activity analysis if available",
+                  "ok": false,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 2609,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:406:25",
+                            "location": {
+                              "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                              "column": 25,
+                              "line": 406
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 404 |\u001b[39m       \u001b[90m// Should handle access appropriately\u001b[39m\n \u001b[90m 405 |\u001b[39m       \u001b[36mconst\u001b[39m isHandled \u001b[33m=\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'activity'\u001b[39m) \u001b[33m||\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'dashboard'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 406 |\u001b[39m       expect(isHandled)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 407 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 408 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 409 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                                "column": 25,
+                                "line": 406
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n\u001b[0m \u001b[90m 404 |\u001b[39m       \u001b[90m// Should handle access appropriately\u001b[39m\n \u001b[90m 405 |\u001b[39m       \u001b[36mconst\u001b[39m isHandled \u001b[33m=\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'activity'\u001b[39m) \u001b[33m||\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'dashboard'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 406 |\u001b[39m       expect(isHandled)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 407 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 408 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 409 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:406:25\u001b[22m"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:11.054Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--0c7a0-ivity-analysis-if-available-chromium\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--0c7a0-ivity-analysis-if-available-chromium\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--0c7a0-ivity-analysis-if-available-chromium\\error-context.md"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                            "column": 25,
+                            "line": 406
+                          }
+                        },
+                        {
+                          "workerIndex": 4,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 3176,
+                          "error": {
+                            "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                            "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:406:25",
+                            "location": {
+                              "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                              "column": 25,
+                              "line": 406
+                            },
+                            "snippet": "\u001b[0m \u001b[90m 404 |\u001b[39m       \u001b[90m// Should handle access appropriately\u001b[39m\n \u001b[90m 405 |\u001b[39m       \u001b[36mconst\u001b[39m isHandled \u001b[33m=\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'activity'\u001b[39m) \u001b[33m||\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'dashboard'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 406 |\u001b[39m       expect(isHandled)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 407 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 408 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 409 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                                "column": 25,
+                                "line": 406
+                              },
+                              "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n\u001b[0m \u001b[90m 404 |\u001b[39m       \u001b[90m// Should handle access appropriately\u001b[39m\n \u001b[90m 405 |\u001b[39m       \u001b[36mconst\u001b[39m isHandled \u001b[33m=\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'activity'\u001b[39m) \u001b[33m||\u001b[39m url\u001b[33m.\u001b[39mincludes(\u001b[32m'dashboard'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 406 |\u001b[39m       expect(isHandled)\u001b[33m.\u001b[39mtoBe(\u001b[36mtrue\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 407 |\u001b[39m     })\u001b[33m;\u001b[39m\n \u001b[90m 408 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 409 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts:406:25\u001b[22m"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 1,
+                          "startTime": "2026-03-20T10:03:14.734Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--0c7a0-ivity-analysis-if-available-chromium-retry1\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--0c7a0-ivity-analysis-if-available-chromium-retry1\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--0c7a0-ivity-analysis-if-available-chromium-retry1\\error-context.md"
+                            },
+                            {
+                              "name": "trace",
+                              "contentType": "application/zip",
+                              "path": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\test-results\\login-activity-Login-Page--0c7a0-ivity-analysis-if-available-chromium-retry1\\trace.zip"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Admin\\V2Project\\VJNT Class Managment\\tests\\e2e\\login-activity.spec.ts",
+                            "column": 25,
+                            "line": 406
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-109f322758a08a55c27c",
+                  "file": "login-activity.spec.ts",
+                  "line": 396,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Session & Security",
+              "file": "login-activity.spec.ts",
+              "line": 410,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should not allow access to protected pages without login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1585,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:19.539Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-07462a7989a481aecae4",
+                  "file": "login-activity.spec.ts",
+                  "line": 411,
+                  "column": 9
+                },
+                {
+                  "title": "should timeout after inactivity (session management)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2423,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:21.436Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-e5bdbbb5e99680a814e0",
+                  "file": "login-activity.spec.ts",
+                  "line": 421,
+                  "column": 9
+                },
+                {
+                  "title": "should handle simultaneous login attempts",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 4373,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:23.871Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-23b11ac4cf453ca5b3da",
+                  "file": "login-activity.spec.ts",
+                  "line": 430,
+                  "column": 9
+                },
+                {
+                  "title": "should use HTTPS for password transmission",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1424,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:28.256Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-5a144a043105e0a89070",
+                  "file": "login-activity.spec.ts",
+                  "line": 448,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Performance & UX",
+              "file": "login-activity.spec.ts",
+              "line": 457,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should load login page quickly",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1297,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:29.691Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-cbcdc6b7bdeb6ec75c3a",
+                  "file": "login-activity.spec.ts",
+                  "line": 458,
+                  "column": 9
+                },
+                {
+                  "title": "should complete login within reasonable time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2613,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:30.999Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-10c8f97209ff53cd2d3b",
+                  "file": "login-activity.spec.ts",
+                  "line": 466,
+                  "column": 9
+                },
+                {
+                  "title": "should display login form without JavaScript errors",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1725,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:33.622Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-6b013c1ea9c7077c36cf",
+                  "file": "login-activity.spec.ts",
+                  "line": 474,
+                  "column": 9
+                },
+                {
+                  "title": "should support browser back button after login",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3554,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:35.358Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-1abd985c6a8d00135a6a",
+                  "file": "login-activity.spec.ts",
+                  "line": 496,
+                  "column": 9
+                },
+                {
+                  "title": "should handle page refresh while logged in",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 5,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2670,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-03-20T10:03:38.923Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "097e3f9437188b19f77f-9814377bd0277856b449",
+                  "file": "login-activity.spec.ts",
+                  "line": 515,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-20T10:01:09.368Z",
+    "duration": 152435.11800000002,
+    "expected": 38,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 1
+  }
+}

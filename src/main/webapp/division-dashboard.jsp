@@ -686,9 +686,9 @@
                 <!-- Logo Section - END -->
                 <!-- Division Icon and Name Section - START -->
                 <div class="school-icon">🏛️</div>
-                <h1><%= divisionName %> Division</h1>
+                <h1><%= divisionName %> </h1>
                 <!-- Division Icon and Name Section - END -->
-                <p class="header-subtitle">📍 Division Dashboard</p>
+                <p class="header-subtitle">📍 Dashboard</p>
             </div>
             <div class="header-right">
                 <div class="user-info-box">
@@ -746,6 +746,14 @@
                                 <a href="<%= request.getContextPath() %>/division-phase-wise-statistics.jsp" class="dropdown-item" title="View phase-wise subject statistics by district and school">
                                     <span>📚</span>
                                     <span>Phase Levels Statistics</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-student-level-jumps.jsp" class="dropdown-item" title="View students with level jumps across all districts">
+                                    <span>⚠️</span>
+                                    <span>Student Level Jumps</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-charts.jsp" class="dropdown-item" title="View interactive charts and analytics for level jumps">
+                                    <span>📊</span>
+                                    <span>Level Jumps Analytics Charts</span>
                                 </a>
                                 <a href="<%= request.getContextPath() %>/division-student-level-details.jsp" class="dropdown-item" title="View individual student level details with filters">
                                     <span>👨‍🎓</span>

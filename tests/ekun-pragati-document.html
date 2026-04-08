@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<title>⭐ एकूण प्रगती – Technical Document</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px; color: #222;
+    background: #fff;
+    padding: 40px 60px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* HEADER */
+  .doc-header {
+    border-top: 6px solid #2c3e50;
+    border-bottom: 2px solid #2c3e50;
+    padding: 16px 0 12px;
+    margin-bottom: 28px;
+  }
+  .doc-header h1 { font-size: 22px; color: #2c3e50; }
+  .doc-header .meta { font-size: 12px; color: #888; margin-top: 6px; }
+  .doc-header .meta span { margin-right: 24px; }
+
+  /* SECTIONS */
+  h2 {
+    font-size: 15px; color: #2c3e50;
+    border-left: 4px solid #3498db;
+    padding-left: 10px;
+    margin: 28px 0 12px;
+  }
+  h3 { font-size: 13px; color: #555; margin: 16px 0 6px; }
+  p { line-height: 1.7; margin-bottom: 10px; }
+
+  /* FLOW BOX */
+  .flow {
+    display: flex; align-items: stretch;
+    gap: 0; margin: 16px 0;
+    border: 1px solid #ddd; border-radius: 8px;
+    overflow: hidden;
+  }
+  .flow-step {
+    flex: 1; padding: 12px 10px; text-align: center;
+    background: #f8f9fa; border-right: 1px solid #ddd;
+    font-size: 12px;
+  }
+  .flow-step:last-child { border-right: none; }
+  .flow-step .num {
+    display: inline-block; background: #3498db; color: white;
+    border-radius: 50%; width: 22px; height: 22px;
+    line-height: 22px; font-size: 11px; font-weight: bold;
+    margin-bottom: 6px;
+  }
+  .flow-step .title { font-weight: bold; color: #2c3e50; margin-bottom: 4px; }
+  .flow-step .desc { color: #666; font-size: 11px; }
+
+  /* CODE BLOCK */
+  pre {
+    background: #2c3e50; color: #ecf0f1;
+    padding: 14px 16px; border-radius: 6px;
+    font-size: 12px; line-height: 1.6;
+    overflow-x: auto; margin: 10px 0;
+  }
+  code { font-family: Consolas, monospace; }
+
+  /* LEVEL TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+  th { background: #2c3e50; color: white; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: bold;
+  }
+  .l0{background:#ecf0f1;color:#7f8c8d;}
+  .l1{background:#fadbd8;color:#c0392b;}
+  .l2{background:#fdebd0;color:#e67e22;}
+  .l3{background:#d5f5e3;color:#1e8449;}
+  .l4{background:#d6eaf8;color:#1a5276;}
+  .l5{background:#e8daef;color:#6c3483;}
+  .l-na{background:#f4f4f4;color:#aaa;font-style:italic;}
+
+  /* SAMPLE TABLE */
+  .sample-table th { font-size: 11px; padding: 7px 8px; }
+  .sample-table td { font-size: 11px; padding: 6px 8px; text-align: center; }
+  .highlight-row td { background: #fff9c4 !important; }
+
+  /* NOTE / ALERT */
+  .note {
+    background: #fef9e7; border-left: 4px solid #f1c40f;
+    padding: 10px 14px; border-radius: 4px;
+    font-size: 12px; color: #6d4c00; margin: 12px 0;
+  }
+  .note strong { display: block; margin-bottom: 3px; }
+  .alert {
+    background: #fadbd8; border-left: 4px solid #e74c3c;
+    padding: 10px 14px; border-radius: 4px;
+    font-size: 12px; color: #922b21; margin: 12px 0;
+  }
+  .alert strong { display: block; margin-bottom: 3px; }
+  .info {
+    background: #d6eaf8; border-left: 4px solid #3498db;
+    padding: 10px 14px; border-radius: 4px;
+    font-size: 12px; color: #1a5276; margin: 12px 0;
+  }
+
+  /* FORMULA BOX */
+  .formula {
+    background: #eafaf1; border: 2px solid #27ae60;
+    border-radius: 8px; padding: 14px 18px;
+    font-size: 14px; font-weight: bold; color: #1e8449;
+    text-align: center; margin: 14px 0;
+  }
+
+  /* FOOTER */
+  .doc-footer {
+    border-top: 1px solid #ddd; margin-top: 40px;
+    padding-top: 12px; font-size: 11px; color: #aaa;
+    text-align: center;
+  }
+
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="doc-header">
+  <h1>⭐ एकूण प्रगती — Technical Reference Document</h1>
+  <div class="meta">
+    <span>📁 Project: VJNT Class Management</span>
+    <span>📅 Date: February 2026</span>
+  </div>
+</div>
+
+<!-- 1. OVERVIEW -->
+<h2> Overview</h2>
+<p>
+  The <strong>⭐ एकूण प्रगती</strong> (Overall Progress) field on the Student Report Card
+  shows a single consolidated level that represents the student's average performance
+  across three subjects: <strong>मराठी, गणित, and इंग्रजी</strong>.
+</p>
+
+
+<div class="info">
+  <strong>Displayed in print-student-report-card.jsp (line ~642):</strong>
+  ⭐ एकूण प्रगती: ${data.assessmentLevels.overall}
+</div>
+
+<!-- 2. DATA SOURCE -->
+<h2> Data Source</h2>
+<p>Three integer columns from the <code>students</code> table:</p>
+<table>
+  <tr><th>Column</th><th>Subject</th><th>Range</th><th>0 means</th></tr>
+  <tr><td><code>marathi_akshara_level</code></td><td>मराठी</td><td>0 – 6</td><td>Not Assessed</td></tr>
+  <tr><td><code>math_akshara_level</code></td><td>गणित</td><td>0 – 8</td><td>Not Assessed</td></tr>
+  <tr><td><code>english_akshara_level</code></td><td>इंग्रजी</td><td>0 – 6</td><td>Not Assessed</td></tr>
+</table>
+
+<!-- 3. CALCULATION STEPS -->
+<h2>3. Calculation Steps</h2>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="num">1</div>
+    <div class="title">Read DB</div>
+    <div class="desc">Fetch 3 level integers from students table</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">2</div>
+    <div class="title">Filter</div>
+    <div class="desc">Skip subjects where level = 0 (not assessed)</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">3</div>
+    <div class="title">Sum</div>
+    <div class="desc">Add levels of assessed subjects only</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">4</div>
+    <div class="title">Average</div>
+    <div class="desc">sum ÷ assessedCount</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">5</div>
+    <div class="title">Round</div>
+    <div class="desc">Math.round() — 0.5 rounds UP</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">6</div>
+    <div class="title">Map</div>
+    <div class="desc">Round value → Level Name string</div>
+  </div>
+</div>
+
+<div class="formula">
+  avgLevel = Math.round( (m + ma + e) / assessedCount )
+</div>
+
+
+
+<!-- 4. OVERALL LEVEL NAMES -->
+<h2> Overall Level Names (1–5)</h2>
+<table>
+  <tr><th>Value</th><th>Level Name</th><th>Meaning</th></tr>
+  <tr><td><span class="badge l-na">0</span></td><td>अद्याप मूल्यांकन नाही</td><td>No subjects assessed</td></tr>
+  <tr><td><span class="badge l1">1</span></td><td>Level 1 – सुरुवात</td><td>Just beginning</td></tr>
+  <tr><td><span class="badge l2">2</span></td><td>Level 2 – विकसित</td><td>Developing</td></tr>
+  <tr><td><span class="badge l3">3</span></td><td>Level 3 – प्रवीण</td><td>Proficient</td></tr>
+  <tr><td><span class="badge l4">4</span></td><td>Level 4 – प्रगत</td><td>Advanced</td></tr>
+  <tr><td><span class="badge l5">5</span></td><td>Level 5 – तज्ज्ञ</td><td>Expert</td></tr>
+</table>
+
+<!-- 5. SUBJECT LEVEL DETAILS -->
+<h2> Subject-Wise Level Details</h2>
+
+<h3>मराठी (marathi_akshara_level) — Range: 0 to 6</h3>
+<table>
+  <tr><th>Level</th><th>Label</th></tr>
+  <tr><td>0</td><td>स्तर निश्चित केला नाही</td></tr>
+  <tr><td>1</td><td>प्रारंभिक स्तर</td></tr>
+  <tr><td>2</td><td>अक्षर स्तर</td></tr>
+  <tr><td>3</td><td>शब्द स्तर</td></tr>
+  <tr><td>4</td><td>वाक्य स्तर</td></tr>
+  <tr><td>5</td><td>समजपूर्वक उतारा वाचन स्तर</td></tr>
+  <tr><td>6</td><td>मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</td></tr>
+</table>
+
+<h3>गणित (math_akshara_level) — Range: 0 to 8</h3>
+<table>
+  <tr><th>Level</th><th>Label</th></tr>
+  <tr><td>0</td><td>स्तर निश्चित केला नाही</td></tr>
+  <tr><td>1</td><td>प्रारंभिक स्तर</td></tr>
+  <tr><td>2</td><td>अंक ज्ञान स्तर</td></tr>
+  <tr><td>3</td><td>संख्याज्ञान स्तर</td></tr>
+  <tr><td>4</td><td>बेरीज स्तर</td></tr>
+  <tr><td>5</td><td>वजाबाकी स्तर</td></tr>
+  <tr><td>6</td><td>गुणाकार स्तर</td></tr>
+  <tr><td>7</td><td>भागाकार स्तर</td></tr>
+  <tr><td>8</td><td>गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</td></tr>
+</table>
+
+<h3>इंग्रजी (english_akshara_level) — Range: 0 to 6</h3>
+<table>
+  <tr><th>Level</th><th>Label</th></tr>
+  <tr><td>0</td><td>स्तर निश्चित केला नाही</td></tr>
+  <tr><td>1</td><td>Beginner level</td></tr>
+  <tr><td>2</td><td>Alphabet level</td></tr>
+  <tr><td>3</td><td>Word level</td></tr>
+  <tr><td>4</td><td>Sentence level</td></tr>
+  <tr><td>5</td><td>Paragraph Reading with Understanding</td></tr>
+  <tr><td>6</td><td>English reading and writing FLN level 100% complete</td></tr>
+</table>
+
+<!-- 6. SAMPLE COMBINATIONS -->
+<h2> Sample Calculations</h2>
+<table class="sample-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>मराठी</th>
+      <th>गणित</th>
+      <th>इंग्रजी</th>
+      <th>Assessed</th>
+      <th>Sum</th>
+      <th>Avg</th>
+      <th>Rounded</th>
+      <th>⭐ एकूण प्रगती</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>0 – N/A</td><td>0 – N/A</td><td>0 – N/A</td><td>0</td><td>—</td><td>—</td><td>—</td><td><span class="badge l-na">अद्याप मूल्यांकन नाही</span></td></tr>
+    <tr><td>2</td><td>1 – प्रारंभिक</td><td>0 – N/A</td><td>0 – N/A</td><td>1</td><td>1</td><td>1.00</td><td>1</td><td><span class="badge l1">Level 1 – सुरुवात</span></td></tr>
+    <tr><td>3</td><td>2 – अक्षर</td><td>0 – N/A</td><td>0 – N/A</td><td>1</td><td>2</td><td>2.00</td><td>2</td><td><span class="badge l2">Level 2 – विकसित</span></td></tr>
+    <tr><td>4</td><td>3 – शब्द</td><td>0 – N/A</td><td>0 – N/A</td><td>1</td><td>3</td><td>3.00</td><td>3</td><td><span class="badge l3">Level 3 – प्रवीण</span></td></tr>
+    <tr><td>5</td><td>0 – N/A</td><td>2 – अंक ज्ञान</td><td>0 – N/A</td><td>1</td><td>2</td><td>2.00</td><td>2</td><td><span class="badge l2">Level 2 – विकसित</span></td></tr>
+    <tr><td>6</td><td>0 – N/A</td><td>0 – N/A</td><td>3 – Word</td><td>1</td><td>3</td><td>3.00</td><td>3</td><td><span class="badge l3">Level 3 – प्रवीण</span></td></tr>
+    <tr><td>7</td><td>2 – अक्षर</td><td>2 – अंक ज्ञान</td><td>0 – N/A</td><td>2</td><td>4</td><td>2.00</td><td>2</td><td><span class="badge l2">Level 2 – विकसित</span></td></tr>
+    <tr><td>8</td><td>3 – शब्द</td><td>3 – संख्याज्ञान</td><td>3 – Word</td><td>3</td><td>9</td><td>3.00</td><td>3</td><td><span class="badge l3">Level 3 – प्रवीण</span></td></tr>
+    <tr><td>9</td><td>1 – प्रारंभिक</td><td>2 – अंक ज्ञान</td><td>3 – Word</td><td>3</td><td>6</td><td>2.00</td><td>2</td><td><span class="badge l2">Level 2 – विकसित</span></td></tr>
+    <tr><td>10</td><td>2 – अक्षर</td><td>3 – संख्याज्ञान</td><td>4 – Sentence</td><td>3</td><td>9</td><td>3.00</td><td>3</td><td><span class="badge l3">Level 3 – प्रवीण</span></td></tr>
+    <tr class="highlight-row"><td>11</td><td>4 – वाक्य</td><td>0 – N/A</td><td>3 – Word</td><td>2</td><td>7</td><td>3.50</td><td><strong>4 ↑</strong></td><td><span class="badge l4">Level 4 – प्रगत</span></td></tr>
+    <tr class="highlight-row"><td>12</td><td>3 – शब्द</td><td>4 – बेरीज</td><td>0 – N/A</td><td>2</td><td>7</td><td>3.50</td><td><strong>4 ↑</strong></td><td><span class="badge l4">Level 4 – प्रगत</span></td></tr>
+    <tr><td>13</td><td>4 – वाक्य</td><td>5 – वजाबाकी</td><td>5 – Para</td><td>3</td><td>14</td><td>4.67</td><td>5</td><td><span class="badge l5">Level 5 – तज्ज्ञ</span></td></tr>
+    <tr><td>14</td><td>5 – उतारा वाचन</td><td>5 – वजाबाकी</td><td>5 – Para</td><td>3</td><td>15</td><td>5.00</td><td>5</td><td><span class="badge l5">Level 5 – तज्ज्ञ</span></td></tr>
+    <tr><td>15</td><td>1 – प्रारंभिक</td><td>1 – प्रारंभिक</td><td>2 – Alphabet</td><td>3</td><td>4</td><td>1.33</td><td>1</td><td><span class="badge l1">Level 1 – सुरुवात</span></td></tr>
+    <tr class="highlight-row"><td>16</td><td>6 – FLN 100%*</td><td>5 – वजाबाकी</td><td>5 – Para</td><td>3</td><td>15*</td><td>5.00</td><td>5</td><td><span class="badge l5">Level 5 – तज्ज्ञ</span></td></tr>
+    <tr class="highlight-row"><td>17</td><td>6 – FLN 100%*</td><td>0 – N/A</td><td>0 – N/A</td><td>1</td><td>5*</td><td>5.00</td><td>5</td><td><span class="badge l5">Level 5 – तज्ज्ञ</span></td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  🟡 Highlighted rows (11, 12) = 0.5 rounding cases — avg 3.50 rounds UP to 4.
+</div>
+
+<!-- 7. EDGE CASES -->
+<h2> Edge Cases & Known Issues</h2>
+
+<div class="alert">
+  <strong>⚠️ मराठी Level 6 Issue</strong>
+  The <code>math_akshara_level</code> goes up to 8 and <code>marathi_akshara_level</code> goes up to 6,
+  but the overall levelNames array only has indices 1–5.
+  If the average rounds to 6, 7, or 8, the code falls back to raw <code>"Level 6"</code> text with no Marathi label.
+  <br><br>
+  <strong>Fix recommendation:</strong> Cap each subject level at 5 before adding to sum:
+  <code>levelSum += Math.min(marathiLevel, 5);</code>
+</div>
+
+<div class="note">
+  <strong>📌 Rounding Rule</strong>
+  Java's <code>Math.round()</code> uses "half-up" rounding — 0.5 always rounds UP.
+  Example: avg 2.5 → rounds to 3 → Level 3 – प्रवीण
+</div>
+
+<div class="note">
+  <strong>📌 Single Subject Assessed</strong>
+  If only one subject is assessed, that subject's level IS the overall level.
+  Example: मराठी=4, गणित=0, इंग्रजी=0 → avg = 4/1 = 4.0 → Level 4 – प्रगत
+</div>
+
+
+<!-- FOOTER -->
+<div class="doc-footer">
+  VJNT Class Management System &nbsp;|&nbsp;
+  GetStudentComprehensiveDataServlet.java &nbsp;|&nbsp;
+  print-student-report-card.jsp &nbsp;|&nbsp;
+  GitHub: anilbolke/VJNT
+</div>
+
+</body>
+</html>
