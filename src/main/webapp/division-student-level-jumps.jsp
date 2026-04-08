@@ -1432,11 +1432,15 @@
             const filterSchoolSelect = document.getElementById('filterSchool');
             const dropdown = document.getElementById('schoolDropdownList');
             
+            console.log('🎯 selectSchool called with:', schoolName);
+            
             // Update search input with school name
             searchInput.value = schoolName || '';
+            console.log('📝 Set searchInput.value to:', searchInput.value);
             
             // Update hidden select dropdown
             filterSchoolSelect.value = schoolName || '';
+            console.log('📝 Set filterSchoolSelect.value to:', filterSchoolSelect.value);
             
             // Close dropdown
             dropdown.style.display = 'none';
@@ -1457,7 +1461,7 @@
             const studentClass = document.getElementById('filterClass').value.trim();
             const subject = document.getElementById('filterSubject').value.trim();
 
-            console.log('Applying filters:', {district, studentName, school, studentClass, subject});
+            console.log('🔧 applyFilters - Before building URL:', {district, studentName, school, studentClass, subject});
 
             // Build URL with all filter parameters - reload page server-side to filter all records
             let filterParams = [];
@@ -1474,7 +1478,7 @@
                 url += '?page=1';
             }
             
-            console.log('Navigating to:', url);
+            console.log('🌐 Navigating to URL:', url);
             window.location.href = url;
         }
                   function clearFilters() {
@@ -1582,8 +1586,17 @@
             const urlParams = new URLSearchParams(window.location.search);
             const selectedSchool = urlParams.get('school') || '';
             
+            console.log('🔍 populateSchoolsByDistrict - selectedSchool from URL:', selectedSchool);
+            
             // Set school search input to the selected school (or empty if none)
             schoolSearchInput.value = selectedSchool;
+            console.log('📝 Set schoolSearchInput.value to:', schoolSearchInput.value);
+            
+            // Also update the hidden select element
+            if (filterSchool) {
+                filterSchool.value = selectedSchool;
+                console.log('📝 Set filterSchool.value to:', filterSchool.value);
+            }
             
             // Clear and rebuild dropdown
             schoolDropdownList.innerHTML = '';
