@@ -1692,6 +1692,11 @@
         window.addEventListener('load', function() {
             // District-schools map is already loaded from server (see <script> tag above)
             
+            // Populate schools dropdown with all schools (or filtered by current district)
+            const districtFilter = document.getElementById('filterDistrict');
+            const currentDistrict = districtFilter ? districtFilter.value : '';
+            populateSchoolsByDistrict(currentDistrict);
+            
             // Show all school sections by default (they should already be visible from server)
             console.log('✓ Page loaded - data should be displayed by default');
             
