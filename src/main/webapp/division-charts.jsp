@@ -579,7 +579,8 @@
                     legend: {
                         labels: {
                             font: { size: 12 },
-                            padding: 15
+                            padding: 15,
+                            color: '#333'  // Dark text for legend
                         }
                     }
                 }
@@ -613,6 +614,11 @@
                                 x: {
                                     beginAtZero: true,
                                     ticks: { stepSize: 1 }
+                                },
+                                y: {
+                                    ticks: {
+                                        color: '#333'
+                                    }
                                 }
                             }
                         }
@@ -690,7 +696,10 @@
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    ticks: { stepSize: 1 }
+                                    ticks: { stepSize: 1, color: '#333' }
+                                },
+                                x: {
+                                    ticks: { color: '#333' }
                                 }
                             }
                         }
@@ -730,7 +739,10 @@
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    ticks: { stepSize: 1 }
+                                    ticks: { stepSize: 1, color: '#333' }
+                                },
+                                x: {
+                                    ticks: { color: '#333' }
                                 }
                             }
                         }
@@ -776,12 +788,13 @@
                             scales: {
                                 x: {
                                     beginAtZero: true,
-                                    ticks: { stepSize: 1 }
+                                    ticks: { stepSize: 1, color: '#333' }
                                 },
                                 y: {
                                     ticks: {
                                         font: { size: 11 },
-                                        padding: 5
+                                        padding: 5,
+                                        color: '#333'  // Dark gray/black text
                                     },
                                     clip: false
                                 }
