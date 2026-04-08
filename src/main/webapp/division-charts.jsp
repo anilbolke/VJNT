@@ -187,6 +187,14 @@
             }
         }
     }
+    
+    // 7. District Percentages
+    Map<String, Double> districtPercentage = new LinkedHashMap<>();
+    int totalStudents = levelJumpStudents.size();
+    for (Map.Entry<String, Integer> entry : districtCount.entrySet()) {
+        double percentage = (totalStudents > 0) ? (entry.getValue() * 100.0) / totalStudents : 0;
+        districtPercentage.put(entry.getKey(), percentage);
+    }
 %>
 
 <!DOCTYPE html>
@@ -399,6 +407,107 @@
             color: white;
         }
         
+        .district-percentage-container {
+            grid-column: 1 / -1;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .district-percentage-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .total-students-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .total-students-card .number {
+            font-size: 48px;
+            font-weight: bold;
+        }
+        
+        .total-students-card .label {
+            font-size: 16px;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+        
+        .district-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .district-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .district-name {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+        
+        .district-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .student-count {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #667eea;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .percentage-bar {
+            width: 150px;
+            height: 24px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+        }
+        
+        .percentage-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 0 8px;
+        }
+        
         .footer {
             background: white;
             padding: 20px;
@@ -457,6 +566,38 @@
             <div class="stat-card">
                 <div class="number"><%= (marathiJumps + mathJumps + englishJumps) / 3 %></div>
                 <div class="label">Avg per Subject</div>
+            </div>
+        </div>
+        
+        <!-- District Percentage Section -->
+        <div class="charts-grid">
+            <div class="district-percentage-container">
+                <div class="district-percentage-title">📊 District-wise Distribution</div>
+                
+                <div class="total-students-card">
+                    <div class="number"><%= totalStudents %></div>
+                    <div class="label">Total Students with Level Jumps</div>
+                </div>
+                
+                <div class="district-list">
+                    <% for (Map.Entry<String, Double> entry : districtPercentage.entrySet()) { 
+                        String districtName = entry.getKey();
+                        double percentage = entry.getValue();
+                        int count = districtCount.get(districtName);
+                    %>
+                    <div class="district-item">
+                        <div class="district-name"><%= districtName %></div>
+                        <div class="district-stats">
+                            <div class="student-count"><%= count %></div>
+                            <div class="percentage-bar">
+                                <div class="percentage-fill" style="width: <%= percentage %>%;">
+                                    <%= String.format("%.1f%%", percentage) %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
             </div>
         </div>
         
