@@ -787,17 +787,8 @@
                                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
                         <select id="filterSchool" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; display: none;">
                             <option value="">-- All Schools --</option>
-                            <% for (String schoolName : paginatedGroupedStudents.keySet()) { %>
-                                <option value="<%= schoolName %>"><%= schoolName %></option>
-                            <% } %>
                         </select>
                         <div id="schoolDropdownList" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; max-height: 250px; overflow-y: auto; z-index: 1000; display: none;">
-                            <div style="padding: 8px 10px; cursor: pointer; hover-color: #f0f0f0;" onclick="selectSchool('', this)">-- All Schools --</div>
-                            <% for (String schoolName : paginatedGroupedStudents.keySet()) { %>
-                                <div style="padding: 8px 10px; cursor: pointer;" onclick="selectSchool('<%= schoolName.replace("'", "\\'") %>', this)" title="<%= schoolName %>">
-                                    <%= schoolName %>
-                                </div>
-                            <% } %>
                         </div>
                     </div>
                 </div>
@@ -1592,16 +1583,21 @@
             schoolSearchInput.value = selectedSchool;
             console.log('📝 Set schoolSearchInput.value to:', schoolSearchInput.value);
             
-            // Also update the hidden select element
+            // Clear and rebuild both dropdown list and select options
+            schoolDropdownList.innerHTML = '';
+            
+            // Clear select options (keep only the "All Schools" option)
             if (filterSchool) {
+                // Remove all options except the first one (All Schools)
+                while (filterSchool.options.length > 1) {
+                    filterSchool.remove(1);
+                }
+                // Set the select value to the selected school
                 filterSchool.value = selectedSchool;
                 console.log('📝 Set filterSchool.value to:', filterSchool.value);
             }
             
-            // Clear and rebuild dropdown
-            schoolDropdownList.innerHTML = '';
-            
-            // Add "All Schools" option
+            // Add "All Schools" option to dropdown list
             const allOption = document.createElement('div');
             allOption.style.cssText = 'padding: 8px 10px; cursor: pointer;';
             allOption.textContent = '-- All Schools --';
@@ -1611,12 +1607,21 @@
             if (selectedDistrict && allSchoolsByDistrict[selectedDistrict]) {
                 // Show only schools from selected district
                 allSchoolsByDistrict[selectedDistrict].forEach(schoolName => {
+                    // Add to dropdown list
                     const option = document.createElement('div');
                     option.style.cssText = 'padding: 8px 10px; cursor: pointer;';
                     option.title = schoolName;
                     option.textContent = schoolName;
                     option.onclick = function() { selectSchool(schoolName, this); };
                     schoolDropdownList.appendChild(option);
+                    
+                    // Add to select element
+                    if (filterSchool) {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = schoolName;
+                        optionElement.textContent = schoolName;
+                        filterSchool.appendChild(optionElement);
+                    }
                 });
                 console.log('✓ Populated ' + allSchoolsByDistrict[selectedDistrict].length + ' schools for district: ' + selectedDistrict);
             } else if (!selectedDistrict) {
@@ -1627,12 +1632,21 @@
                 });
                 
                 allSchools.forEach(schoolName => {
+                    // Add to dropdown list
                     const optionDiv = document.createElement('div');
                     optionDiv.style.cssText = 'padding: 8px 10px; cursor: pointer;';
                     optionDiv.title = schoolName;
                     optionDiv.textContent = schoolName;
                     optionDiv.onclick = function() { selectSchool(schoolName, this); };
                     schoolDropdownList.appendChild(optionDiv);
+                    
+                    // Add to select element
+                    if (filterSchool) {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = schoolName;
+                        optionElement.textContent = schoolName;
+                        filterSchool.appendChild(optionElement);
+                    }
                 });
                 console.log('✓ Populated all ' + allSchools.size + ' schools');
             } else {
