@@ -308,6 +308,10 @@
             height: 400px;
         }
         
+        .chart-wrapper.schools-chart {
+            height: 600px;
+        }
+        
         .heatmap-container {
             grid-column: 1 / -1;
             background: white;
@@ -487,7 +491,7 @@
             <!-- 5. Top Schools -->
             <div class="chart-container">
                 <div class="chart-title">🏆 Top 10 Schools</div>
-                <div class="chart-wrapper">
+                <div class="chart-wrapper schools-chart">
                     <canvas id="schoolChart"></canvas>
                 </div>
             </div>
@@ -743,7 +747,7 @@
                     new Chart(schoolCtx, {
                         type: 'bar',
                         data: {
-                            labels: [<% for (Map.Entry<String, Integer> entry : topSchools) { %>'<%= entry.getKey().substring(0, Math.min(30, entry.getKey().length())) %>...',<% } %>],
+                            labels: [<% for (Map.Entry<String, Integer> entry : topSchools) { %>'<%= entry.getKey() %>',<% } %>],
                             datasets: [{
                                 label: 'Students',
                                 data: [<% for (Map.Entry<String, Integer> entry : topSchools) { %><%= entry.getValue() %>,<% } %>],
@@ -763,6 +767,12 @@
                                 x: {
                                     beginAtZero: true,
                                     ticks: { stepSize: 1 }
+                                },
+                                y: {
+                                    ticks: {
+                                        font: { size: 11 },
+                                        padding: 5
+                                    }
                                 }
                             }
                         }
