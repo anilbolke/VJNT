@@ -306,10 +306,12 @@
         .chart-wrapper {
             position: relative;
             height: 400px;
+            overflow: visible;
         }
         
         .chart-wrapper.schools-chart {
             height: 600px;
+            overflow: visible;
         }
         
         .heatmap-container {
@@ -760,6 +762,14 @@
                         options: {
                             ...defaultOptions,
                             indexAxis: 'y',
+                            layout: {
+                                padding: {
+                                    left: 150,
+                                    right: 20,
+                                    top: 10,
+                                    bottom: 10
+                                }
+                            },
                             plugins: {
                                 legend: { display: false }
                             },
@@ -772,7 +782,8 @@
                                     ticks: {
                                         font: { size: 11 },
                                         padding: 5
-                                    }
+                                    },
+                                    clip: false
                                 }
                             }
                         }
