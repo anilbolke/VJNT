@@ -314,6 +314,10 @@
             overflow: visible;
         }
         
+        .chart-container.schools-full-width {
+            grid-column: 1 / -1;
+        }
+        
         .heatmap-container {
             grid-column: 1 / -1;
             background: white;
@@ -491,7 +495,7 @@
             </div>
             
             <!-- 5. Top Schools -->
-            <div class="chart-container">
+            <div class="chart-container schools-full-width">
                 <div class="chart-title">🏆 Top 10 Schools</div>
                 <div class="chart-wrapper schools-chart">
                     <canvas id="schoolChart"></canvas>
