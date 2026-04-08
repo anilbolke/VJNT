@@ -1514,6 +1514,30 @@
             });
         }
         
+        // Apply filter when School is selected
+        const filterSchoolSelect = document.getElementById('filterSchool');
+        if (filterSchoolSelect) {
+            filterSchoolSelect.addEventListener('change', function() {
+                applyFilters();
+            });
+        }
+        
+        // Apply filter when Class is selected
+        const filterClass = document.getElementById('filterClass');
+        if (filterClass) {
+            filterClass.addEventListener('change', function() {
+                applyFilters();
+            });
+        }
+        
+        // Apply filter when Subject is selected
+        const filterSubject = document.getElementById('filterSubject');
+        if (filterSubject) {
+            filterSubject.addEventListener('change', function() {
+                applyFilters();
+            });
+        }
+        
         // School search with dropdown
         const schoolSearchInput = document.getElementById('schoolSearchInput');
         if (schoolSearchInput) {
