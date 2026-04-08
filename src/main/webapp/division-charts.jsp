@@ -756,18 +756,18 @@
                         String districtName = entry.getKey();
                         double percentage = entry.getValue();
                         int count = districtCount.get(districtName);
-                        int rank = districtRank.get(districtName);
+                        int districtRankPosition = districtRank.get(districtName);
                         
                         // Determine performance level
                         String performanceClass = "low";
                         String performanceLabel = "Below Average";
                         String rankEmoji = "🥇";
                         
-                        if (rank == 1) {
+                        if (districtRankPosition == 1) {
                             rankEmoji = "🥇";
-                        } else if (rank == 2) {
+                        } else if (districtRankPosition == 2) {
                             rankEmoji = "🥈";
-                        } else if (rank == 3) {
+                        } else if (districtRankPosition == 3) {
                             rankEmoji = "🥉";
                         }
                         
