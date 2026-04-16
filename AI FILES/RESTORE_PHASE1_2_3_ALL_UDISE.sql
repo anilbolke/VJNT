@@ -119,25 +119,25 @@ SET
         SELECT a.marathi_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 1 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase1_math = (
         SELECT a.math_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 1 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase1_english = (
         SELECT a.english_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 1 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase1_date = (
-        SELECT MAX(a.created_date) 
+        SELECT MAX(a.changed_date) 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 1
     )
@@ -163,25 +163,25 @@ SET
         SELECT a.marathi_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 2 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase2_math = (
         SELECT a.math_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 2 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase2_english = (
         SELECT a.english_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 2 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase2_date = (
-        SELECT MAX(a.created_date) 
+        SELECT MAX(a.changed_date) 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 2
     )
@@ -207,25 +207,25 @@ SET
         SELECT a.marathi_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 3 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase3_math = (
         SELECT a.math_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 3 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase3_english = (
         SELECT a.english_level 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 3 
-        ORDER BY a.created_date DESC 
+        ORDER BY a.changed_date DESC 
         LIMIT 1
     ),
     s.phase3_date = (
-        SELECT MAX(a.created_date) 
+        SELECT MAX(a.changed_date) 
         FROM student_phase_audit a 
         WHERE a.student_id = s.student_id AND a.phase = 3
     )
