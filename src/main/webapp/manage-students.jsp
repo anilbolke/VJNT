@@ -892,6 +892,9 @@
         var isReadOnly = <%= isReadOnly %>;
         
         function changePhase() {
+            // Simply navigate to the selected phase
+            // The dropdown options already have proper disable logic in the JSP
+            // so this function will only be called for valid phase switches
             var phase = document.getElementById('phaseSelector').value;
             window.location.href = '?phase=' + phase;
         }

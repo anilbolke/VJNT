@@ -637,7 +637,12 @@ public class StudentDAO {
         // Check if all ACTIVE students have completed their phase assessment
         // A phase is complete when phase{N}_date is NOT NULL for all active students
         // EXCLUDE students with fln_completed = TRUE (they are not counted in the calculation)
+        // CRITICAL FIX: Only count students who have ALL THREE subject levels (marathi, math, english)
+        // For Phase 1-3 ONLY - Phase 4 is still in progress, so count all students
         String phaseColumn = "phase" + phase + "_date";
+        String marathiCol = "phase" + phase + "_marathi";
+        String mathCol = "phase" + phase + "_math";
+        String englishCol = "phase" + phase + "_english";
         
         String sql = "SELECT " +
                      "COUNT(*) as total_students, " +
@@ -645,7 +650,15 @@ public class StudentDAO {
                      "FROM students " +
                      "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
                      "AND is_active = 1 " +
-                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE) ";
+        
+        // Only apply subject-level filtering for Phase 1-3 (completed phases)
+        // Phase 4 is still in progress, so count all students
+        if (phase >= 1 && phase <= 3) {
+            sql += "AND " + marathiCol + " IS NOT NULL " +
+                   "AND " + mathCol + " IS NOT NULL " +
+                   "AND " + englishCol + " IS NOT NULL";
+        }
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -743,14 +756,10 @@ public class StudentDAO {
                 if (flnComplete) {
                     // ✓ Student achieved 100% FLN - mark as completed immediately
                     updateFlnCompletionStatus(studentId, true);
-                } else if (phase == 4) {
-                    // Only for Phase 4: If not FLN complete but all phases done, restart
-                    boolean allPhasesCompleted = hasCompletedAllPhases(studentId);
-                    if (allPhasesCompleted) {
-                        // Restart phases with Phase 4 data copied to Phase 1
-                        restartPhasesWithPhase4Data(studentId);
-                    }
                 }
+                // NOTE: Removed automatic phase restart on save
+                // Phase restart should only happen after admin approval, not on every save!
+                // The restart logic causes Phase 4 data to be cleared prematurely.
             }
             
             return rows > 0;
@@ -846,7 +855,12 @@ public class StudentDAO {
     public int getPhaseCompletionPercentage(String udiseNo, int phase) {
         // Calculate percentage of ACTIVE students who have completed the phase
         // EXCLUDE students with fln_completed = TRUE (they are not counted in the calculation)
+        // CRITICAL FIX: Only count students who have ALL THREE subject levels (marathi, math, english)
+        // For Phase 1-3 ONLY - Phase 4 is still in progress, so count all students
         String phaseColumn = "phase" + phase + "_date";
+        String marathiCol = "phase" + phase + "_marathi";
+        String mathCol = "phase" + phase + "_math";
+        String englishCol = "phase" + phase + "_english";
         
         String sql = "SELECT " +
                      "COUNT(*) as total_students, " +
@@ -854,7 +868,15 @@ public class StudentDAO {
                      "FROM students " +
                      "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
                      "AND is_active = 1 " +
-                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE) ";
+        
+        // Only apply subject-level filtering for Phase 1-3 (completed phases)
+        // Phase 4 is still in progress, so count all students
+        if (phase >= 1 && phase <= 3) {
+            sql += "AND " + marathiCol + " IS NOT NULL " +
+                   "AND " + mathCol + " IS NOT NULL " +
+                   "AND " + englishCol + " IS NOT NULL";
+        }
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
