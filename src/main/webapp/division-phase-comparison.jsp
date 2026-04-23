@@ -139,6 +139,70 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
+        .school-search-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        
+        .school-search-input {
+            padding: 10px 15px 10px 35px;
+            border: 2px solid #ddd;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            font-size: 14px;
+            min-width: 200px;
+            background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 10px center;
+            background-size: 16px;
+            cursor: text;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .school-search-input::placeholder {
+            color: #999;
+        }
+        
+        .school-search-input:disabled {
+            background: #f5f5f5 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23ccc" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 10px center;
+            background-size: 16px;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .school-search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            border-bottom: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .school-select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 0 0 6px 6px;
+            border-top: none;
+            font-size: 14px;
+            min-width: 200px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .school-select:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .school-select:focus {
+            outline: none;
+            border-color: #667eea;
+            border-top: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         .breadcrumb {
             padding: 15px 30px;
             background: #fff;
@@ -549,6 +613,33 @@
                         <option value="" selected>All Districts (Division Level)</option>
                     </select>
                 </div>
+                
+                <div class="filter-group">
+                    <label>Select School</label>
+                    <div class="school-search-container">
+                        <input type="text" id="schoolSearchInput" placeholder="Type to search schools..." 
+                               onkeyup="filterSchoolsDropdown()" oninput="filterSchoolsDropdown()" disabled class="school-search-input" title="Search by school name or UDISE">
+                        <select id="schoolFilter" onchange="selectSchoolFromDropdown()" disabled class="school-select">
+                            <option value="" selected>All Schools</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Select Class</label>
+                    <select id="classFilter" onchange="loadData()">
+                        <option value="">All Classes</option>
+                        <option value="I">Class I</option>
+                        <option value="II">Class II</option>
+                        <option value="III">Class III</option>
+                        <option value="IV">Class IV</option>
+                        <option value="V">Class V</option>
+                        <option value="VI">Class VI</option>
+                        <option value="VII">Class VII</option>
+                        <option value="VIII">Class VIII</option>
+                        <option value="IX">Class IX</option>
+                    </select>
+                </div>
             </div>
             
             <div class="export-buttons">
@@ -657,15 +748,215 @@
             const selectedDistrict = document.getElementById('districtFilter').value;
             console.log('District dropdown changed to:', selectedDistrict || 'All Districts');
             
+            // Clear/disable school dropdown immediately to prevent stale selections
+            clearSchoolsDropdown();
+            
             if (selectedDistrict) {
                 currentView = 'district';
                 currentDistrict = selectedDistrict;
+                // Load schools after clearing the dropdown
+                loadSchoolsForDistrict(selectedDistrict);
             } else {
                 currentView = 'division';
                 currentDistrict = null;
             }
             
+            // Load data after clearing school dropdown to avoid using stale value
             loadData();
+        }
+        
+        // Load schools for selected district
+        function loadSchoolsForDistrict(districtName) {
+            console.log('Loading schools for district:', districtName);
+            const schoolFilter = document.getElementById('schoolFilter');
+            const schoolSearchInput = document.getElementById('schoolSearchInput');
+            
+            const url = '<%= request.getContextPath() %>/division-phase-comparison?action=getSchools&district=' + 
+                       encodeURIComponent(districtName);
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.schools) {
+                        schoolFilter.innerHTML = '<option value="" selected>All Schools</option>';
+                        schoolSearchInput.value = '';
+                        
+                        data.schools.forEach(school => {
+                            const option = document.createElement('option');
+                            option.value = school.udiseNo;
+                            option.textContent = (school.schoolName || school.udiseNo) + 
+                                                 ' (' + (school.studentCount || 0) + ' students)';
+                            schoolFilter.appendChild(option);
+                        });
+                        
+                        schoolFilter.disabled = false;
+                        schoolSearchInput.disabled = false;
+                        console.log('Loaded', data.schools.length, 'schools');
+                    } else {
+                        clearSchoolsDropdown();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading schools:', error);
+                    clearSchoolsDropdown();
+                });
+        }
+        
+        // Filter schools dropdown based on search input
+        function filterSchoolsDropdown() {
+            const searchInput = document.getElementById('schoolSearchInput').value.toLowerCase().trim();
+            const schoolSelect = document.getElementById('schoolFilter');
+            const options = schoolSelect.getElementsByTagName('option');
+            
+            if (searchInput) {
+                console.log('Searching schools for:', searchInput);
+            }
+            
+            let visibleCount = 0;
+            
+            for (let i = 0; i < options.length; i++) {
+                const option = options[i];
+                
+                // Always show "All Schools" option
+                if (option.value === '') {
+                    option.style.display = '';
+                    continue;
+                }
+                
+                const text = option.textContent.toLowerCase();
+                
+                // Search in both school name and UDISE number
+                // Text format is: "School Name (X students)"
+                if (searchInput === '' || text.includes(searchInput)) {
+                    option.style.display = '';
+                    visibleCount++;
+                } else {
+                    option.style.display = 'none';
+                }
+            }
+            
+            if (searchInput) {
+                console.log('Found', visibleCount, 'matching schools for:', searchInput);
+            }
+        }
+        
+        // Load classes for selected school
+        function loadClassesForSchool() {
+            const selectedSchool = document.getElementById('schoolFilter').value;
+            const classFilter = document.getElementById('classFilter');
+            
+            if (!selectedSchool) {
+                // No school selected - show default classes
+                classFilter.innerHTML = '<option value="">All Classes</option>' +
+                                       '<option value="I">Class I</option>' +
+                                       '<option value="II">Class II</option>' +
+                                       '<option value="III">Class III</option>' +
+                                       '<option value="IV">Class IV</option>' +
+                                       '<option value="V">Class V</option>' +
+                                       '<option value="VI">Class VI</option>' +
+                                       '<option value="VII">Class VII</option>' +
+                                       '<option value="VIII">Class VIII</option>' +
+                                       '<option value="IX">Class IX</option>';
+                classFilter.value = '';
+                classFilter.disabled = false;
+                return;
+            }
+            
+            // Synchronously clear and disable the class filter to prevent stale values
+            classFilter.innerHTML = '<option value="">Loading classes...</option>';
+            classFilter.disabled = true;
+            classFilter.value = '';
+            
+            // Store request ID to detect stale responses (race condition guard)
+            const currentSchool = selectedSchool;
+            window.classFilterRequestSchool = currentSchool;
+            
+            // Fetch classes for selected school
+            const url = '<%= request.getContextPath() %>/division-phase-comparison?action=getClasses&school=' + 
+                       encodeURIComponent(selectedSchool);
+            
+            console.log('Loading classes for school:', selectedSchool);
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Ignore response if a different school is now selected (race condition guard)
+                    if (window.classFilterRequestSchool !== currentSchool) {
+                        console.log('Ignoring stale class response for school:', currentSchool);
+                        return;
+                    }
+                    
+                    if (data.success && data.classes && Array.isArray(data.classes)) {
+                        console.log('Loaded', data.classes.length, 'classes for school');
+                        classFilter.innerHTML = '<option value="">All Classes</option>';
+                        
+                        data.classes.forEach(classObj => {
+                            const option = document.createElement('option');
+                            option.value = classObj.class;
+                            option.textContent = classObj.label;
+                            classFilter.appendChild(option);
+                        });
+                        
+                        classFilter.disabled = false;
+                        classFilter.value = '';
+                        // After class dropdown is updated, load data with current school/class values
+                        loadData();
+                    } else {
+                        console.error('Error loading classes:', data.error);
+                        // Show only "All Classes" option on error
+                        classFilter.innerHTML = '<option value="">All Classes</option>';
+                        classFilter.disabled = false;
+                        classFilter.value = '';
+                        // Load data after error recovery
+                        loadData();
+                    }
+                })
+                .catch(error => {
+                    // Ignore error if a different school is now selected
+                    if (window.classFilterRequestSchool !== currentSchool) {
+                        console.log('Fetch cancelled for school:', currentSchool);
+                        return;
+                    }
+                    
+                    console.error('Error fetching classes:', error);
+                    // On error, show only "All Classes" to avoid misleading data
+                    classFilter.innerHTML = '<option value="">All Classes</option>';
+                    classFilter.disabled = false;
+                    classFilter.value = '';
+                    // Load data after error recovery
+                    loadData();
+                });
+        }
+        
+        // Select school from dropdown
+        function selectSchoolFromDropdown() {
+            loadClassesForSchool();
+        }
+        
+        // Clear schools dropdown
+        function clearSchoolsDropdown() {
+            const schoolFilter = document.getElementById('schoolFilter');
+            const schoolSearchInput = document.getElementById('schoolSearchInput');
+            const classFilter = document.getElementById('classFilter');
+            
+            schoolFilter.innerHTML = '<option value="" selected>All Schools</option>';
+            schoolFilter.disabled = true;
+            schoolFilter.value = '';
+            schoolSearchInput.value = '';
+            schoolSearchInput.disabled = true;
+            
+            // Reset class dropdown to default
+            classFilter.innerHTML = '<option value="">All Classes</option>' +
+                                   '<option value="I">Class I</option>' +
+                                   '<option value="II">Class II</option>' +
+                                   '<option value="III">Class III</option>' +
+                                   '<option value="IV">Class IV</option>' +
+                                   '<option value="V">Class V</option>' +
+                                   '<option value="VI">Class VI</option>' +
+                                   '<option value="VII">Class VII</option>' +
+                                   '<option value="VIII">Class VIII</option>' +
+                                   '<option value="IX">Class IX</option>';
+            classFilter.value = '';
         }
         
         // Load data from servlet
@@ -673,16 +964,26 @@
             const subject = document.getElementById('subjectFilter').value;
             const view = currentView;
             const district = currentDistrict;
+            const school = document.getElementById('schoolFilter').value;
+            const studentClass = document.getElementById('classFilter').value;
             
-            console.log('loadData called - view:', view, 'district:', district, 'subject:', subject);
+            console.log('loadData called - view:', view, 'district:', district, 'subject:', subject, 'school:', school, 'class:', studentClass);
             
             let url = '<%= request.getContextPath() %>/division-phase-comparison?division=' + 
                       encodeURIComponent(divisionName) + 
                       '&view=' + view + 
                       '&subject=' + subject;
             
+            if (studentClass) {
+                url += '&class=' + encodeURIComponent(studentClass);
+            }
+            
             if (view === 'district' && district) {
                 url += '&district=' + encodeURIComponent(district);
+            }
+            
+            if (school) {
+                url += '&school=' + encodeURIComponent(school);
             }
             
             console.log('Fetching phase comparison from:', url);
