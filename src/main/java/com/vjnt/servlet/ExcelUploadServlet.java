@@ -28,9 +28,9 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  */
 @WebServlet("/upload-excel")
 @MultipartConfig(
-    fileSizeThreshold = 1024 * 1024 * 2,  // 2MB
-    maxFileSize = 1024 * 1024 * 10,        // 10MB
-    maxRequestSize = 1024 * 1024 * 50      // 50MB
+    fileSizeThreshold = 1024 * 1024 * 2,   // 2MB
+    maxFileSize = 1024 * 1024 * 50,        // 50MB
+    maxRequestSize = 1024 * 1024 * 100     // 100MB
 )
 public class ExcelUploadServlet extends HttpServlet {
     

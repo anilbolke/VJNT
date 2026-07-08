@@ -94,6 +94,8 @@ public class LoginServlet extends HttpServlet {
         switch (userType) {
             case DIVISION:
                 return "/division-dashboard.jsp";
+            case SUPER_DIVISION_OFFICER:
+                return "/super-officer-dashboard.jsp";
             case DISTRICT_COORDINATOR:
             case DISTRICT_2ND_COORDINATOR:
                 return "/district-dashboard.jsp";
@@ -102,6 +104,8 @@ public class LoginServlet extends HttpServlet {
                 return "/school-dashboard-enhanced.jsp";
             case DATA_ADMIN:
                 return "/data-admin-dashboard.jsp";
+            case TEACHER:
+                return "/teacher-dashboard.jsp";
             default:
                 return "/dashboard.jsp";
         }

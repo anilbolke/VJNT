@@ -36,8 +36,7 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
         User user = (User) session.getAttribute("user");
         
         // Only school coordinators and head masters can update
-        if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.HEAD_MASTER) &&                     !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             out.print("{\"success\": false, \"message\": \"Access denied\"}");
             return;
         }
@@ -106,3 +105,4 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
         }
     }
 }
+

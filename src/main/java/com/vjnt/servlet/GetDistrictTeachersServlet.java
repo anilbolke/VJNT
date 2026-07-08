@@ -34,17 +34,20 @@ public class GetDistrictTeachersServlet extends HttpServlet {
         User sessionUser = (User) session.getAttribute("user");
         String district = request.getParameter("district");
 
+        // Allow SUPER_DIVISION_OFFICER to omit district and view all teachers
         if (district == null || district.trim().isEmpty()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("[]");
-            return;
+            if (sessionUser.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write("[]");
+                return;
+            }
         }
 
-        // Verify user has permission to view this district's data
+        // Verify user has permission to view this district's data (district coordinators restricted)
         if (sessionUser.getUserType() == User.UserType.DISTRICT_COORDINATOR || 
             sessionUser.getUserType() == User.UserType.DISTRICT_2ND_COORDINATOR) {
             // District coordinators can only see their own district
-            if (!district.equals(sessionUser.getDistrictName())) {
+            if (district != null && !district.equals(sessionUser.getDistrictName())) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.getWriter().write("[]");
                 return;
@@ -59,16 +62,28 @@ public class GetDistrictTeachersServlet extends HttpServlet {
             conn = DatabaseConnection.getConnection();
             
             // Query to get teachers from teachers table joined with schools to filter by district
-            String sql = "SELECT t.teacher_id, t.teacher_name, t.mobile_number, t.subjects_taught, " +
-                        "t.description, t.udise_code, t.created_date, t.is_active, " +
-                        "s.school_name, s.district_name " +
-                        "FROM teachers t " +
-                        "INNER JOIN schools s ON t.udise_code = s.udise_no " +
-                        "WHERE s.district_name = ? AND t.is_active = 1 " +
-                        "ORDER BY s.school_name, t.teacher_name";
-            
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, district);
+            String sql;
+            if (district == null || district.trim().isEmpty()) {
+                sql = "SELECT t.teacher_id, t.teacher_name, t.mobile_number, t.subjects_taught, " +
+                      "t.description, t.udise_code, t.created_date, t.is_active, " +
+                      "s.school_name, s.district_name " +
+                      "FROM teachers t " +
+                      "INNER JOIN schools s ON t.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci " +
+                      "WHERE t.is_active = 1 " +
+                      "ORDER BY s.district_name, s.school_name, t.teacher_name";
+                pstmt = conn.prepareStatement(sql);
+            } else {
+                sql = "SELECT t.teacher_id, t.teacher_name, t.mobile_number, t.subjects_taught, " +
+                      "t.description, t.udise_code, t.created_date, t.is_active, " +
+                      "s.school_name, s.district_name " +
+                      "FROM teachers t " +
+                      "INNER JOIN schools s ON t.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci " +
+                      "WHERE t.udise_code COLLATE utf8mb4_unicode_ci IN (SELECT DISTINCT udise_no COLLATE utf8mb4_unicode_ci FROM students WHERE district COLLATE utf8mb4_unicode_ci = ? AND is_active = 1) " +
+                      "AND t.is_active = 1 " +
+                      "ORDER BY s.school_name, t.teacher_name";
+                pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, district);
+            }
             rs = pstmt.executeQuery();
             
             JsonArray teachersArray = new JsonArray();

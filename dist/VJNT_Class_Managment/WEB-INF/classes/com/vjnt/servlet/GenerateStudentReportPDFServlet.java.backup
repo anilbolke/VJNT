@@ -1,0 +1,564 @@
+package com.vjnt.servlet;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import com.vjnt.util.DatabaseConnection;
+import com.vjnt.dao.PalakMelavaDAO;
+import com.vjnt.model.PalakMelava;
+
+@WebServlet("/GenerateStudentReportPDFServlet")
+public class GenerateStudentReportPDFServlet extends HttpServlet {
+    
+    // CSS styles matching the modal window design
+    private static final String CSS_STYLES = 
+        "<style>" +
+        "* { margin: 0; padding: 0; box-sizing: border-box; }" +
+        "body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }" +
+        ".container { background: white; max-width: 900px; margin: 20px auto; padding: 0; border-radius: 10px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); }" +
+        ".modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 30px; border-radius: 10px 10px 0 0; }" +
+        ".modal-header h2 { margin: 0; font-size: 22px; }" +
+        ".modal-body { padding: 30px; }" +
+        ".report-section { margin-bottom: 30px; padding: 20px; border: 1px solid #e9ecef; border-radius: 8px; }" +
+        ".report-section h3 { color: #667eea; margin-bottom: 15px; font-size: 18px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }" +
+        ".approval-banner { padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }" +
+        ".approval-banner.approved { background: #28a745; color: white; }" +
+        ".approval-banner.pending { background: #ffc107; color: white; }" +
+        ".approval-banner.rejected { background: #dc3545; color: white; }" +
+        ".approval-banner i { font-size: 32px; }" +
+        ".approval-info { flex: 1; }" +
+        ".approval-info .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }" +
+        ".approval-info .message { font-size: 14px; opacity: 0.95; }" +
+        ".approval-info .meta { font-size: 12px; margin-top: 5px; opacity: 0.9; }" +
+        ".student-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }" +
+        ".student-info-grid > div { display: flex; }" +
+        ".student-info-grid strong { min-width: 150px; color: #495057; }" +
+        ".levels-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }" +
+        ".level-box { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 2px solid #e9ecef; }" +
+        ".level-box.assessed { background: #d4edda; border-color: #28a745; }" +
+        ".level-label { font-size: 12px; color: #6c757d; margin-bottom: 5px; }" +
+        ".level-value { font-size: 20px; font-weight: bold; color: #495057; }" +
+        ".overall-progress { margin-top: 15px; padding: 12px; background: #e7f3ff; border-radius: 6px; text-align: center; }" +
+        ".summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }" +
+        ".stat-box { padding: 20px; border-radius: 8px; text-align: center; }" +
+        ".stat-box.total { background: #e7f3ff; }" +
+        ".stat-box.completed { background: #d4edda; }" +
+        ".stat-box.completion { background: #fff3cd; }" +
+        ".stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }" +
+        ".stat-value.blue { color: #667eea; }" +
+        ".stat-value.green { color: #28a745; }" +
+        ".stat-value.yellow { color: #ffc107; }" +
+        ".stat-label { font-size: 12px; color: #6c757d; }" +
+        ".activity-group { margin-bottom: 20px; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }" +
+        ".activity-group-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 12px 16px; color: white; }" +
+        ".activity-group-title { margin: 0; font-size: 16px; font-weight: 600; }" +
+        ".activity-group-content { padding: 15px; }" +
+        ".activity-item { padding: 12px; margin-bottom: 10px; border-radius: 6px; background: #f8f9fa; border-left: 4px solid #667eea; }" +
+        ".activity-day { font-weight: bold; color: #495057; margin-bottom: 5px; }" +
+        ".activity-text { font-size: 13px; color: #6c757d; }" +
+        ".activity-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0, 0, 0, 0.1); font-size: 11px; color: #6c757d; }" +
+        ".activity-count-badge { background: #667eea; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; }" +
+        ".palak-melava-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #667eea; }" +
+        ".palak-melava-card h4 { color: #667eea; margin: 0 0 15px 0; }" +
+        ".palak-melava-card .badge { background: #28a745; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; }" +
+        ".palak-details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; }" +
+        ".palak-details strong { color: #495057; display: block; margin-bottom: 5px; }" +
+        ".print-button { background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 20px 0; }" +
+        ".print-button:hover { background: #218838; }" +
+        ".no-print { }" +
+        "@media print { " +
+        "  body { background: white; padding: 0; } " +
+        "  .container { box-shadow: none; max-width: 100%; margin: 0; } " +
+        "  .no-print { display: none; } " +
+        "  .activity-group-content { display: block !important; } " +
+        "}" +
+        "</style>";
+    
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("userId") == null) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        
+        String userType = (String) session.getAttribute("userType");
+        String approvalIdParam = request.getParameter("approvalId");
+        
+        // Validate approvalId parameter
+        if (approvalIdParam == null || approvalIdParam.trim().isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Approval ID is required");
+            return;
+        }
+        
+        int approvalId;
+        try {
+            approvalId = Integer.parseInt(approvalIdParam);
+        } catch (NumberFormatException e) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid Approval ID format");
+            return;
+        }
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Verify approval status (HEAD_MASTER can view any report, others need approval)
+            String checkSql = "SELECT approval_status FROM report_approvals WHERE approval_id = ?";
+            PreparedStatement checkStmt = conn.prepareStatement(checkSql);
+            checkStmt.setInt(1, approvalId);
+            ResultSet checkRs = checkStmt.executeQuery();
+            
+            if (!checkRs.next()) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Report not found");
+                return;
+            }
+            
+            String approvalStatus = checkRs.getString("approval_status");
+            
+            // If not HEAD_MASTER and report is not approved, deny access
+            if (!"HEAD_MASTER".equals(userType) && !"APPROVED".equals(approvalStatus)) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Report not approved yet");
+                return;
+            }
+            
+            // Get approval details
+            String approvalSql = "SELECT ra.*, u.username as approved_by_name " +
+                                "FROM report_approvals ra " +
+                                "LEFT JOIN users u ON ra.approved_by = u.user_id " +
+                                "WHERE ra.approval_id = ?";
+            PreparedStatement approvalStmt = conn.prepareStatement(approvalSql);
+            approvalStmt.setInt(1, approvalId);
+            ResultSet approvalRs = approvalStmt.executeQuery();
+            
+            if (!approvalRs.next()) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            
+            String penNumber = approvalRs.getString("pen_number");
+            String studentName = approvalRs.getString("student_name");
+            String udiseCode = approvalRs.getString("udise_code");
+            String schoolName = approvalRs.getString("school_name");
+            String district = approvalRs.getString("district");
+            String division = approvalRs.getString("division");
+            String approvedBy = approvalRs.getString("approved_by_name");
+            Timestamp approvalDate = approvalRs.getTimestamp("approval_date");
+            
+            // Set response headers for HTML
+            response.setContentType("text/html; charset=UTF-8");
+            
+            // Generate HTML report
+            PrintWriter out = response.getWriter();
+            
+            out.println("<!DOCTYPE html>");
+            out.println("<html>");
+            out.println("<head>");
+            out.println("<meta charset='UTF-8'>");
+            out.println("<title>Student Report - " + penNumber + "</title>");
+            out.println(CSS_STYLES);
+            out.println("<script>");
+            out.println("function printReport() {");
+            out.println("    window.print();");
+            out.println("}");
+            out.println("</script>");
+            out.println("<link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css' rel='stylesheet'>");
+            out.println("</head>");
+            out.println("<body>");
+            out.println("<div class='container'>");
+            
+            // Modal Header
+            out.println("<div class='modal-header'>");
+            out.println("<h2><i class='fas fa-file-alt'></i> " + escapeHtml(studentName) + " - Comprehensive Report</h2>");
+            out.println("</div>");
+            
+            // Modal Body
+            out.println("<div class='modal-body'>");
+            
+            // Print Button
+            out.println("<button class='print-button no-print' onclick='printReport()'>");
+            out.println("<i class='fas fa-print'></i> Print / Save as PDF</button>");
+            
+            // Approval Status Banner
+            writeApprovalBanner(out, approvalStatus, approvalId, approvedBy, approvalDate);
+            
+            // Get comprehensive data using same methods as modal
+            Map<String, Object> comprehensiveData = getComprehensiveData(conn, penNumber, udiseCode);
+            
+            // Student Information
+            writeStudentInfo(out, penNumber, studentName);
+            
+            // Assessment Levels
+            writeAssessmentLevels(out, comprehensiveData);
+            
+            // Activities Summary
+            writeActivitiesSummary(out, comprehensiveData);
+            
+            // Palak Melava
+            writePalakMelava(out, comprehensiveData);
+            
+            out.println("</div>"); // End modal-body
+            out.println("</div>"); // End container
+            out.println("</body>");
+            out.println("</html>");
+            
+            out.close();
+            
+            // Update report generated status
+            String updateSql = "UPDATE report_approvals SET report_generated = 1, generated_date = NOW() " +
+                              "WHERE approval_id = ?";
+            PreparedStatement updateStmt = conn.prepareStatement(updateSql);
+            updateStmt.setInt(1, approvalId);
+            updateStmt.executeUpdate();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ServletException("Error generating report", e);
+        }
+    }
+    
+    private void writeApprovalBanner(PrintWriter out, String status, int approvalId, 
+                                     String approvedBy, Timestamp approvalDate) {
+        String statusColor = "approved";
+        String statusIcon = "fa-check-circle";
+        String statusText = "Approved";
+        String statusMessage = "This report has been approved by Head Master.";
+        
+        if ("PENDING".equals(status)) {
+            statusColor = "pending";
+            statusIcon = "fa-clock";
+            statusText = "Pending Approval";
+            statusMessage = "This report is awaiting approval.";
+        } else if ("REJECTED".equals(status)) {
+            statusColor = "rejected";
+            statusIcon = "fa-times-circle";
+            statusText = "Rejected";
+            statusMessage = "This report was rejected.";
+        }
+        
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+        
+        out.println("<div class='approval-banner " + statusColor + "'>");
+        out.println("<i class='fas " + statusIcon + "'></i>");
+        out.println("<div class='approval-info'>");
+        out.println("<div class='title'>Report Status: " + statusText + "</div>");
+        out.println("<div class='message'>" + statusMessage + "</div>");
+        out.println("<div class='meta'>Request ID: #" + approvalId);
+        if (approvalDate != null) {
+            out.println(" | Approved: " + sdf.format(approvalDate));
+        }
+        if (approvedBy != null) {
+            out.println(" | By: " + escapeHtml(approvedBy));
+        }
+        out.println("</div>");
+        out.println("</div>");
+        out.println("</div>");
+    }
+    
+    // Get comprehensive data using same logic as GetStudentComprehensiveDataServlet
+    private Map<String, Object> getComprehensiveData(Connection conn, String penNumber, String udiseCode) throws SQLException {
+        Map<String, Object> data = new HashMap<>();
+        
+        // Get Assessment Levels
+        data.put("assessmentLevels", getAssessmentLevels(conn, penNumber));
+        
+        // Get ALL Activities
+        data.put("allActivities", getAllStudentActivities(conn, penNumber));
+        
+        // Get Palak Melava Data
+        if (udiseCode != null) {
+            data.put("palakMelavaData", getPalakMelavaData(udiseCode));
+        }
+        
+        return data;
+    }
+    
+    private Map<String, String> getAssessmentLevels(Connection conn, String penNumber) throws SQLException {
+        Map<String, String> levels = new HashMap<>();
+        
+        String sql = "SELECT marathi_akshara_level, math_akshara_level, english_akshara_level FROM students WHERE student_pen = ?";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, penNumber);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                int marathiLevel = rs.getInt("marathi_akshara_level");
+                int mathLevel = rs.getInt("math_akshara_level");
+                int englishLevel = rs.getInt("english_akshara_level");
+                
+                levels.put("marathi", getLevelText(marathiLevel));
+                levels.put("math", getLevelText(mathLevel));
+                levels.put("english", getLevelText(englishLevel));
+                
+                // Calculate overall
+                int assessedCount = 0;
+                if (marathiLevel > 0) assessedCount++;
+                if (mathLevel > 0) assessedCount++;
+                if (englishLevel > 0) assessedCount++;
+                
+                String overall = "Not Started";
+                if (assessedCount == 3) overall = "Excellent Progress";
+                else if (assessedCount == 2) overall = "Good Progress";
+                else if (assessedCount == 1) overall = "In Progress";
+                
+                levels.put("overall", overall);
+            }
+        }
+        
+        return levels;
+    }
+    
+    private String getLevelText(int level) {
+        if (level == 0) return "Not Assessed";
+        if (level <= 1) return "Level 1 - Beginner";
+        if (level <= 2) return "Level 2 - Intermediate";
+        if (level <= 3) return "Level 3 - Advanced";
+        return "Level 4 - Expert";
+    }
+    
+    private List<Map<String, Object>> getAllStudentActivities(Connection conn, String penNumber) throws SQLException {
+        List<Map<String, Object>> activities = new ArrayList<>();
+        
+        String sql = "SELECT language, week_number, day_number, activity_text, activity_count, completed, assigned_by " +
+                    "FROM student_weekly_activities WHERE student_pen = ? ORDER BY language, week_number, day_number";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, penNumber);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> activity = new HashMap<>();
+                activity.put("language", rs.getString("language"));
+                activity.put("weekNumber", rs.getInt("week_number"));
+                activity.put("dayNumber", rs.getInt("day_number"));
+                activity.put("activityText", rs.getString("activity_text"));
+                activity.put("activityCount", rs.getInt("activity_count"));
+                activity.put("completed", rs.getBoolean("completed"));
+                activity.put("assignedBy", rs.getString("assigned_by"));
+                activities.add(activity);
+            }
+        }
+        
+        return activities;
+    }
+    
+    private List<PalakMelava> getPalakMelavaData(String udiseCode) {
+        try {
+            PalakMelavaDAO dao = new PalakMelavaDAO();
+            return dao.getApprovedPalakMelavaByUdise(udiseCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+    
+    private void writeStudentInfo(PrintWriter out, String penNumber, String studentName) {
+        out.println("<div class='report-section'>");
+        out.println("<h3><i class='fas fa-user'></i> Student Information</h3>");
+        out.println("<div class='student-info-grid'>");
+        out.println("<div><strong>Name:</strong> " + escapeHtml(studentName) + "</div>");
+        out.println("<div><strong>PEN Number:</strong> " + escapeHtml(penNumber) + "</div>");
+        out.println("</div>");
+        out.println("</div>");
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void writeAssessmentLevels(PrintWriter out, Map<String, Object> comprehensiveData) {
+        out.println("<div class='report-section'>");
+        out.println("<h3><i class='fas fa-chart-line'></i> Assessment Levels</h3>");
+        
+        Map<String, String> levels = (Map<String, String>) comprehensiveData.get("assessmentLevels");
+        
+        if (levels != null) {
+            String englishLevel = levels.get("english");
+            String marathiLevel = levels.get("marathi");
+            String mathLevel = levels.get("math");
+            String overall = levels.get("overall");
+            
+            out.println("<div class='levels-grid'>");
+            
+            // English Level
+            boolean englishAssessed = englishLevel != null && !englishLevel.equals("Not Assessed");
+            out.println("<div class='level-box" + (englishAssessed ? " assessed" : "") + "'>");
+            out.println("<div class='level-label'>ENGLISH</div>");
+            out.println("<div class='level-value'>" + escapeHtml(englishLevel != null ? englishLevel : "Not Assessed") + "</div>");
+            out.println("</div>");
+            
+            // Marathi Level
+            boolean marathiAssessed = marathiLevel != null && !marathiLevel.equals("Not Assessed");
+            out.println("<div class='level-box" + (marathiAssessed ? " assessed" : "") + "'>");
+            out.println("<div class='level-label'>MARATHI</div>");
+            out.println("<div class='level-value'>" + escapeHtml(marathiLevel != null ? marathiLevel : "Not Assessed") + "</div>");
+            out.println("</div>");
+            
+            // Math Level
+            boolean mathAssessed = mathLevel != null && !mathLevel.equals("Not Assessed");
+            out.println("<div class='level-box" + (mathAssessed ? " assessed" : "") + "'>");
+            out.println("<div class='level-label'>MATH</div>");
+            out.println("<div class='level-value'>" + escapeHtml(mathLevel != null ? mathLevel : "Not Assessed") + "</div>");
+            out.println("</div>");
+            
+            out.println("</div>");
+            
+            // Overall Progress
+            out.println("<div class='overall-progress'><strong>Overall Progress:</strong> " + escapeHtml(overall != null ? overall : "Not Started") + "</div>");
+        }
+        
+        out.println("</div>");
+    }
+    
+
+    
+    @SuppressWarnings("unchecked")
+    private void writeActivitiesSummary(PrintWriter out, Map<String, Object> comprehensiveData) {
+        out.println("<div class='report-section'>");
+        out.println("<h3><i class='fas fa-tasks'></i> Activities Summary</h3>");
+        
+        List<Map<String, Object>> allActivities = (List<Map<String, Object>>) comprehensiveData.get("allActivities");
+        
+        if (allActivities != null && !allActivities.isEmpty()) {
+            // Count statistics
+            int totalActivities = allActivities.size();
+            int completedActivities = 0;
+            Map<String, List<String>> groupedActivities = new LinkedHashMap<>();
+            
+            for (Map<String, Object> activity : allActivities) {
+                Boolean completed = (Boolean) activity.get("completed");
+                if (completed != null && completed) {
+                    completedActivities++;
+                }
+                
+                String language = (String) activity.get("language");
+                Integer weekNumber = (Integer) activity.get("weekNumber");
+                Integer dayNumber = (Integer) activity.get("dayNumber");
+                String activityText = (String) activity.get("activityText");
+                Integer activityCount = (Integer) activity.get("activityCount");
+                String assignedBy = (String) activity.get("assignedBy");
+                
+                String groupKey = language + "-Week" + weekNumber;
+                if (!groupedActivities.containsKey(groupKey)) {
+                    groupedActivities.put(groupKey, new ArrayList<>());
+                }
+                
+                String activityHtml = "<div class='activity-item'>" +
+                    "<div class='activity-day'>Day " + dayNumber + "</div>" +
+                    "<div class='activity-text'>" + escapeHtml(activityText != null ? activityText : "N/A") + "</div>";
+                
+                if (assignedBy != null || (activityCount != null && activityCount > 1)) {
+                    activityHtml += "<div class='activity-meta'>";
+                    if (assignedBy != null) {
+                        activityHtml += "<span>Assigned by: " + escapeHtml(assignedBy) + "</span>";
+                    }
+                    if (activityCount != null && activityCount > 1) {
+                        activityHtml += "<span class='activity-count-badge'>" + activityCount + "x</span>";
+                    }
+                    activityHtml += "</div>";
+                }
+                activityHtml += "</div>";
+                
+                groupedActivities.get(groupKey).add(activityHtml);
+            }
+            
+            int completionRate = (int) Math.round((completedActivities * 100.0) / totalActivities);
+            
+            // Summary Stats
+            out.println("<div class='summary-stats'>");
+            out.println("<div class='stat-box total'>");
+            out.println("<div class='stat-value blue'>" + totalActivities + "</div>");
+            out.println("<div class='stat-label'>Total Activities</div>");
+            out.println("</div>");
+            out.println("<div class='stat-box completed'>");
+            out.println("<div class='stat-value green'>" + completedActivities + "</div>");
+            out.println("<div class='stat-label'>Completed</div>");
+            out.println("</div>");
+            out.println("<div class='stat-box completion'>");
+            out.println("<div class='stat-value yellow'>" + completionRate + "%</div>");
+            out.println("<div class='stat-label'>Completion Rate</div>");
+            out.println("</div>");
+            out.println("</div>");
+            
+            // Grouped Activities
+            for (Map.Entry<String, List<String>> entry : groupedActivities.entrySet()) {
+                String groupKey = entry.getKey();
+                String[] parts = groupKey.split("-");
+                
+                out.println("<div class='activity-group'>");
+                out.println("<div class='activity-group-header'>");
+                out.println("<h4 class='activity-group-title'>" + escapeHtml(parts[0]) + " - " + parts[1] + "</h4>");
+                out.println("</div>");
+                out.println("<div class='activity-group-content'>");
+                
+                for (String activityHtml : entry.getValue()) {
+                    out.println(activityHtml);
+                }
+                
+                out.println("</div>");
+                out.println("</div>");
+            }
+        } else {
+            out.println("<p style='text-align: center; color: #6c757d; padding: 20px;'>No activities found for this student</p>");
+        }
+        
+        out.println("</div>");
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void writePalakMelava(PrintWriter out, Map<String, Object> comprehensiveData) {
+        out.println("<div class='report-section'>");
+        out.println("<h3><i class='fas fa-users'></i> Parent-Teacher Meetings (Palak Melava)</h3>");
+        
+        List<PalakMelava> palakMelavaList = (List<PalakMelava>) comprehensiveData.get("palakMelavaData");
+        
+        if (palakMelavaList != null && !palakMelavaList.isEmpty()) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            int count = 0;
+            
+            for (PalakMelava melava : palakMelavaList) {
+                count++;
+                out.println("<div class='palak-melava-card'>");
+                out.println("<div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;'>");
+                out.println("<h4>Meeting #" + count + "</h4>");
+                out.println("<span class='badge'>✓ Approved</span>");
+                out.println("</div>");
+                
+                out.println("<div class='palak-details'>");
+                out.println("<div><strong><i class='fas fa-calendar'></i> Meeting Date:</strong>");
+                out.println("<div>" + (melava.getMeetingDate() != null ? sdf.format(melava.getMeetingDate()) : "N/A") + "</div></div>");
+                
+                out.println("<div><strong><i class='fas fa-users'></i> Parents Attended:</strong>");
+                out.println("<div>" + (melava.getTotalParentsAttended() != null ? melava.getTotalParentsAttended() : "N/A") + "</div></div>");
+                out.println("</div>");
+                
+                out.println("<div><strong><i class='fas fa-user-tie'></i> Chief Guest/Attendee:</strong>");
+                out.println("<div style='margin-top: 5px; background: white; padding: 10px; border-radius: 4px;'>" + 
+                    escapeHtml(melava.getChiefAttendeeInfo() != null ? melava.getChiefAttendeeInfo() : "N/A") + "</div></div>");
+                
+                out.println("</div>");
+            }
+            
+            out.println("<p style='margin-bottom: 15px; color: #6c757d;'>School has conducted " + count + " parent-teacher meeting(s)</p>");
+        } else {
+            out.println("<p style='margin-bottom: 15px; color: #6c757d;'>No parent-teacher meetings recorded yet.</p>");
+        }
+        
+        out.println("</div>");
+    }
+    
+
+    
+    private String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;");
+    }
+}

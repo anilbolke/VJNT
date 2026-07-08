@@ -37,8 +37,8 @@ public class GetAllStudentsServlet extends HttpServlet {
             return;
         }
         
-        if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) &&!user.getUserType().equals(User.UserType.HEAD_MASTER) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER) &&
+            !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             //System.out.println("GetAllStudentsServlet: Invalid user type: " + user.getUserType());
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
             return;
@@ -81,3 +81,4 @@ public class GetAllStudentsServlet extends HttpServlet {
         }
     }
 }
+

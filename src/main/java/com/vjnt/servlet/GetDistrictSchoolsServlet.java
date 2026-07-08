@@ -38,15 +38,6 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
         User user = (User) session.getAttribute("user");
         String districtName = request.getParameter("district");
 
-        if (districtName == null || districtName.trim().isEmpty()) {
-            if (request.getRequestURI().contains("/api/schools")) {
-                response.getWriter().write("[]");
-            } else {
-                response.getWriter().write("{\"success\": false, \"message\": \"District name required\"}");
-            }
-            return;
-        }
-
         // Check if this is the new API endpoint
         boolean isApiEndpoint = request.getRequestURI().contains("/api/schools");
         
@@ -54,27 +45,62 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
 
         try (Connection conn = DatabaseConnection.getConnection()) {
 
-            String sql = "SELECT " +
-                        "    s.udise_no, " +
-                        "    s.school_name, " +
-                        "    s.district_name, " +
-                        "    COUNT(DISTINCT st.student_id) as student_count, " +
-                        "    SUM(CASE WHEN st.gender = 'Male' OR st.gender = 'पुरुष' THEN 1 ELSE 0 END) as male_count, " +
-                        "    SUM(CASE WHEN st.gender = 'Female' OR st.gender = 'स्त्री' THEN 1 ELSE 0 END) as female_count, " +
-                        "    COUNT(DISTINCT CASE WHEN st.phase1_date IS NOT NULL THEN st.student_id END) as phase1_count, " +
-                        "    COUNT(DISTINCT CASE WHEN st.phase2_date IS NOT NULL THEN st.student_id END) as phase2_count, " +
-                        "    COUNT(DISTINCT CASE WHEN st.phase3_date IS NOT NULL THEN st.student_id END) as phase3_count, " +
-                        "    COUNT(DISTINCT CASE WHEN st.phase4_date IS NOT NULL THEN st.student_id END) as phase4_count, " +
-                        "    (SELECT COUNT(*) FROM teachers t WHERE t.udise_code = s.udise_no AND t.is_active = 1) as teacher_count " +
-                        "FROM schools s " +
-                        "LEFT JOIN students st ON s.udise_no = st.udise_no " +
-                        "WHERE s.district_name = ? " +
-                        "GROUP BY s.udise_no, s.school_name, s.district_name " +
-                        "ORDER BY s.school_name";
+            String sql;
+            PreparedStatement stmt;
 
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, districtName);
-            
+            if (districtName == null || districtName.trim().isEmpty()) {
+                // Only SUPER_DIVISION_OFFICER can request without a district
+                if (user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                    if (isApiEndpoint) {
+                        response.getWriter().write("[]");
+                    } else {
+                        response.getWriter().write("{\"success\": false, \"message\": \"District name required\"}");
+                    }
+                    return;
+                }
+
+                sql = "SELECT " +
+                      "    s.udise_no, " +
+                      "    s.school_name, " +
+                      "    s.district_name, " +
+                      "    COUNT(DISTINCT st.student_id) as student_count, " +
+                      "    SUM(CASE WHEN st.gender = 'Male' OR st.gender = 'पुरुष' THEN 1 ELSE 0 END) as male_count, " +
+                      "    SUM(CASE WHEN st.gender = 'Female' OR st.gender = 'स्त्री' THEN 1 ELSE 0 END) as female_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase1_date IS NOT NULL THEN st.student_id END) as phase1_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase2_date IS NOT NULL THEN st.student_id END) as phase2_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase3_date IS NOT NULL THEN st.student_id END) as phase3_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase4_date IS NOT NULL THEN st.student_id END) as phase4_count, " +
+                      "    (SELECT COUNT(*) FROM teachers t WHERE t.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci AND t.is_active = 1) as teacher_count " +
+                      "FROM schools s " +
+                      "LEFT JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
+                      "GROUP BY s.udise_no, s.school_name, s.district_name " +
+                      "ORDER BY s.district_name, s.school_name";
+
+                stmt = conn.prepareStatement(sql);
+
+            } else {
+                sql = "SELECT " +
+                      "    s.udise_no, " +
+                      "    s.school_name, " +
+                      "    s.district_name, " +
+                      "    COUNT(DISTINCT st.student_id) as student_count, " +
+                      "    SUM(CASE WHEN st.gender = 'Male' OR st.gender = 'पुरुष' THEN 1 ELSE 0 END) as male_count, " +
+                      "    SUM(CASE WHEN st.gender = 'Female' OR st.gender = 'स्त्री' THEN 1 ELSE 0 END) as female_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase1_date IS NOT NULL THEN st.student_id END) as phase1_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase2_date IS NOT NULL THEN st.student_id END) as phase2_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase3_date IS NOT NULL THEN st.student_id END) as phase3_count, " +
+                      "    COUNT(DISTINCT CASE WHEN st.phase4_date IS NOT NULL THEN st.student_id END) as phase4_count, " +
+                      "    (SELECT COUNT(*) FROM teachers t WHERE t.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci AND t.is_active = 1) as teacher_count " +
+                      "FROM schools s " +
+                      "INNER JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
+                      "WHERE st.district COLLATE utf8mb4_unicode_ci = ? " +
+                      "GROUP BY s.udise_no, s.school_name, s.district_name " +
+                      "ORDER BY s.school_name";
+
+                stmt = conn.prepareStatement(sql);
+                stmt.setString(1, districtName);
+            }
+
             ResultSet rs = stmt.executeQuery();
             
             int count = 0;

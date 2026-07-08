@@ -8,7 +8,7 @@
 <%@ page import="java.text.SimpleDateFormat" %>
 <%
     User user = (User) session.getAttribute("user");
-    if (user == null || !user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) {
+    if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
         response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }

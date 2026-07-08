@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GATEE पोर्टल — प्रकल्प सादरीकरण</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#111827;color:#fff;}
+
+  .slide{width:100%;min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+         padding:60px 80px;position:relative;page-break-after:always;border-bottom:4px solid #1f2937;}
+
+  .slide-no{position:absolute;bottom:24px;right:36px;font-size:12px;color:rgba(255,255,255,0.3);
+            letter-spacing:2px;}
+
+  .s-cover   {background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);}
+  .s-blue    {background:linear-gradient(135deg,#0f172a,#1e3a5f);}
+  .s-green   {background:linear-gradient(135deg,#052e16,#14532d);}
+  .s-purple  {background:linear-gradient(135deg,#1e1b4b,#312e81);}
+  .s-orange  {background:linear-gradient(135deg,#431407,#7c2d12);}
+  .s-teal    {background:linear-gradient(135deg,#042f2e,#134e4a);}
+  .s-dark    {background:linear-gradient(135deg,#0f172a,#1e293b);}
+  .s-indigo  {background:linear-gradient(135deg,#1e1b4b,#1d4ed8);}
+  .s-rose    {background:linear-gradient(135deg,#4c0519,#881337);}
+
+  .accent-bar{height:4px;width:80px;border-radius:2px;margin-bottom:28px;}
+  .ab-blue  {background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+  .ab-green {background:linear-gradient(90deg,#22c55e,#4ade80);}
+  .ab-purple{background:linear-gradient(90deg,#a855f7,#c084fc);}
+  .ab-orange{background:linear-gradient(90deg,#f97316,#fb923c);}
+  .ab-teal  {background:linear-gradient(90deg,#14b8a6,#2dd4bf);}
+  .ab-rose  {background:linear-gradient(90deg,#f43f5e,#fb7185);}
+  .ab-indigo{background:linear-gradient(90deg,#6366f1,#818cf8);}
+  .ab-yellow{background:linear-gradient(90deg,#eab308,#facc15);}
+
+  .slide-tag{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+             opacity:0.6;margin-bottom:12px;}
+  h1{font-size:52px;font-weight:800;line-height:1.2;margin-bottom:16px;}
+  h2{font-size:36px;font-weight:700;line-height:1.3;margin-bottom:8px;}
+  h3{font-size:22px;font-weight:700;margin-bottom:14px;}
+  .subtitle{font-size:17px;opacity:0.75;line-height:1.7;max-width:700px;}
+  .body-text{font-size:15px;opacity:0.8;line-height:1.8;}
+
+  .cover-logo{font-size:72px;margin-bottom:20px;}
+  .cover-meta{display:flex;gap:24px;margin-top:32px;flex-wrap:wrap;}
+  .cover-chip{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
+              border-radius:20px;padding:8px 20px;font-size:13px;font-weight:600;}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:32px;}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:32px;}
+  .four-col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:20px;margin-top:32px;}
+
+  .card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);
+        border-radius:12px;padding:22px;}
+  .card h4{font-size:15px;font-weight:700;margin-bottom:10px;}
+  .card p,.card li{font-size:13px;opacity:0.78;line-height:1.9;}
+  .card ul{list-style:none;padding:0;}
+  .card ul li::before{content:"→ ";opacity:0.5;}
+
+  .icon-card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);
+             border-radius:12px;padding:24px;text-align:center;}
+  .icon-card .ico{font-size:40px;margin-bottom:12px;}
+  .icon-card h4{font-size:14px;font-weight:700;margin-bottom:6px;}
+  .icon-card p{font-size:12px;opacity:0.65;line-height:1.7;}
+
+  .role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px;}
+  .role-card{border-radius:10px;padding:18px;border:1px solid rgba(255,255,255,0.15);}
+  .role-card .role-icon{font-size:32px;margin-bottom:8px;}
+  .role-card h4{font-size:14px;font-weight:700;margin-bottom:6px;}
+  .role-card p{font-size:12px;opacity:0.65;line-height:1.7;}
+  .rc-admin  {background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);}
+  .rc-school {background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);}
+  .rc-hm     {background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.3);}
+  .rc-dist   {background:rgba(168,85,247,0.15);border-color:rgba(168,85,247,0.3);}
+  .rc-div    {background:rgba(249,115,22,0.15);border-color:rgba(249,115,22,0.3);}
+  .rc-super  {background:rgba(20,184,166,0.15);border-color:rgba(20,184,166,0.3);}
+
+  .flow{display:flex;align-items:center;gap:0;margin-top:28px;flex-wrap:wrap;}
+  .flow-step{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+             border-radius:10px;padding:16px 20px;text-align:center;flex:1;min-width:120px;}
+  .flow-step .fs-icon{font-size:28px;margin-bottom:6px;}
+  .flow-step h5{font-size:12px;font-weight:700;margin-bottom:4px;}
+  .flow-step p{font-size:11px;opacity:0.6;}
+  .flow-arrow{font-size:24px;opacity:0.4;padding:0 8px;flex-shrink:0;}
+
+  .phase-row{display:flex;gap:12px;margin-top:24px;}
+  .phase-box{flex:1;border-radius:10px;padding:18px;border:2px solid;}
+  .ph1{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.4);}
+  .ph2{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.4);}
+  .ph3{background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.4);}
+  .ph4{background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.4);}
+  .phase-box h4{font-size:14px;font-weight:700;margin-bottom:6px;}
+  .phase-box p{font-size:12px;opacity:0.7;line-height:1.7;}
+
+  .stats-row{display:flex;gap:20px;margin-top:28px;flex-wrap:wrap;}
+  .stat-box{flex:1;min-width:130px;background:rgba(255,255,255,0.07);
+            border-radius:10px;padding:20px;text-align:center;}
+  .stat-box .num{font-size:36px;font-weight:800;margin-bottom:4px;}
+  .stat-box .lbl{font-size:12px;opacity:0.6;letter-spacing:1px;}
+
+  .hl-list{list-style:none;margin-top:20px;}
+  .hl-list li{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.08);
+              font-size:14px;align-items:flex-start;}
+  .hl-list li:last-child{border-bottom:none;}
+  .hl-list .hl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+                   justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px;}
+
+  .tech-grid{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;}
+  .tech-pill{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+             border-radius:20px;padding:8px 18px;font-size:13px;font-weight:600;
+             display:flex;align-items:center;gap:8px;}
+
+  .db-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px;}
+  .db-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+           border-radius:8px;padding:14px;}
+  .db-card .tb-name{font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:8px;
+                    text-transform:uppercase;letter-spacing:1px;}
+  .db-card .tb-col{font-size:11px;opacity:0.65;line-height:1.9;font-family:monospace;}
+
+  .roadmap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px;}
+  .rm-card{border-radius:10px;padding:18px;border:1px solid rgba(255,255,255,0.15);}
+  .rm-phase{font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:8px;opacity:0.7;}
+  .rm-card h4{font-size:14px;font-weight:700;margin-bottom:8px;}
+  .rm-card ul{list-style:none;font-size:12px;opacity:0.7;line-height:2;}
+
+  .divider{height:1px;background:rgba(255,255,255,0.1);margin:24px 0;}
+  .ty-center{text-align:center;}
+  .ty-center h1{font-size:64px;}
+  .ty-center .subtitle{margin:0 auto;}
+
+  @media print{
+    .slide{page-break-after:always;min-height:auto;}
+  }
+
+  /* ── User Role Tabs ── */
+  .tab-slide{min-height:100vh;padding:40px 60px 60px;}
+  .tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px;
+           background:rgba(255,255,255,0.05);border-radius:14px;padding:8px;}
+  .tab-btn{padding:10px 18px;border-radius:10px;border:1px solid transparent;
+           font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;
+           background:transparent;color:rgba(255,255,255,0.55);letter-spacing:0.3px;}
+  .tab-btn:hover{background:rgba(255,255,255,0.08);color:#fff;}
+  .tab-btn.active{color:#fff;border-color:rgba(255,255,255,0.25);}
+  .tab-btn.tb-admin  .tab-btn.active{background:rgba(239,68,68,0.3);}
+
+  .tab-content{display:none;}
+  .tab-content.active{display:grid;grid-template-columns:300px 1fr;gap:24px;}
+
+  /* role identity panel */
+  .role-panel{border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:16px;}
+  .role-panel .rp-icon{font-size:56px;margin-bottom:4px;}
+  .role-panel h3{font-size:20px;font-weight:800;line-height:1.3;}
+  .role-panel .rp-desc{font-size:13px;opacity:0.75;line-height:1.8;}
+  .role-panel .rp-scope{background:rgba(255,255,255,0.1);border-radius:8px;
+                        padding:10px 14px;font-size:12px;line-height:1.9;}
+  .role-panel .rp-scope strong{display:block;font-size:11px;opacity:0.6;
+                                text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+
+  /* activities panel */
+  .act-panel{display:flex;flex-direction:column;gap:16px;}
+  .act-section h4{font-size:13px;font-weight:700;letter-spacing:1px;
+                  text-transform:uppercase;opacity:0.55;margin-bottom:12px;}
+  .act-list{list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .act-list li{display:flex;align-items:flex-start;gap:10px;
+               background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);
+               border-radius:8px;padding:10px 14px;font-size:13px;line-height:1.6;}
+  .act-list li .ali{font-size:16px;flex-shrink:0;margin-top:1px;}
+  .act-list li strong{display:block;font-size:13px;font-weight:700;margin-bottom:2px;}
+  .act-list li span{font-size:12px;opacity:0.65;}
+  .act-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+  .act-step{background:rgba(255,255,255,0.08);border-radius:16px;
+            padding:4px 12px;font-size:11px;font-weight:600;opacity:0.8;}
+  .act-pages{display:flex;flex-wrap:wrap;gap:8px;}
+  .page-pill{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+             border-radius:10px;padding:5px 12px;font-size:11px;font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ स्लाइड १ — मुखपृष्ठ -->
+<div class="slide s-cover">
+  <div class="cover-logo">🏫</div>
+  <div class="slide-tag">महाराष्ट्र शाळां विभाग, महाराष्ट्र</div>
+  <h1>GATEE पोर्टल</h1>
+  <h2 style="font-size:26px;font-weight:400;opacity:0.75;">वर्ग व्यवस्थापन आणि FLN मूल्यमापन प्रणाली</h2>
+  <p class="subtitle" style="margin-top:16px;">
+    महाराष्ट्रातील सर्व  शाळांमधील विद्यार्थ्यांच्या मूलभूत साक्षरता व अंकज्ञान (FLN) प्रगतीचा मागोवा घेणारे एक सर्वसमावेशक डिजिटल व्यासपीठ — शाळास्तरीय डेटा प्रविष्टीपासून राज्यस्तरीय विश्लेषणापर्यंत.
+  </p>
+  <div class="cover-meta">
+    <div class="cover-chip">📍 महाराष्ट्र, भारत</div>
+    <div class="cover-chip">🏫   शाळा</div>
+    <div class="cover-chip">📚 इयत्ता पहिली – नववी</div>
+    <div class="cover-chip">🎓 FLN मिशन अनुरूप</div>
+    <div class="cover-chip">📅 शैक्षणिक वर्ष २०२६-२७</div>
+  </div>
+  <div class="slide-no">स्लाइड ०१</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड २ — समस्या विधान -->
+<div class="slide s-blue">
+  <div class="accent-bar ab-blue"></div>
+  <div class="slide-tag">ही प्रणाली का आवश्यक आहे</div>
+  <h2>समस्या विधान</h2>
+  <p class="subtitle">GATEE पोर्टलपूर्वी  शाळांमध्ये FLN मागोवा हस्तचलित, विसंगत आणि उच्च अधिकाऱ्यांसाठी अगम्य होता.</p>
+
+  <div class="two-col" style="margin-top:32px;">
+    <div>
+      <ul class="hl-list">
+        <li>
+          <div class="hl-dot" style="background:rgba(239,68,68,0.2);color:#f87171;">❌</div>
+          <div><strong>केंद्रीय डेटा नाही</strong> — प्रत्येक शाळा कागदी नोंदवह्या ठेवत होती; जिल्हा/विभागस्तरीय आढावा अशक्य होता.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(239,68,68,0.2);color:#f87171;">❌</div>
+          <div><strong>टप्पा मागोवा नाही</strong> — कोणत्या शाळांनी कोणत्या टप्प्याचे FLN मूल्यमापन पूर्ण केले हे स्पष्ट नव्हते.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(239,68,68,0.2);color:#f87171;">❌</div>
+          <div><strong>मंजुरी प्रक्रिया नाही</strong> — शाळांनी सादर केलेल्या डेटाची पडताळणी किंवा स्वाक्षरी व्यवस्था नव्हती.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(239,68,68,0.2);color:#f87171;">❌</div>
+          <div><strong>विद्यार्थी अहवाल नाही</strong> — वैयक्तिक विद्यार्थ्यांचे प्रगती अहवाल तयार करणे पूर्णपणे हस्तचलित होते.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(239,68,68,0.2);color:#f87171;">❌</div>
+          <div><strong>वर्षांत प्रक्रिया नाही</strong> — वर्ग पदोन्नती आणि नववीच्या विद्यार्थ्यांच्या उत्तीर्णतेची कोणतीही डिजिटल नोंद नव्हती.</div>
+        </li>
+      </ul>
+    </div>
+    <div class="card" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);">
+      <h4 style="color:#60a5fa;font-size:18px;">GATEE पोर्टलचे उपाय</h4>
+      <ul style="margin-top:12px;">
+        <li style="padding:8px 0;font-size:14px;opacity:0.85;">✅ केंद्रीकृत, रियल-टाइम विद्यार्थी FLN डेटा</li>
+        <li style="padding:8px 0;font-size:14px;opacity:0.85;">✅ प्रतिवर्षी ४ टप्प्यांचे संरचित मूल्यमापन</li>
+        <li style="padding:8px 0;font-size:14px;opacity:0.85;">✅ प्रत्येक टप्प्यासाठी मुख्याध्यापकांची मंजुरी प्रक्रिया</li>
+        <li style="padding:8px 0;font-size:14px;opacity:0.85;">✅ स्वयंचलित PDF विद्यार्थी प्रगती पत्रिका</li>
+        <li style="padding:8px 0;font-size:14px;opacity:0.85;">✅ पूर्ण लेखापरीक्षण नोंदीसह स्वयंचलित वर्ग पदोन्नती</li>
+        <li style="padding:8px 0;font-size:14px;opacity:0.85;">✅ प्रत्येक स्तरावर विश्लेषण डॅशबोर्ड</li>
+        <li style="padding:8px 0;font-size:14px;opacity:0.85;">✅ पालक मेळावा नोंद व मागोवा</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ०२</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड ३ — प्रणाली आढावा -->
+<div class="slide s-dark">
+  <div class="accent-bar ab-indigo"></div>
+  <div class="slide-tag">प्रणाली आढावा</div>
+  <h2>GATEE पोर्टल म्हणजे काय?</h2>
+  <p class="subtitle">एक बहु-भूमिका वेब अनुप्रयोग जो FLN मूल्यमापनाचे संपूर्ण जीवनचक्र डिजिटल करतो — विद्यार्थी डेटा प्रविष्टीपासून वर्षांत वर्ग पदोन्नतीपर्यंत.</p>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="num" style="color:#60a5fa;">६</div>
+      <div class="lbl">वापरकर्ता भूमिका</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" style="color:#34d399;">४</div>
+      <div class="lbl">टप्पे / वर्ष</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" style="color:#f472b6;">९</div>
+      <div class="lbl">इयत्ता (१ली–९वी)</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" style="color:#fb923c;">३</div>
+      <div class="lbl">विषय</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" style="color:#a78bfa;">८०+</div>
+      <div class="lbl">JSP पृष्ठे</div>
+    </div>
+    <div class="stat-box">
+      <div class="num" style="color:#2dd4bf;">१००+</div>
+      <div class="lbl">Servlets / APIs</div>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <div class="card">
+      <h4>📍 मूल्यमापन विषय</h4>
+      <ul>
+        <li>मराठी — ६ स्तर</li>
+        <li>गणित — ८ स्तर</li>
+        <li>इंग्रजी — ६ स्तर</li>
+        <li>प्रत्येक विद्यार्थ्याची FLN पूर्णता नोंद</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>📐 भौगोलिक रचना</h4>
+      <ul>
+        <li>राज्य → विभाग</li>
+        <li>विभाग → जिल्हा</li>
+        <li>जिल्हा → शाळा (UDISE)</li>
+        <li>शाळा → विद्यार्थी (PEN)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🔄 वार्षिक चक्र</h4>
+      <ul>
+        <li>टप्पा १ — सत्र सुरुवात आधारभूत मूल्यमापन</li>
+        <li>टप्पा २, ३ — मध्यवर्ती मूल्यमापन</li>
+        <li>टप्पा ४ — वर्षांत मूल्यमापन</li>
+        <li>वर्षांत — पदोन्नती / उत्तीर्णता</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ०३</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड ४ — वापरकर्ता भूमिका -->
+<div class="slide s-purple">
+  <div class="accent-bar ab-purple"></div>
+  <div class="slide-tag">प्रवेश नियंत्रण</div>
+  <h2>वापरकर्ता भूमिका व अधिकार</h2>
+  <p class="subtitle">सहा वेगळ्या भूमिका व स्वतंत्र डॅशबोर्ड — प्रत्येकाला केवळ त्यांच्या स्तराशी संबंधित माहिती दिसते.</p>
+
+  <div class="role-grid" style="margin-top:28px;">
+    <div class="role-card rc-admin">
+      <div class="role-icon">👑</div>
+      <h4>डेटा प्रशासक (Data Admin)</h4>
+      <p>संपूर्ण प्रणालीवर नियंत्रण. शाळा व्यवस्थापन, विद्यार्थी डेटा अपलोड, वापरकर्ता व्यवस्थापन, वर्ग पदोन्नती, सर्व विश्लेषण पाहणे. सर्वोच्च अधिकार.</p>
+    </div>
+    <div class="role-card rc-school">
+      <div class="role-icon">📝</div>
+      <h4>शाळा समन्वयक</h4>
+      <p>स्वतःच्या शाळेच्या विद्यार्थ्यांचा FLN टप्पा डेटा भरतो. मुख्याध्यापकांच्या मंजुरीसाठी टप्पे सादर करतो. पालक मेळाव्याची नोंद करतो.</p>
+    </div>
+    <div class="role-card rc-hm">
+      <div class="role-icon">✅</div>
+      <h4>मुख्याध्यापक</h4>
+      <p>शाळा समन्वयकाने सादर केलेले टप्पे तपासून मंजूर किंवा नाकारतो. शाळा स्तरावर डेटा गुणवत्तेचा द्वारपाल.</p>
+    </div>
+    <div class="role-card rc-dist">
+      <div class="role-icon">🏢</div>
+      <h4>जिल्हा अधिकारी</h4>
+      <p>जिल्ह्यातील सर्व शाळांचे विद्यार्थी स्तर, टप्पा पूर्णता, शिक्षक नियुक्ती आणि शालेय उपक्रम पाहतो.</p>
+    </div>
+    <div class="role-card rc-div">
+      <div class="role-icon">🗺️</div>
+      <h4>विभाग अधिकारी</h4>
+      <p>विभागस्तरीय विश्लेषण, जिल्ह्यांमधील टप्पा तुलना, शाळा संपर्क मागोवा आणि पालक मेळावा डेटा पाहतो.</p>
+    </div>
+    <div class="role-card rc-super">
+      <div class="role-icon">🔭</div>
+      <h4>अति-विभाग अधिकारी</h4>
+      <p>सर्व विभागांचे राज्यस्तरीय दृश्य. सर्वोच्च विश्लेषण प्रवेश — टप्पा तुलना, विद्यार्थी स्तर वितरण, उपक्रम विश्लेषण.</p>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ०४</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड ५ — FLN टप्पा कार्यप्रवाह -->
+<div class="slide s-green">
+  <div class="accent-bar ab-green"></div>
+  <div class="slide-tag">मूळ कार्यप्रवाह</div>
+  <h2>FLN टप्पा मूल्यमापन कार्यप्रवाह</h2>
+  <p class="subtitle">प्रत्येक शैक्षणिक वर्षात ४ टप्पे असतात. पुढील टप्पा उघडण्यासाठी मागील टप्पा पूर्ण होऊन मंजूर होणे आवश्यक आहे.</p>
+
+  <div class="phase-row">
+    <div class="phase-box ph1">
+      <h4 style="color:#60a5fa;">📘 टप्पा १</h4>
+      <p>आधारभूत मूल्यमापन. वर्ग पदोन्नतीनंतर मागील वर्षाच्या टप्पा ४ च्या डेटावरून बीज (seed) केले जाते. शाळा समन्वयक प्रत्येक विद्यार्थ्याचे मराठी, गणित, इंग्रजी स्तर भरतो.</p>
+    </div>
+    <div class="phase-box ph2">
+      <h4 style="color:#4ade80;">📗 टप्पा २</h4>
+      <p>मध्यवर्ती मूल्यमापन १. <strong>टप्पा १ मुख्याध्यापकांनी मंजूर केल्यावरच</strong> उघडतो. समन्वयक विद्यार्थी स्तर अद्ययावत करतो.</p>
+    </div>
+    <div class="phase-box ph3">
+      <h4 style="color:#fb923c;">📙 टप्पा ३</h4>
+      <p>मध्यवर्ती मूल्यमापन २. टप्पा २ मंजुरीनंतर उघडतो. टप्पा १ च्या तुलनेत प्रगती मोजली जाते — "स्तर उड्या" नोंदवल्या जातात.</p>
+    </div>
+    <div class="phase-box ph4">
+      <h4 style="color:#c084fc;">📕 टप्पा ४</h4>
+      <p>वर्षांत अंतिम मूल्यमापन. मंजुरीनंतर हा डेटा वर्ग पदोन्नतीद्वारे पुढील वर्षाच्या टप्पा १ साठी बीज बनतो.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:28px;">
+    <h3 style="margin-bottom:16px;">मंजुरी प्रवाह (प्रत्येक टप्प्यासाठी)</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="fs-icon">📝</div>
+        <h5>समन्वयक डेटा भरतो</h5>
+        <p>सर्व इयत्तांचे विद्यार्थी स्तर</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="fs-icon">📤</div>
+        <h5>मंजुरीसाठी सादर</h5>
+        <p>टप्पा PENDING म्हणून</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="fs-icon">🔍</div>
+        <h5>मुख्याध्यापक तपासतात</h5>
+        <p>डेटा गुणवत्ता तपासणी</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="fs-icon">✅</div>
+        <h5>मंजूर (APPROVED)</h5>
+        <p>पुढील टप्पा उघडतो</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="fs-icon">🔓</div>
+        <h5>टप्पा N+१ सक्रिय</h5>
+        <p>समन्वयक सुरू करू शकतो</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ०५</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड ६ — घटक -->
+<div class="slide s-dark">
+  <div class="accent-bar ab-teal"></div>
+  <div class="slide-tag">कार्यात्मक घटक</div>
+  <h2>प्रणाली घटक</h2>
+
+  <div class="four-col">
+    <div class="icon-card">
+      <div class="ico">🔐</div>
+      <h4>प्रमाणीकरण</h4>
+      <p>लॉगिन, लॉगआउट, पासवर्ड बदल, अयशस्वी प्रयत्नांनंतर खाते लॉक, सत्र व्यवस्थापन.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">👨‍🎓</div>
+      <h4>विद्यार्थी व्यवस्थापन</h4>
+      <p>विद्यार्थी जोडणे/संपादन/पाहणे. Excel द्वारे अपलोड. प्रत्येक टप्प्यासाठी FLN स्तर. PEN क्रमांक मागोवा.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">📊</div>
+      <h4>टप्पा मूल्यमापन</h4>
+      <p>४-टप्पा FLN डेटा प्रविष्टी. टप्पा लॉकिंग/अनलॉकिंग. मंजुरीसाठी सादर करणे. टप्पा स्थिती डॅशबोर्ड.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">✅</div>
+      <h4>मंजुरी कार्यप्रवाह</h4>
+      <p>मुख्याध्यापकांकडून टप्पा मंजुरी/नकार. पालक मेळावा मंजुरी. मंजुरी लेखापरीक्षण नोंद.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">📈</div>
+      <h4>विश्लेषण डॅशबोर्ड</h4>
+      <p>स्तर वितरण, टप्पा तुलना, स्तर उड्या, विषयनिहाय आकडेवारी — शाळा/जिल्हा/विभागानुसार.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">👨‍👩‍👧</div>
+      <h4>पालक मेळावा</h4>
+      <p>प्रत्येक शाळेतील पालक बैठका नोंदवणे. फोटो अपलोड. जिल्हास्तरीय बैठक आकडेवारी.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">👨‍🏫</div>
+      <h4>शिक्षक व्यवस्थापन</h4>
+      <p>शिक्षक जोडणे/संपादन. इयत्ता/विषयाला शिक्षक नियुक्त करणे. विषयनिहाय शिक्षक प्रगती मागोवा.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">📄</div>
+      <h4>विद्यार्थी अहवाल</h4>
+      <p>PDF प्रगती पत्रिका तयार करणे. अहवाल विनंती/मंजुरी. सर्वसमावेशक विद्यार्थी प्रगती अहवाल.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">🎓</div>
+      <h4>वर्ग पदोन्नती</h4>
+      <p>सर्व वर्गांची वर्षांत पदोन्नती. नववी उत्तीर्ण विद्यार्थी कायमस्वरूपी नोंदवले जातात. पूर्ण लेखापरीक्षण नोंद.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">🎬</div>
+      <h4>व्हिडिओ व्यवस्थापन</h4>
+      <p>विद्यार्थी शिक्षण व्हिडिओ अपलोड. YouTube एकीकरण. BunnyCDN साठवण. मंजुरी कार्यप्रवाह.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">🏫</div>
+      <h4>शाळा व्यवस्थापन</h4>
+      <p>Excel द्वारे शाळा अपलोड. शाळा संपर्क व्यवस्थापन (मुख्याध्यापक, समन्वयक). शाळा प्रोफाइल.</p>
+    </div>
+    <div class="icon-card">
+      <div class="ico">🔔</div>
+      <h4>सूचना</h4>
+      <p>प्रशासक-व्यवस्थापित घोषणा. इतर शालेय उपक्रम सादर करणे व मंजूर करणे.</p>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ०६</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड ७ — वर्ग पदोन्नती -->
+<div class="slide s-orange">
+  <div class="accent-bar ab-orange"></div>
+  <div class="slide-tag">महत्त्वाचे वैशिष्ट्य</div>
+  <h2>वर्षांत वर्ग पदोन्नती प्रणाली</h2>
+  <p class="subtitle">पूर्णपणे अटॉमिक, लेखापरीक्षित, ६-चरण व्यवहार — इयत्ता नववीचे विद्यार्थी कायमस्वरूपी उत्तीर्ण होतात.</p>
+
+  <div class="two-col" style="margin-top:28px;">
+    <div>
+      <h3 style="margin-bottom:16px;">६-चरण पदोन्नती व्यवहार</h3>
+      <ul class="hl-list">
+        <li>
+          <div class="hl-dot" style="background:rgba(251,146,60,0.2);color:#fb923c;font-weight:700;font-size:12px;">१</div>
+          <div><strong>पदोन्नती नोंद तयार करणे</strong> — कोणी, केव्हा, कोणत्या शैक्षणिक वर्षासाठी केले याची नोंद.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(251,146,60,0.2);color:#fb923c;font-weight:700;font-size:12px;">२</div>
+          <div><strong>सर्व टप्पा डेटा संग्रहित</strong> → student_phase_history तक्त्यात. पूर्ण लेखापरीक्षण नोंद जतन.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(251,146,60,0.2);color:#fb923c;font-weight:700;font-size:12px;">३</div>
+          <div><strong>मंजुरी नोंदी संग्रहित व साफ</strong> — मंजुरी नोंदी इतिहासात जतन, नंतर नव्या वर्षासाठी साफ केल्या जातात.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(251,146,60,0.2);color:#fb923c;font-weight:700;font-size:12px;">४</div>
+          <div><strong>नववी उत्तीर्ण</strong> — graduated_students तक्त्यात कायमस्वरूपी हलवले, is_active=0 केले जाते.</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(251,146,60,0.2);color:#fb923c;font-weight:700;font-size:12px;">५</div>
+          <div><strong>इयत्ता १ली–८वी पदोन्नती</strong> — इयत्ता वाढवणे, शेवटच्या पूर्ण टप्प्यावरून टप्पा १ बीज करणे (COALESCE).</div>
+        </li>
+        <li>
+          <div class="hl-dot" style="background:rgba(251,146,60,0.2);color:#fb923c;font-weight:700;font-size:12px;">६</div>
+          <div><strong>नोंद संख्या अद्ययावत</strong> — एकूण पदोन्नत व उत्तीर्ण विद्यार्थ्यांची संख्या लेखापरीक्षण नोंदीत.</div>
+        </li>
+      </ul>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px;background:rgba(251,146,60,0.1);border-color:rgba(251,146,60,0.3);">
+        <h4>🔒 स्मार्ट टप्पा बीज (COALESCE)</h4>
+        <p style="margin-top:8px;">नव्या वर्षाचा टप्पा १ उपलब्ध सर्वोत्तम टप्प्यावरून बीज केला जातो:<br/><br/>
+        <strong>टप्पा ४ → टप्पा ३ → टप्पा २ → टप्पा १</strong><br/><br/>
+        सर्व ४ टप्पे पूर्ण न केलेल्या शाळांनाही नव्या वर्षासाठी अर्थपूर्ण आधारभूत डेटा मिळतो.</p>
+      </div>
+      <div class="card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+        <h4>📋 ४ लेखापरीक्षण तक्ते</h4>
+        <ul style="margin-top:8px;">
+          <li>class_promotion_log — प्रत्येक पदोन्नतीसाठी एक नोंद</li>
+          <li>student_phase_history — सर्व विद्यार्थी टप्पा डेटा</li>
+          <li>graduated_students — नववी उत्तीर्णांची कायम नोंद</li>
+          <li>phase_approvals_history — मंजुरी निर्णयांचे संग्रहण</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ०७</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड ८ — विश्लेषण -->
+<div class="slide s-teal">
+  <div class="accent-bar ab-teal"></div>
+  <div class="slide-tag">डेटा बुद्धिमत्ता</div>
+  <h2>विश्लेषण व अहवाल</h2>
+  <p class="subtitle">पदानुक्रमाच्या प्रत्येक स्तरावर रियल-टाइम डेटा, आलेख आणि टप्पानिहाय तुलनेसह समर्पित डॅशबोर्ड.</p>
+
+  <div class="three-col">
+    <div class="card">
+      <h4>🏫 शाळा स्तर</h4>
+      <ul>
+        <li>टप्पानिहाय विद्यार्थी स्तर सारांश</li>
+        <li>वैयक्तिक विद्यार्थी प्रगती मागोवा</li>
+        <li>FLN पूर्णता टक्केवारी</li>
+        <li>टप्पा सादरीकरण स्थिती</li>
+        <li>PDF विद्यार्थी प्रगती पत्रिका</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🏢 जिल्हा स्तर</h4>
+      <ul>
+        <li>सर्व शाळांच्या टप्पा पूर्णतेची स्थिती</li>
+        <li>जिल्हाव्यापी विद्यार्थी स्तर वितरण</li>
+        <li>शिक्षक नियुक्ती प्रगती</li>
+        <li>पालक मेळावा आकडेवारी</li>
+        <li>विद्यार्थी स्तर उडी मागोवा</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🗺️ विभाग / राज्य स्तर</h4>
+      <ul>
+        <li>विभागव्यापी टप्पा तुलना</li>
+        <li>जिल्ह्यांमधील विषयनिहाय आकडेवारी</li>
+        <li>टप्पानिहाय स्तर टक्केवारी आलेख</li>
+        <li>उपक्रम विश्लेषण डॅशबोर्ड</li>
+        <li>शाळा संपर्क कव्हरेज विश्लेषण</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;">
+    <h3 style="margin-bottom:14px;">प्रमुख मोजमाप निर्देशक</h3>
+    <div class="four-col" style="margin-top:0;">
+      <div class="card" style="text-align:center;padding:16px;">
+        <div style="font-size:28px;margin-bottom:6px;">📉→📈</div>
+        <h4 style="font-size:13px;">स्तर उड्या</h4>
+        <p>टप्पा १ ते टप्पा ४ दरम्यान प्रत्येक विद्यार्थ्याची किती स्तर सुधारणा झाली</p>
+      </div>
+      <div class="card" style="text-align:center;padding:16px;">
+        <div style="font-size:28px;margin-bottom:6px;">🎯</div>
+        <h4 style="font-size:13px;">FLN पूर्णता</h4>
+        <p>तिन्ही विषयांत १००% FLN साध्य केलेले विद्यार्थी</p>
+      </div>
+      <div class="card" style="text-align:center;padding:16px;">
+        <div style="font-size:28px;margin-bottom:6px;">📊</div>
+        <h4 style="font-size:13px;">टप्पा तुलना</h4>
+        <p>सर्व ४ टप्प्यांमधील स्तर वितरणाची बाजू-बाजूची तुलना</p>
+      </div>
+      <div class="card" style="text-align:center;padding:16px;">
+        <div style="font-size:28px;margin-bottom:6px;">🏆</div>
+        <h4 style="font-size:13px;">शाळा क्रमवारी</h4>
+        <p>जिल्हा/विभागातील FLN यशाच्या टक्केवारीनुसार शाळांची क्रमवारी</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ०८</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड १० — सुरक्षा -->
+<div class="slide s-rose">
+  <div class="accent-bar ab-rose"></div>
+  <div class="slide-tag">सुरक्षा व प्रवेश</div>
+  <h2>सुरक्षा वैशिष्ट्ये</h2>
+
+  <div class="three-col">
+    <div class="card">
+      <h4>🔐 प्रमाणीकरण</h4>
+      <ul>
+        <li>BCrypt पासवर्ड हॅशिंग</li>
+        <li>अयशस्वी प्रयत्नांनंतर खाते लॉक</li>
+        <li>सत्र-आधारित लॉगिन व्यवस्थापन</li>
+        <li>सुरक्षित लॉगआउट — सत्र रद्द करणे</li>
+        <li>पडताळणीसह पासवर्ड बदल</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🛡️ अधिकृतता</h4>
+      <ul>
+        <li>प्रत्येक JSP सत्र + भूमिका तपासतो</li>
+        <li>प्रत्येक servlet वापरकर्ता प्रकार तपासतो</li>
+        <li>अनधिकृत प्रवेशावर redirect</li>
+        <li>शाळा समन्वयक स्वतःच्या UDISE पुरते</li>
+        <li>अधिकारी स्वतःच्या भूगोलापुरते</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🖼️ मीडिया सुरक्षा</h4>
+      <ul>
+        <li>पालक मेळावा फोटो एनक्रिप्टेड</li>
+        <li>प्रतिमा SecureImageServlet द्वारे</li>
+        <li>व्हिडिओ BunnyCDN वर (खाजगी)</li>
+        <li>YouTube अपलोड OAuth 2.0 सह</li>
+        <li>थेट फाइल-मार्ग उघड नाही</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top:20px;">
+    <div class="card">
+      <h4>📋 डेटा अखंडता</h4>
+      <ul>
+        <li>टप्पा लॉकिंग — मागील मंजूर होईपर्यंत पुढचा बंद</li>
+        <li>सर्व पदोन्नती अटॉमिक DB व्यवहार (त्रुटीवर rollback)</li>
+        <li>पूर्ण लेखापरीक्षण नोंद — काहीही हटवले जात नाही</li>
+        <li>उत्तीर्ण विद्यार्थी स्वतंत्र तक्त्यात कायमस्वरूपी</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🔒 इनपुट पडताळणी</h4>
+      <ul>
+        <li>विनाशकारी कृतींसाठी टाइप-टू-कन्फर्म (PROMOTE)</li>
+        <li>पदोन्नतीपूर्वी शैक्षणिक वर्ष पडताळणी</li>
+        <li>PreparedStatement द्वारे SQL injection प्रतिबंध</li>
+        <li>सर्व्हर-साइड भूमिका तपासणी (केवळ क्लायंट-साइड नाही)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड १०</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड ११ — भविष्यातील वैशिष्ट्ये -->
+<div class="slide s-indigo">
+  <div class="accent-bar ab-indigo"></div>
+  <div class="slide-tag">भविष्यातील योजना</div>
+  <h2>आगामी वैशिष्ट्ये</h2>
+  <p class="subtitle">पोर्टलची पोहोच व स्वयंचलितता वाढवण्यासाठी पुढील विकास टप्प्यात नियोजित वैशिष्ट्ये.</p>
+
+  <div class="roadmap">
+    <div class="rm-card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+      <div class="rm-phase" style="color:#4ade80;">टप्पा अ — नियोजित</div>
+      <h4>💬 WhatsApp सूचना</h4>
+      <ul>
+        <li>टप्पा मंजुरी सूचना समन्वयकांना</li>
+        <li>टप्पा सादरीकरण सूचना मुख्याध्यापकांना</li>
+        <li>पदोन्नती पूर्णता सूचना</li>
+        <li>अपूर्ण टप्प्यांसाठी साप्ताहिक स्मरणपत्र</li>
+        <li>प्रदाता: MSG91 (भारतीय BSP)</li>
+      </ul>
+    </div>
+    <div class="rm-card" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);">
+      <div class="rm-phase" style="color:#60a5fa;">टप्पा ब</div>
+      <h4>📱 मोबाइल अनुकूल UI</h4>
+      <ul>
+        <li>स्पर्श-अनुकूल डेटा प्रविष्टी</li>
+        <li>मोबाइलवरून डेटा भरणे</li>
+        <li>प्रतिसादात्मक डॅशबोर्ड</li>
+        <li>ऑफलाइन फॉर्म प्रविष्टी</li>
+      </ul>
+    </div>
+    <div class="rm-card" style="background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.3);">
+      <div class="rm-phase" style="color:#c084fc;">टप्पा क</div>
+      <h4>📊 प्रगत अहवाल</h4>
+      <ul>
+        <li>सर्व विश्लेषणांचे Excel निर्यात</li>
+        <li>राज्यस्तरीय सारांश PDF</li>
+        <li>वर्षानुवर्षे तुलनात्मक अहवाल</li>
+        <li>शाळा प्रगती प्रमाणपत्रे</li>
+      </ul>
+    </div>
+    <div class="rm-card" style="background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.3);">
+      <div class="rm-phase" style="color:#fb923c;">टप्पा ड</div>
+      <h4>🤖 AI अंतर्दृष्टी</h4>
+      <ul>
+        <li>धोकाग्रस्त विद्यार्थ्यांचे अनुमान</li>
+        <li>शिकवण्याच्या शिफारसी</li>
+        <li>डेटा विसंगती शोध</li>
+        <li>स्वयंचलित प्रगती सारांश</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड ११</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड १२ — परिणाम -->
+<div class="slide s-green">
+  <div class="accent-bar ab-green"></div>
+  <div class="slide-tag">परिणाम</div>
+  <h2>अपेक्षित परिणाम</h2>
+  <p class="subtitle">GATEE पोर्टल  शाळांच्या विद्यार्थी शिक्षण परिणामांचा मागोवा व सुधारणेची पद्धत बदलतो.</p>
+
+  <div class="three-col">
+    <div class="icon-card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+      <div class="ico">🎯</div>
+      <h4>डेटा अचूकता</h4>
+      <p>टप्पा लॉकिंगसह संरचित डिजिटल प्रविष्टी कागदी नोंदींमधील अपूर्ण किंवा विसंगत FLN डेटा दूर करते.</p>
+    </div>
+    <div class="icon-card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+      <div class="ico">⚡</div>
+      <h4>माहितीची गती</h4>
+      <p>विभाग अधिकारी व राज्यस्तरीय प्रशासक रियल-टाइम प्रगती पाहू शकतात — हस्तचलित एकत्रीकरणाची वाट पहावी लागत नाही.</p>
+    </div>
+    <div class="icon-card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+      <div class="ico">📣</div>
+      <h4>जबाबदारी</h4>
+      <p>प्रत्येक डेटा सादरीकरण, मंजुरी व पदोन्नती कोणी केली व केव्हा केली याची नोंद — शासन प्रशासनासाठी पूर्ण लेखापरीक्षण.</p>
+    </div>
+    <div class="icon-card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+      <div class="ico">🔄</div>
+      <h4>सतत सुधारणा</h4>
+      <p>टप्पानिहाय स्तर उडी मागोवा दाखवतो की विद्यार्थी खरोखर सुधारत आहेत का — लक्ष्यित हस्तक्षेप शक्य होतो.</p>
+    </div>
+    <div class="icon-card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+      <div class="ico">🗂️</div>
+      <h4>कायम नोंदी</h4>
+      <p>उत्तीर्ण विद्यार्थी, ऐतिहासिक टप्पा डेटा व पदोन्नती नोंदी कायमस्वरूपी जतन — बहु-वर्षीय प्रवृत्ती विश्लेषण शक्य.</p>
+    </div>
+    <div class="icon-card" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);">
+      <div class="ico">🤝</div>
+      <h4>पालक सहभाग</h4>
+      <p>पालक मेळावा घटक प्रत्येक शाळेतील समुदाय सहभाग नोंदवला व मागोवा केला जातो याची खात्री देतो.</p>
+    </div>
+  </div>
+  <div class="slide-no">स्लाइड १२</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड १३ — प्रत्येक भूमिकेच्या कार्यप्रणाली -->
+<div class="slide s-dark tab-slide">
+  <div class="accent-bar ab-purple"></div>
+  <div class="slide-tag">भूमिकानुसार कार्यप्रणाली</div>
+  <h2 style="margin-bottom:6px;">प्रत्येक वापरकर्ता लॉगिन केल्यावर काय करतो?</h2>
+  <p style="font-size:14px;opacity:0.6;margin-bottom:20px;">टॅब निवडा → त्या भूमिकेचे दैनंदिन उपक्रम पाहा</p>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('admin')"
+            style="background:rgba(239,68,68,0.3);border-color:rgba(239,68,68,0.5);">
+      👑 डेटा प्रशासक
+    </button>
+    <button class="tab-btn" onclick="showTab('coord')"
+            style="">
+      📝 शाळा समन्वयक
+    </button>
+    <button class="tab-btn" onclick="showTab('hm')"
+            style="">
+      ✅ मुख्याध्यापक
+    </button>
+    <button class="tab-btn" onclick="showTab('dist')"
+            style="">
+      🏢 जिल्हा अधिकारी
+    </button>
+    <button class="tab-btn" onclick="showTab('div')"
+            style="">
+      🗺️ विभाग अधिकारी
+    </button>
+    <button class="tab-btn" onclick="showTab('super')"
+            style="">
+      🔭 अति-विभाग अधिकारी
+    </button>
+  </div>
+
+  <!-- ══ TAB: DATA ADMIN ══ -->
+  <div id="tab-admin" class="tab-content active">
+    <div class="role-panel" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);">
+      <div class="rp-icon">👑</div>
+      <h3>डेटा प्रशासक<br/><span style="font-size:13px;opacity:0.6;font-weight:400;">DATA_ADMIN</span></h3>
+      <div class="rp-desc">संपूर्ण प्रणालीवर सर्वोच्च नियंत्रण. शाळांपासून ते राज्यस्तरापर्यंत सर्व डेटा पाहणे, व्यवस्थापन व प्रमुख निर्णय घेण्याचा अधिकार.</div>
+      <div class="rp-scope">
+        <strong>प्रवेश कक्षा</strong>
+        🌍 संपूर्ण महाराष्ट्र<br/>
+        📊 सर्व विभाग, जिल्हे, शाळा<br/>
+        👤 सर्व वापरकर्ते<br/>
+        🗄️ संपूर्ण डेटाबेस
+      </div>
+     
+    </div>
+    <div class="act-panel">
+      <div class="act-section">
+        <h4>🔑 दैनंदिन उपक्रम</h4>
+        <ul class="act-list">
+          <li><div class="ali">📤</div><div><strong>विद्यार्थी Excel अपलोड</strong><span>नवीन विद्यार्थ्यांची माहिती bulk upload करणे. UDISE + PEN validation.</span></div></li>
+          <li><div class="ali">🏫</div><div><strong>शाळा व वापरकर्ता व्यवस्थापन</strong><span>शाळा जोडणे, समन्वयक/मुख्याध्यापक login तयार करणे, पासवर्ड रीसेट.</span></div></li>
+          <li><div class="ali">📊</div><div><strong>सर्व शाळांचा FLN आढावा</strong><span>कोणत्या शाळा कोणत्या टप्प्यावर आहेत याचा संपूर्ण overview पाहणे.</span></div></li>
+          <li><div class="ali">🧪</div><div><strong>Test Promote (एकट्या शाळेसाठी)</strong><span>वर्षांत पदोन्नती करण्यापूर्वी एखाद्या शाळेसाठी चाचणी — UDISE टाकून preview पाहणे.</span><div class="act-steps"><span class="act-step">UDISE टाका</span><span class="act-step">Preview पाहा</span><span class="act-step">PROMOTE टाइप करा</span><span class="act-step">Confirm</span></div></div></li>
+          <li><div class="ali">🎓</div><div><strong>सर्व शाळा पदोन्नती</strong><span>वर्षांत सर्व विद्यार्थ्यांची class पुढे करणे. IX → graduated. 6-step atomic transaction.</span><div class="act-steps"><span class="act-step">Preview तपासा</span><span class="act-step">PROMOTE टाइप करा</span><span class="act-step">Execute</span><span class="act-step">Audit पाहा</span></div></div></li>
+          <li><div class="ali">📋</div><div><strong>Promotion Audit व उत्तीर्ण यादी</strong><span>पदोन्नतीनंतर promotion log, archived phase data, graduated students तपासणे.</span></div></li>
+          <li><div class="ali">🏅</div><div><strong>विद्यार्थी उपक्रम व्यवस्थापन</strong><span>कोणत्याही शाळेच्या विद्यार्थ्यांचे क्रीडा/सांस्कृतिक/शैक्षणिक उपक्रम पाहणे व नोंदवणे.</span></div></li>
+          <li><div class="ali">🔔</div><div><strong>घोषणा तयार करणे</strong><span>सर्व शाळा/जिल्हा/विभाग यांना targeted notifications पाठवणे.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: SCHOOL COORDINATOR ══ -->
+  <div id="tab-coord" class="tab-content">
+    <div class="role-panel" style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);">
+      <div class="rp-icon">📝</div>
+      <h3>शाळा समन्वयक<br/><span style="font-size:13px;opacity:0.6;font-weight:400;">SCHOOL_COORDINATOR</span></h3>
+      <div class="rp-desc">शाळेतील FLN डेटाचा मुख्य प्रविष्टी अधिकारी. दररोज विद्यार्थ्यांचे मूल्यमापन नोंदवणे आणि मंजुरीसाठी सादर करणे.</div>
+      <div class="rp-scope">
+        <strong>प्रवेश कक्षा</strong>
+        🏫 फक्त स्वतःची शाळा (UDISE)<br/>
+        👨‍🎓 त्याच UDISE चे विद्यार्थी<br/>
+        📊 स्वतःच्या शाळेचे विश्लेषण<br/>
+        🔒 इतर शाळांचा डेटा नाही
+      </div>
+    </div>
+    <div class="act-panel">
+      <div class="act-section">
+        <h4>📝 दैनंदिन उपक्रम</h4>
+        <ul class="act-list">
+          <li><div class="ali">📊</div><div><strong>FLN टप्पा डेटा भरणे</strong><span>प्रत्येक इयत्तेतील विद्यार्थ्यांचे मराठी (स्तर १-६), गणित (स्तर १-८), इंग्रजी (स्तर १-६) स्तर नोंदवणे.</span><div class="act-steps"><span class="act-step">इयत्ता निवडा</span><span class="act-step">विद्यार्थी स्तर भरा</span><span class="act-step">तारीख द्या</span><span class="act-step">जतन करा</span></div></div></li>
+          <li><div class="ali">📤</div><div><strong>टप्पा मंजुरीसाठी सादर</strong><span>सर्व इयत्तांचा डेटा भरल्यावर मुख्याध्यापकांकडे मंजुरीसाठी पाठवणे. PENDING स्थितीत जाते.</span></div></li>
+          <li><div class="ali">📅</div><div><strong>टप्पा स्थिती तपासणे</strong><span>कोणता टप्पा OPEN / PENDING / APPROVED / REJECTED आहे ते पाहणे. नाकारल्यास दुरुस्ती.</span></div></li>
+          <li><div class="ali">👨‍👩‍👧</div><div><strong>पालक मेळावा नोंद</strong><span>बैठकीची तारीख, उपस्थित पालकांची संख्या व फोटो अपलोड करणे. मुख्याध्यापकांच्या मंजुरीसाठी.</span></div></li>
+          <li><div class="ali">🏅</div><div><strong>विद्यार्थी उपक्रम नोंदवणे</strong><span>क्रीडा, सांस्कृतिक, शैक्षणिक स्पर्धांमधील विद्यार्थ्यांची कामगिरी नोंदवणे. फोटोसह.</span></div></li>
+          <li><div class="ali">👨‍🏫</div><div><strong>शिक्षक नोंदणी व नियुक्ती</strong><span>शाळेतील शिक्षक जोडणे, त्यांना इयत्ता/विषय नियुक्त करणे.</span></div></li>
+          <li><div class="ali">👁️</div><div><strong>विद्यार्थी यादी व FLN प्रगती पाहणे</strong><span>सर्व विद्यार्थ्यांची FLN पूर्णता स्थिती, मागील टप्पे पाहणे.</span></div></li>
+          <li><div class="ali">📄</div><div><strong>विद्यार्थी अहवाल विनंती</strong><span>विद्यार्थ्यांची PDF प्रगती पत्रिका मागवणे. Admin मंजुरीनंतर download करणे.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: HEAD MASTER ══ -->
+  <div id="tab-hm" class="tab-content">
+    <div class="role-panel" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);">
+      <div class="rp-icon">✅</div>
+      <h3>मुख्याध्यापक<br/><span style="font-size:13px;opacity:0.6;font-weight:400;">HEAD_MASTER</span></h3>
+      <div class="rp-desc">शाळेतील FLN डेटाचा गुणवत्ता द्वारपाल. समन्वयकाने सादर केलेला प्रत्येक टप्पा तपासून मंजूर किंवा नाकारण्याचा एकमेव अधिकार.</div>
+      <div class="rp-scope">
+        <strong>प्रवेश कक्षा</strong>
+        🏫 फक्त स्वतःची शाळा (UDISE)<br/>
+        ✅ टप्पा मंजुरी/नकार<br/>
+        👨‍👩‍👧 पालक मेळावा मंजुरी<br/>
+        📊 शाळा प्रगती पाहणे
+      </div>
+     
+    </div>
+    <div class="act-panel">
+      <div class="act-section">
+        <h4>✅ दैनंदिन उपक्रम</h4>
+        <ul class="act-list">
+          <li><div class="ali">🔔</div><div><strong>प्रलंबित मंजुरी तपासणे</strong><span>Dashboard वर "Pending Approvals" card पाहणे — कोणत्या शाळेने/टप्प्यासाठी सादर केले आहे.</span></div></li>
+          <li><div class="ali">🔍</div><div><strong>डेटा गुणवत्ता तपासणी</strong><span>समन्वयकाने भरलेले विद्यार्थी स्तर बरोबर आहेत का ते तपासणे. असंभव स्तर, रिक्त नोंदी शोधणे.</span></div></li>
+          <li><div class="ali">✅</div><div><strong>टप्पा मंजूर करणे</strong><span>डेटा बरोबर असल्यास APPROVE + शेरा. पुढचा टप्पा आपोआप उघडतो.</span><div class="act-steps"><span class="act-step">टप्पा पाहा</span><span class="act-step">डेटा तपासा</span><span class="act-step">APPROVE + शेरा</span><span class="act-step">पुढचा टप्पा उघडतो</span></div></div></li>
+          <li><div class="ali">❌</div><div><strong>टप्पा नाकारणे (REJECT)</strong><span>चुकीचा डेटा असल्यास REJECT + कारण लिहणे. समन्वयकाला सूचना द्या — ते दुरुस्ती करतील.</span></div></li>
+          <li><div class="ali">👨‍👩‍👧</div><div><strong>पालक मेळावा मंजुरी</strong><span>समन्वयकाने नोंदवलेल्या पालक बैठकीची पडताळणी व मंजुरी.</span></div></li>
+          <li><div class="ali">📈</div><div><strong>शाळा FLN प्रगती पाहणे</strong><span>टप्पानिहाय FLN पूर्णता %, स्तर वितरण, विषयनिहाय कमकुवत विद्यार्थी ओळखणे.</span></div></li>
+          <li><div class="ali">📋</div><div><strong>विद्यार्थी टप्पा इतिहास</strong><span>पदोन्नतीनंतर विद्यार्थ्याच्या मागील वर्षांचा FLN इतिहास PEN क्रमांकाने पाहणे.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: DISTRICT OFFICER ══ -->
+  <div id="tab-dist" class="tab-content">
+    <div class="role-panel" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);">
+      <div class="rp-icon">🏢</div>
+      <h3>जिल्हा अधिकारी<br/><span style="font-size:13px;opacity:0.6;font-weight:400;">DISTRICT_OFFICER</span></h3>
+      <div class="rp-desc">जिल्ह्यातील सर्व शाळांच्या FLN प्रगतीवर देखरेख. शाळा तुलना, शिक्षक नियुक्ती, पालक मेळावा आकडेवारी — जिल्हास्तरीय संपूर्ण दृश्य.</div>
+      <div class="rp-scope">
+        <strong>प्रवेश कक्षा</strong>
+        🗺️ स्वतःचा जिल्हा<br/>
+        🏫 जिल्ह्यातील सर्व शाळा<br/>
+        📊 Read-only विश्लेषण<br/>
+        🔒 डेटा बदल नाही
+      </div>
+     
+    </div>
+    <div class="act-panel">
+      <div class="act-section">
+        <h4>🏢 दैनंदिन उपक्रम</h4>
+        <ul class="act-list">
+          <li><div class="ali">📊</div><div><strong>जिल्हा FLN Dashboard पाहणे</strong><span>जिल्ह्यातील सर्व शाळांची एकत्रित FLN पूर्णता %, टप्पा पूर्णता स्थिती, एकूण विद्यार्थी संख्या.</span></div></li>
+          <li><div class="ali">📉→📈</div><div><strong>विद्यार्थी स्तर उड्या (Level Jumps)</strong><span>टप्पा १ ते ४ दरम्यान किती विद्यार्थ्यांनी किती स्तर सुधारले ते शाळानिहाय पाहणे.</span></div></li>
+          <li><div class="ali">📋</div><div><strong>शाळानिहाय विद्यार्थी स्तर</strong><span>Dropdown मधून शाळा निवडून त्या शाळेचे टप्पानिहाय मराठी/गणित/इंग्रजी स्तर वितरण पाहणे.</span></div></li>
+          <li><div class="ali">📐</div><div><strong>विषयनिहाय आकडेवारी</strong><span>Phase-wise Subject Statistics — प्रत्येक टप्प्यात मराठी, गणित, इंग्रजी स्वतंत्रपणे किती % विद्यार्थी कोणत्या स्तरावर.</span></div></li>
+          <li><div class="ali">👨‍🏫</div><div><strong>शिक्षक नियुक्ती आढावा</strong><span>जिल्ह्यातील कोणत्या शाळांमध्ये शिक्षक नियुक्त आहेत, कोणत्या इयत्तांना शिक्षक नाहीत ते पाहणे.</span></div></li>
+          <li><div class="ali">👨‍👩‍👧</div><div><strong>पालक मेळावा आकडेवारी</strong><span>जिल्ह्यातील शाळांनी किती पालक बैठका घेतल्या, एकूण उपस्थिती, कव्हरेज टक्केवारी.</span></div></li>
+          <li><div class="ali">🏅</div><div><strong>विद्यार्थी उपक्रम पाहणे</strong><span>जिल्ह्यातील शाळांमधील विद्यार्थ्यांचे नोंदवलेले क्रीडा/सांस्कृतिक/शैक्षणिक उपक्रम पाहणे.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: DIVISION OFFICER ══ -->
+  <div id="tab-div" class="tab-content">
+    <div class="role-panel" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.3);">
+      <div class="rp-icon">🗺️</div>
+      <h3>विभाग अधिकारी<br/><span style="font-size:13px;opacity:0.6;font-weight:400;">DIVISION_OFFICER</span></h3>
+      <div class="rp-desc">विभागातील सर्व जिल्ह्यांच्या FLN कामगिरीचा तुलनात्मक आढावा. जिल्हानिहाय टप्पा तुलना, उपक्रम विश्लेषण व शाळा संपर्क.</div>
+      <div class="rp-scope">
+        <strong>प्रवेश कक्षा</strong>
+        🗺️ स्वतःचा विभाग<br/>
+        🏢 विभागातील सर्व जिल्हे<br/>
+        📊 विभागस्तरीय विश्लेषण<br/>
+        🔒 डेटा बदल नाही
+      </div>
+    
+    </div>
+    <div class="act-panel">
+      <div class="act-section">
+        <h4>🗺️ दैनंदिन उपक्रम</h4>
+        <ul class="act-list">
+          <li><div class="ali">📊</div><div><strong>विभाग Dashboard पाहणे</strong><span>विभागातील सर्व जिल्ह्यांची एकत्रित FLN आकडेवारी, टप्पा पूर्णता % , एकूण शाळा/विद्यार्थी.</span></div></li>
+          <li><div class="ali">📈</div><div><strong>टप्पा तुलना (Phase Comparison)</strong><span>जिल्हानिहाय टप्पा १ vs टप्पा ४ — कोणत्या जिल्ह्यात FLN प्रगती जास्त/कमी आहे ते पाहणे.</span></div></li>
+          <li><div class="ali">📉→📈</div><div><strong>स्तर वितरण व उड्या</strong><span>विभागातील विद्यार्थ्यांचे स्तर १ ते ६/८ मध्ये वितरण. Level jump analysis — किती % विद्यार्थी सुधारले.</span></div></li>
+          <li><div class="ali">%</div><div><strong>FLN पूर्णता % आलेख</strong><span>Division Student Levels Percentage — जिल्हानिहाय FLN पूर्ण केलेल्या विद्यार्थ्यांची टक्केवारी.</span></div></li>
+          <li><div class="ali">👨‍🏫</div><div><strong>शिक्षक प्रगती आढावा</strong><span>Division Teacher Progress — विभागातील जिल्हानिहाय शिक्षक नियुक्ती व त्यांच्या इयत्तांची स्थिती.</span></div></li>
+          <li><div class="ali">🎯</div><div><strong>उपक्रम विश्लेषण</strong><span>Division Activity Analysis — पालक मेळावे, शाळा संपर्क, इतर उपक्रमांची विभागस्तरीय आकडेवारी.</span></div></li>
+          <li><div class="ali">📞</div><div><strong>शाळा संपर्क मागोवा</strong><span>कोणत्या शाळांशी किती वेळा संपर्क झाला, school contact coverage % पाहणे.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: SUPER DIVISION OFFICER ══ -->
+  <div id="tab-super" class="tab-content">
+    <div class="role-panel" style="background:rgba(20,184,166,0.12);border:1px solid rgba(20,184,166,0.3);">
+      <div class="rp-icon">🔭</div>
+      <h3>अति-विभाग अधिकारी<br/><span style="font-size:13px;opacity:0.6;font-weight:400;">SUPER_DIVISION_OFFICER</span></h3>
+      <div class="rp-desc">राज्यस्तरीय सर्वोच्च देखरेख अधिकारी. सर्व विभागांचे एकत्रित FLN विश्लेषण, घोषणा व्यवस्थापन व सर्वोच्च निर्णय घेण्यासाठी डेटा-आधारित दृश्य.</div>
+      <div class="rp-scope">
+        <strong>प्रवेश कक्षा</strong>
+        🌍 संपूर्ण महाराष्ट्र<br/>
+        🗺️ सर्व विभाग एकत्र<br/>
+        📊 राज्यस्तरीय विश्लेषण<br/>
+        🔔 घोषणा व्यवस्थापन
+      </div>
+     
+    </div>
+    <div class="act-panel">
+      <div class="act-section">
+        <h4>🔭 दैनंदिन उपक्रम</h4>
+        <ul class="act-list">
+          <li><div class="ali">🌍</div><div><strong>राज्यस्तरीय Dashboard पाहणे</strong><span>सर्व विभागांची एकत्रित FLN आकडेवारी, टप्पा पूर्णता, एकूण शाळा, विद्यार्थी, FLN पूर्णता %.</span></div></li>
+          <li><div class="ali">📈</div><div><strong>विभागनिहाय टप्पा तुलना</strong><span>Super Phase Comparison — सर्व विभागांमधील टप्पा १ vs ४ तुलना. कोणता विभाग आघाडीवर?</span></div></li>
+          <li><div class="ali">📊</div><div><strong>विभागनिहाय स्तर वितरण</strong><span>Super Student Level Distribution — विभागानुसार विद्यार्थ्यांचे FLN स्तर १ ते ६/८ वितरण.</span></div></li>
+          <li><div class="ali">%</div><div><strong>FLN पूर्णता % आलेख</strong><span>Super Student Levels Percentage — विभागानुसार FLN पूर्ण विद्यार्थ्यांची टक्केवारी तुलना.</span></div></li>
+          <li><div class="ali">📉→📈</div><div><strong>राज्यस्तरीय स्तर उड्या</strong><span>Super Level Jumps — सर्व विभागांमधील विद्यार्थी level improvement analysis.</span></div></li>
+          <li><div class="ali">🎯</div><div><strong>राज्यस्तरीय उपक्रम विश्लेषण</strong><span>Super Activity Analysis — सर्व विभागांतील पालक मेळावे, शाळा संपर्क, इतर उपक्रम एकत्र.</span></div></li>
+          <li><div class="ali">🔔</div><div><strong>घोषणा तयार करणे व व्यवस्थापन</strong><span>Super Manage Announcements — सर्व शाळा/जिल्हा/विभागांसाठी targeted notifications. Priority, expiry date सह.</span></div></li>
+          <li><div class="ali">📋</div><div><strong>विद्यार्थी तपशील पाहणे</strong><span>Super Student Level Details — विभागनिहाय विद्यार्थ्यांचे वैयक्तिक FLN स्तर तपशील.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-no">स्लाइड १३</div>
+</div>
+
+<!-- ══════════════════════════ स्लाइड १४ — धन्यवाद -->
+<div class="slide s-cover ty-center">
+  <div style="font-size:80px;margin-bottom:20px;">🏫</div>
+  <div class="accent-bar ab-blue" style="margin:0 auto 24px;width:100px;"></div>
+  <h1 style="font-size:56px;">धन्यवाद !</h1>
+  <p class="subtitle" style="margin-top:16px;margin-bottom:32px;">
+    GATEE पोर्टल — महाराष्ट्रातील  शाळांसाठी FLN मूल्यमापनाचे डिजिटलीकरण
+  </p>
+  <div class="cover-meta" style="justify-content:center;">
+    <div class="cover-chip">📧 shreeitsolutions@gmail.com</div>
+    <div class="cover-chip">🌐 GATEE पोर्टल — शाळां वर्ग व्यवस्थापन</div>
+    <div class="cover-chip">📅 २०२६-२७</div>
+  </div>
+  <div style="margin-top:48px;opacity:0.5;font-size:16px;font-weight:600;">
+    शिक्षण हे सर्वांसाठी 🙏
+  </div>
+  <div class="slide-no">स्लाइड १४</div>
+</div>
+
+<script>
+function showTab(id) {
+  // Hide all tab contents
+  document.querySelectorAll('.tab-content').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  // Deactivate all tab buttons
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.classList.remove('active');
+    btn.style.background = 'transparent';
+    btn.style.borderColor = 'transparent';
+  });
+  // Show selected content
+  var content = document.getElementById('tab-' + id);
+  if (content) content.classList.add('active');
+  // Activate clicked button
+  var colorMap = {
+    admin: 'rgba(239,68,68,0.3)',
+    coord: 'rgba(59,130,246,0.3)',
+    hm:    'rgba(34,197,94,0.3)',
+    dist:  'rgba(168,85,247,0.3)',
+    div:   'rgba(249,115,22,0.3)',
+    super: 'rgba(20,184,166,0.3)'
+  };
+  var borderMap = {
+    admin: 'rgba(239,68,68,0.5)',
+    coord: 'rgba(59,130,246,0.5)',
+    hm:    'rgba(34,197,94,0.5)',
+    dist:  'rgba(168,85,247,0.5)',
+    div:   'rgba(249,115,22,0.5)',
+    super: 'rgba(20,184,166,0.5)'
+  };
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    if (btn.getAttribute('onclick') === "showTab('" + id + "')") {
+      btn.classList.add('active');
+      btn.style.background = colorMap[id] || 'rgba(255,255,255,0.12)';
+      btn.style.borderColor = borderMap[id] || 'rgba(255,255,255,0.3)';
+    }
+  });
+}
+// Activate DATA ADMIN tab on load
+document.addEventListener('DOMContentLoaded', function() {
+  showTab('admin');
+});
+</script>
+
+</body>
+</html>

@@ -43,7 +43,7 @@ public class DivisionDistrictPhaseDetailsServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+        if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().print("{\"error\": \"Unauthorized access\"}");
             return;
@@ -54,9 +54,13 @@ public class DivisionDistrictPhaseDetailsServlet extends HttpServlet {
         String startDate = request.getParameter("startDate");
         String endDate = request.getParameter("endDate");
         
+        // If district missing: allow only SUPER_DIVISION_OFFICER to request across all districts
         if (districtName == null || districtName.trim().isEmpty()) {
-            response.getWriter().print("{\"error\": \"District parameter is required\"}");
-            return;
+            if (user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                response.getWriter().print("{\"error\": \"District parameter is required\"}");
+                return;
+            }
+            districtName = null; // SDO can request across all districts
         }
         
         int phase = 1;
@@ -70,6 +74,9 @@ public class DivisionDistrictPhaseDetailsServlet extends HttpServlet {
         }
         
         String divisionName = user.getDivisionName();
+        if (user.getUserType() == User.UserType.SUPER_DIVISION_OFFICER) {
+            divisionName = null; // SDO can access all divisions
+        }
         
         JSONObject result = getDistrictSchoolsPhaseData(divisionName, districtName, phase, startDate, endDate);
         
@@ -99,21 +106,49 @@ public class DivisionDistrictPhaseDetailsServlet extends HttpServlet {
                 sql.append("AND pa.approved_date BETWEEN ? AND ? ");
             }
             
-            sql.append("WHERE s.district_name COLLATE utf8mb4_unicode_ci = ? ");
-            sql.append("AND s.district_name COLLATE utf8mb4_unicode_ci IN (SELECT DISTINCT district COLLATE utf8mb4_unicode_ci FROM students WHERE division = ?) ");
+            // Build SQL dynamically based on available filters (district and division may be null for SDO)
             sql.append("ORDER BY s.school_name");
             
-            PreparedStatement stmt = conn.prepareStatement(sql.toString());
-            stmt.setInt(1, phase);
+            // Replace WHERE clauses constructed earlier with dynamic handling
+            String baseSql = sql.toString();
+            StringBuilder finalSql = new StringBuilder();
+            finalSql.append("SELECT s.school_name, s.udise_no, pa.approval_status, pa.approved_date, pa.approved_by FROM schools s LEFT JOIN phase_approvals pa ON s.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci AND pa.phase_number = ? ");
+            boolean hasWhere = false;
+            if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+                finalSql.append("WHERE pa.approved_date BETWEEN ? AND ? ");
+                hasWhere = true;
+            }
+            if (districtName != null) {
+                if (!hasWhere) {
+                    finalSql.append("WHERE s.district_name COLLATE utf8mb4_unicode_ci = ? ");
+                    hasWhere = true;
+                } else {
+                    finalSql.append("AND s.district_name COLLATE utf8mb4_unicode_ci = ? ");
+                }
+            }
+            if (divisionName != null) {
+                if (!hasWhere) {
+                    finalSql.append("WHERE s.district_name COLLATE utf8mb4_unicode_ci IN (SELECT DISTINCT district COLLATE utf8mb4_unicode_ci FROM students WHERE division = ?) ");
+                } else {
+                    finalSql.append("AND s.district_name COLLATE utf8mb4_unicode_ci IN (SELECT DISTINCT district COLLATE utf8mb4_unicode_ci FROM students WHERE division = ?) ");
+                }
+            }
+            finalSql.append("ORDER BY s.school_name");
             
-            int paramIndex = 2;
+            PreparedStatement stmt = conn.prepareStatement(finalSql.toString());
+            int paramIndex = 1;
+            stmt.setInt(paramIndex++, phase);
+            
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 stmt.setString(paramIndex++, startDate);
                 stmt.setString(paramIndex++, endDate);
             }
-            
-            stmt.setString(paramIndex++, districtName);
-            stmt.setString(paramIndex++, divisionName);
+            if (districtName != null) {
+                stmt.setString(paramIndex++, districtName);
+            }
+            if (divisionName != null) {
+                stmt.setString(paramIndex++, divisionName);
+            }
             
             ResultSet rs = stmt.executeQuery();
             

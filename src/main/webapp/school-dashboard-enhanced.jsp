@@ -2793,6 +2793,7 @@
     </script>
 </head>
 <body>
+<jsp:include page="academic-year-bar.jsp" />
     <div class="header">
         <div class="header-content">
             <div class="header-left">
@@ -2861,6 +2862,12 @@
                     <% } %>
                     
                     <!-- Account Actions -->
+                    <a href="<%= request.getContextPath() %>/raise-ticket.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#43A047,#66BB6A);" title="Raise a support ticket to the Division office">
+                        🎫 तिकीट
+                    </a>
+                    <a href="<%= request.getContextPath() %>/helpdesk.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+                        🙋 मदत केंद्र
+                    </a>
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password">
                         🔐 Change Password
                     </a>
@@ -3102,6 +3109,24 @@
                     <div class="quick-action-title">View All Student Data</div>
                     <div class="quick-action-subtitle">सर्व विद्यार्थी डेटा</div>
                     <div class="quick-action-desc">Display all student information registered against this UDISE number with filtering and search capabilities.</div>
+                </a>
+                <a href="<%= request.getContextPath() %>/student-phase-history.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📋</div>
+                    <div class="quick-action-title">विद्यार्थी टप्पा इतिहास</div>
+                    <div class="quick-action-subtitle">मागील वर्षांचा FLN इतिहास</div>
+                    <div class="quick-action-desc">पदोन्नतीनंतर विद्यार्थ्याचे सर्व मागील वर्षांचे टप्पा १–४ तपशील PEN क्रमांकाने शोधा.</div>
+                </a>
+                <a href="<%= request.getContextPath() %>/student-activity.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🏅</div>
+                    <div class="quick-action-title">विद्यार्थी उपक्रम</div>
+                    <div class="quick-action-subtitle">Student Activities</div>
+                    <div class="quick-action-desc">विद्यार्थ्यांचे क्रीडा, सांस्कृतिक, शैक्षणिक, विज्ञान उपक्रम व कामगिरी नोंदवा. फोटोसह.</div>
+                </a>
+                <a href="<%= request.getContextPath() %>/graduated-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🎓</div>
+                    <div class="quick-action-title">उत्तीर्ण विद्यार्थी</div>
+                    <div class="quick-action-subtitle">Graduated Students</div>
+                    <div class="quick-action-desc">इयत्ता IX पूर्ण करून उत्तीर्ण झालेल्या विद्यार्थ्यांची यादी पाहा.</div>
                 </a>
                 
                 <!-- 12. VIEW UPLOADED VIDEOS - ENABLED -->
@@ -3960,9 +3985,9 @@
                 class: '<%= s.getStudentClass() %>',
                 section: '<%= s.getSection() %>',
                 gender: '<%= s.getGender() %>',
-                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
-                mathLevel: <%= s.getMathAksharaLevel() %>,
-                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                marathiLevel: <%= s.getPhase1Marathi() != null ? s.getPhase1Marathi() : 0 %>,
+                mathLevel: <%= s.getPhase1Math() != null ? s.getPhase1Math() : 0 %>,
+                englishLevel: <%= s.getPhase1English() != null ? s.getPhase1English() : 0 %>,
                 phaseDate: '<%= s.getPhase1Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase1Date()) : "" %>'
             }
             <% } %>
@@ -3984,9 +4009,9 @@
                 class: '<%= s.getStudentClass() %>',
                 section: '<%= s.getSection() %>',
                 gender: '<%= s.getGender() %>',
-                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
-                mathLevel: <%= s.getMathAksharaLevel() %>,
-                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                marathiLevel: <%= s.getPhase2Marathi() != null ? s.getPhase2Marathi() : 0 %>,
+                mathLevel: <%= s.getPhase2Math() != null ? s.getPhase2Math() : 0 %>,
+                englishLevel: <%= s.getPhase2English() != null ? s.getPhase2English() : 0 %>,
                 phaseDate: '<%= s.getPhase2Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase2Date()) : "" %>'
             }
             <% } %>
@@ -4008,9 +4033,9 @@
                 class: '<%= s.getStudentClass() %>',
                 section: '<%= s.getSection() %>',
                 gender: '<%= s.getGender() %>',
-                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
-                mathLevel: <%= s.getMathAksharaLevel() %>,
-                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                marathiLevel: <%= s.getPhase3Marathi() != null ? s.getPhase3Marathi() : 0 %>,
+                mathLevel: <%= s.getPhase3Math() != null ? s.getPhase3Math() : 0 %>,
+                englishLevel: <%= s.getPhase3English() != null ? s.getPhase3English() : 0 %>,
                 phaseDate: '<%= s.getPhase3Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase3Date()) : "" %>'
             }
             <% } %>
@@ -4032,9 +4057,9 @@
                 class: '<%= s.getStudentClass() %>',
                 section: '<%= s.getSection() %>',
                 gender: '<%= s.getGender() %>',
-                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
-                mathLevel: <%= s.getMathAksharaLevel() %>,
-                englishLevel: <%= s.getEnglishAksharaLevel() %>,
+                marathiLevel: <%= s.getPhase4Marathi() != null ? s.getPhase4Marathi() : 0 %>,
+                mathLevel: <%= s.getPhase4Math() != null ? s.getPhase4Math() : 0 %>,
+                englishLevel: <%= s.getPhase4English() != null ? s.getPhase4English() : 0 %>,
                 phaseDate: '<%= s.getPhase4Date() != null ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(s.getPhase4Date()) : "" %>'
             }
             <% } %>

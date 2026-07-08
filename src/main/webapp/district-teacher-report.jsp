@@ -31,7 +31,7 @@
         String sql = "SELECT s.udise_no, s.school_name, s.district_name, " +
                      "COUNT(t.teacher_id) as teacher_count " +
                      "FROM schools s " +
-                     "LEFT JOIN teachers t ON s.udise_no = t.udise_code AND t.is_active = 1 " +
+                     "LEFT JOIN teachers t ON s.udise_no COLLATE utf8mb4_unicode_ci = t.udise_code AND t.is_active = 1 " +
                      "WHERE s.district_name = ? " +
                      "GROUP BY s.udise_no, s.school_name, s.district_name " +
                      "ORDER BY s.school_name";

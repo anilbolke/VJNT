@@ -47,7 +47,7 @@ public class GetSchoolActivityAnalysisServlet extends HttpServlet {
                               "COALESCE(sc.school_name, s.udise_no) as school_name, " +
                               "COUNT(*) as total_students " +
                               "FROM students s " +
-                              "LEFT JOIN schools sc ON s.udise_no = sc.udise_no " +
+                              "LEFT JOIN schools sc ON s.udise_no = sc.udise_no COLLATE utf8mb4_unicode_ci " +
                               "WHERE s.district = ? AND s.is_active = 1 " +
                               "GROUP BY s.udise_no, sc.school_name " +
                               "ORDER BY sc.school_name";

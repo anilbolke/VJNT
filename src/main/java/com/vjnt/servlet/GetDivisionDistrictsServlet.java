@@ -8,6 +8,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
@@ -22,6 +24,10 @@ public class GetDivisionDistrictsServlet extends HttpServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         
+        HttpSession session = request.getSession(false);
+        com.vjnt.model.User sessionUser = null;
+        if (session != null) sessionUser = (com.vjnt.model.User) session.getAttribute("user");
+
         String division = request.getParameter("division");
         List<String> districts = new ArrayList<>();
         
@@ -32,13 +38,21 @@ public class GetDivisionDistrictsServlet extends HttpServlet {
         try {
             conn = DatabaseConnection.getConnection();
             
-            String sql = "SELECT DISTINCT sch.district_name FROM schools sch " +
-                        "INNER JOIN students st ON sch.udise_no = st.udise_no " +
-                        "WHERE st.division = ? " +
-                        "ORDER BY sch.district_name";
-            
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, division);
+            String sql;
+            if (division != null && !division.isEmpty()) {
+                sql = "SELECT DISTINCT sch.district_name FROM schools sch INNER JOIN students st ON sch.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no WHERE st.division = ? ORDER BY sch.district_name";
+                pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, division);
+            } else {
+                // Allow SUPER_DIVISION_OFFICER to request all districts when division param omitted
+                if (sessionUser == null || sessionUser.getUserType() != com.vjnt.model.User.UserType.SUPER_DIVISION_OFFICER) {
+                    // Non-SDOs must provide division
+                    response.getWriter().write(new com.google.gson.Gson().toJson(districts));
+                    return;
+                }
+                sql = "SELECT DISTINCT sch.district_name FROM schools sch ORDER BY sch.district_name";
+                pstmt = conn.prepareStatement(sql);
+            }
             rs = pstmt.executeQuery();
             
             while (rs.next()) {

@@ -134,6 +134,8 @@ public class ChangePasswordServlet extends HttpServlet {
             case SCHOOL_COORDINATOR:
             case HEAD_MASTER:
                 return "/school-dashboard.jsp";
+            case TEACHER:
+                return "/teacher-dashboard.jsp";
             default:
                 return "/dashboard.jsp";
         }

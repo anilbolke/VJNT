@@ -11,11 +11,13 @@ public class User {
     // Enum for User Types
     public enum UserType {
         DIVISION,
+        SUPER_DIVISION_OFFICER,
         DISTRICT_COORDINATOR,
         DISTRICT_2ND_COORDINATOR,
         SCHOOL_COORDINATOR,
         HEAD_MASTER,
-        DATA_ADMIN
+        DATA_ADMIN,
+        TEACHER
     }
     
     // Primary Fields

@@ -5,7 +5,7 @@
 <%@ page import="java.util.*" %>
 <%
     User user = (User) session.getAttribute("user");
-    if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+    if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
         response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }
@@ -333,6 +333,7 @@
     </style>
 </head>
 <body>
+<jsp:include page="academic-year-bar.jsp" />
     <div class="header">
         <div class="header-content">
             <div class="header-left">

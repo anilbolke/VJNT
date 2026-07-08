@@ -475,6 +475,7 @@
     </style>
 </head>
 <body>
+<jsp:include page="academic-year-bar.jsp" />
     <div class="header">
         <div class="header-content">
             <div class="header-left">

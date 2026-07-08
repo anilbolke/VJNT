@@ -42,7 +42,7 @@ public class DivisionDistrictSchoolContactsServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+        if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().print("{\"error\": \"Unauthorized access\"}");
             return;
@@ -50,12 +50,16 @@ public class DivisionDistrictSchoolContactsServlet extends HttpServlet {
         
         String districtName = request.getParameter("district");
         
-        if (districtName == null || districtName.trim().isEmpty()) {
+        if ((districtName == null || districtName.trim().isEmpty()) && user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
             response.getWriter().print("{\"error\": \"District parameter is required\"}");
             return;
         }
         
         String divisionName = user.getDivisionName();
+        if (user.getUserType() == User.UserType.SUPER_DIVISION_OFFICER) {
+            divisionName = null; // SDO can access all divisions
+            if (districtName != null && districtName.trim().isEmpty()) districtName = null;
+        }
         
         JSONObject result = getDistrictSchoolContacts(divisionName, districtName);
         
@@ -72,35 +76,40 @@ public class DivisionDistrictSchoolContactsServlet extends HttpServlet {
         
         try (Connection conn = DatabaseConnection.getConnection()) {
             
-            // Verify district belongs to this division
-            String verifySQL = "SELECT COUNT(*) as count FROM users WHERE division_name = ? AND district_name = ? AND user_type IN ('DISTRICT_COORDINATOR', 'DISTRICT_2ND_COORDINATOR')";
-            PreparedStatement verifyPs = conn.prepareStatement(verifySQL);
-            verifyPs.setString(1, divisionName);
-            verifyPs.setString(2, districtName);
-            ResultSet verifyRs = verifyPs.executeQuery();
-            
-            boolean isValidDistrict = false;
-            if (verifyRs.next()) {
-                isValidDistrict = verifyRs.getInt("count") > 0;
+            // Verify district belongs to this division (skip for SDO)
+            if (divisionName != null) {
+                String verifySQL = "SELECT COUNT(*) as count FROM users WHERE division_name = ? AND district_name = ? AND user_type IN ('DISTRICT_COORDINATOR', 'DISTRICT_2ND_COORDINATOR')";
+                PreparedStatement verifyPs = conn.prepareStatement(verifySQL);
+                verifyPs.setString(1, divisionName);
+                verifyPs.setString(2, districtName);
+                ResultSet verifyRs = verifyPs.executeQuery();
+                
+                boolean isValidDistrict = false;
+                if (verifyRs.next()) {
+                    isValidDistrict = verifyRs.getInt("count") > 0;
+                }
+                verifyRs.close();
+                verifyPs.close();
+                
+                if (!isValidDistrict) {
+                    result.put("error", "District does not belong to this division");
+                    return result;
+                }
             }
-            verifyRs.close();
-            verifyPs.close();
             
-            if (!isValidDistrict) {
-                result.put("error", "District does not belong to this division");
-                return result;
+            // Get all contacts for this district (or across districts if districtName is null)
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT contact_id, udise_no, school_name, district_name, contact_type, full_name, mobile, whatsapp_number, remarks, created_date FROM school_contacts ");
+            if (districtName != null) {
+                sql.append("WHERE district_name = ? ");
             }
-            
-            // Get all contacts for this district
-            String sql = "SELECT contact_id, udise_no, school_name, district_name, contact_type, " +
-                        "full_name, mobile, whatsapp_number, remarks, created_date " +
-                        "FROM school_contacts " +
-                        "WHERE district_name = ? " +
-                        "ORDER BY udise_no, contact_type, full_name";
-            
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, districtName);
-            
+            sql.append("ORDER BY udise_no, contact_type, full_name");
+
+            PreparedStatement ps = conn.prepareStatement(sql.toString());
+            if (districtName != null) {
+                ps.setString(1, districtName);
+            }
+
             ResultSet rs = ps.executeQuery();
             
             JSONArray contacts = new JSONArray();

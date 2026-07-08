@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Promote Classes — Full Implementation Plan</title>
+  <style>
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5a67d8;
+      --success: #38a169;
+      --warning: #dd6b20;
+      --danger: #e53e3e;
+      --info: #3182ce;
+      --gold: #d69e2e;
+      --bg: #f7f8fc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #2d3748;
+      --muted: #718096;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 60px 40px 50px; text-align: center; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; padding: 4px 16px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 18px; }
+    .hero h1 { font-size: 36px; font-weight: 700; margin-bottom: 14px; }
+    .hero p  { font-size: 16px; opacity: 0.88; max-width: 680px; margin: 0 auto 28px; }
+    .hero-meta { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; font-size: 14px; opacity: 0.82; }
+    .badge-pill { display: inline-block; border-radius: 20px; padding: 3px 14px; font-size: 12px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+    .badge-audit { background: #68d391; color: #1a4731; }
+    .badge-grad  { background: #f6e05e; color: #744210; }
+
+    /* LAYOUT */
+    .container { max-width: 1080px; margin: 0 auto; padding: 40px 24px 60px; }
+    .section-title { font-size: 22px; font-weight: 700; color: var(--text); margin: 48px 0 20px; padding-bottom: 10px; border-bottom: 3px solid var(--primary); display: flex; align-items: center; gap: 10px; }
+
+    /* CARDS */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .card h3 { font-size: 17px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card-audit  { border-left: 4px solid #38a169; background: #f0fff4; }
+    .card-grad   { border-left: 4px solid #d69e2e; background: #fffbeb; }
+    .card-warn   { border-left: 4px solid #e53e3e; background: #fff5f5; }
+    .card-info   { border-left: 4px solid #3182ce; background: #ebf8ff; }
+
+    /* GRID */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    @media (max-width: 720px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    /* FLOW */
+    .flow { display: flex; flex-direction: column; }
+    .flow-item { display: flex; gap: 20px; align-items: flex-start; position: relative; }
+    .flow-item:not(:last-child)::after { content: ''; position: absolute; left: 19px; top: 44px; bottom: -16px; width: 2px; background: var(--border); }
+    .flow-num { width: 40px; height: 40px; min-width: 40px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; margin-top: 4px; z-index: 1; }
+    .flow-num-green  { background: #38a169; }
+    .flow-num-gold   { background: #d69e2e; }
+    .flow-num-red    { background: #e53e3e; }
+    .flow-body { padding-bottom: 28px; flex: 1; }
+    .flow-body h4 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .flow-body p, .flow-body ul { font-size: 14.5px; color: var(--muted); }
+    .flow-body ul { padding-left: 18px; margin-top: 6px; }
+    .flow-body li { margin-bottom: 4px; }
+
+    /* CODE */
+    pre { background: #1a202c; color: #e2e8f0; border-radius: 10px; padding: 20px 22px; overflow-x: auto; font-size: 13px; line-height: 1.8; margin: 14px 0; }
+    .cm { color: #718096; font-style: italic; }
+    .kw { color: #f6ad55; }
+    .st { color: #68d391; }
+    .fn { color: #76e4f7; }
+    .vl { color: #fc8181; }
+    .cl { color: #fbd38d; }
+
+    /* TAGS */
+    .tag { display: inline-block; border-radius: 6px; padding: 2px 10px; font-size: 12px; font-weight: 600; margin: 2px 3px 2px 0; }
+    .tag-new    { background: #c6f6d5; color: #276749; }
+    .tag-modify { background: #bee3f8; color: #2c5282; }
+    .tag-db     { background: #fefcbf; color: #744210; }
+    .tag-auto   { background: #e9d8fd; color: #553c9a; }
+    .tag-grad   { background: #fbd38d; color: #744210; }
+
+    /* ALERTS */
+    .alert { border-radius: 10px; padding: 16px 20px; font-size: 14.5px; margin: 16px 0; display: flex; gap: 12px; align-items: flex-start; }
+    .alert-warning { background: #fffbeb; border: 1px solid #f6e05e; color: #744210; }
+    .alert-info    { background: #ebf8ff; border: 1px solid #90cdf4; color: #2c5282; }
+    .alert-success { background: #f0fff4; border: 1px solid #9ae6b4; color: #276749; }
+    .alert-danger  { background: #fff5f5; border: 1px solid #feb2b2; color: #822727; }
+    .alert-icon { font-size: 20px; line-height: 1; margin-top: 1px; }
+
+    /* PHASE PILLS */
+    .phase-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+    .phase-pill { border-radius: 8px; padding: 8px 18px; font-size: 14px; font-weight: 600; text-align: center; }
+    .phase-active  { background: #c6f6d5; color: #276749; border: 2px solid #48bb78; }
+    .phase-seed    { background: #e9d8fd; color: #553c9a; border: 2px dashed #9f7aea; font-size: 12px; padding: 4px 12px; border-radius: 6px; }
+    .phase-locked  { background: #e2e8f0; color: #a0aec0; border: 2px solid #cbd5e0; }
+    .arrow { font-size: 20px; color: var(--muted); }
+
+    /* TABLES */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { background: var(--primary); color: #fff; padding: 11px 14px; text-align: left; font-weight: 600; }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f9fafc; }
+    .schema-table { font-size: 13px; }
+    .schema-table th { background: #2d3748; }
+    .schema-table td { font-family: monospace; }
+    .pk { color: #e53e3e; font-weight: 700; }
+    .fk { color: #3182ce; font-weight: 700; }
+    .nn { color: #38a169; }
+
+    /* CLASS RULE TABLE */
+    .class-rule { border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+    .class-rule th { padding: 12px 18px; }
+    .class-rule td { padding: 12px 18px; font-size: 15px; }
+    .row-normal { background: #f0fff4 !important; }
+    .row-grad   { background: #fffbeb !important; font-weight: 600; }
+
+    /* IMPL STEPS */
+    .impl-step { border-left: 4px solid var(--primary); padding: 18px 20px 18px 22px; margin-bottom: 18px; background: var(--card); border-radius: 0 10px 10px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .impl-step-green { border-left-color: #38a169; }
+    .impl-step-gold  { border-left-color: #d69e2e; }
+    .impl-step h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--primary-dark); }
+    .impl-step-green h4 { color: #276749; }
+    .impl-step-gold h4  { color: #744210; }
+    .impl-step p, .impl-step ul { font-size: 14px; color: var(--muted); }
+    .impl-step ul { padding-left: 18px; margin-top: 6px; }
+    .impl-step li { margin-bottom: 3px; }
+    .file-chip { display: inline-block; background: #edf2f7; border: 1px solid var(--border); border-radius: 5px; padding: 1px 8px; font-family: monospace; font-size: 12.5px; color: var(--primary-dark); margin-right: 4px; }
+
+    /* AUDIT FLOW */
+    .audit-flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 20px 0; }
+    .af-box { background: #fff; border: 2px solid var(--border); border-radius: 10px; padding: 12px 16px; text-align: center; min-width: 130px; }
+    .af-box.source  { border-color: #667eea; background: #ebf4ff; }
+    .af-box.archive { border-color: #38a169; background: #f0fff4; }
+    .af-box.grad    { border-color: #d69e2e; background: #fffbeb; }
+    .af-box.update  { border-color: #f6ad55; background: #fffaf0; }
+    .af-box.log     { border-color: #9f7aea; background: #faf5ff; }
+    .af-box .af-icon  { font-size: 26px; display: block; margin-bottom: 5px; }
+    .af-box .af-label { font-size: 12px; font-weight: 700; color: var(--text); }
+    .af-box .af-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .af-arrow { font-size: 22px; color: var(--muted); padding: 0 6px; }
+
+    .footer { text-align: center; padding: 30px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Complete Implementation Plan</div>
+  <h1>
+    🎓 Promote Classes
+    <span class="badge-pill badge-audit">+ AUDIT</span>
+    <span class="badge-pill badge-grad">+ GRADUATED</span>
+  </h1>
+  <p>
+    Classes 1–8 promote normally (1→2 … 8→9). Class 9 students have completed the final class —
+    they move permanently to <code>graduated_students</code> and exit the active system.
+    All phase data and approvals are archived, never deleted.
+  </p>
+  <div class="hero-meta">
+    <span>📁 VJNT Class Management / GATEE Portal</span>
+    <span>👤 DATA_ADMIN only</span>
+    <span>📅 19 June 2026</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════════════════════════
+       1. THE PROMOTION RULE
+  ═════════════════════════════════════════ -->
+  <div class="section-title">📏 1. The Promotion Rule — Who Goes Where</div>
+
+  <table class="class-rule">
+    <thead>
+      <tr>
+        <th>Current Class</th>
+        <th>Action</th>
+        <th>Where Student Goes</th>
+        <th>Active in students table?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="row-normal">
+        <td>Class 1</td><td>➡ Promote</td><td>Class 2 (stays in <code>students</code>)</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-normal">
+        <td>Class 2</td><td>➡ Promote</td><td>Class 3</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-normal">
+        <td>Class 3</td><td>➡ Promote</td><td>Class 4</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-normal">
+        <td>Class 4</td><td>➡ Promote</td><td>Class 5</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-normal">
+        <td>Class 5</td><td>➡ Promote</td><td>Class 6</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-normal">
+        <td>Class 6</td><td>➡ Promote</td><td>Class 7</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-normal">
+        <td>Class 7</td><td>➡ Promote</td><td>Class 8</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-normal">
+        <td>Class 8</td><td>➡ Promote</td><td>Class 9</td><td>✅ Yes</td>
+      </tr>
+      <tr class="row-grad">
+        <td>🎓 Class 9 — FINAL CLASS</td>
+        <td>🏁 Graduate</td>
+        <td>Moved to <code>graduated_students</code> permanently</td>
+        <td>❌ Marked inactive (<code>is_active = 0</code>)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="alert alert-info">
+    <span class="alert-icon">ℹ️</span>
+    <span>Class 9 is the <strong>final class</strong> in this system. Class 9 students are archived in <strong>both</strong> <code>student_phase_history</code> (phase data snapshot) <strong>and</strong> <code>graduated_students</code> (permanent graduate record). Their <code>students</code> row is kept but marked <code>is_active = 0</code> — never deleted.</span>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       2. DATA FLOW OVERVIEW
+  ═════════════════════════════════════════ -->
+  <div class="section-title">🔄 2. Full Data Flow During Promotion</div>
+
+  <div class="card">
+    <h3>All Active Students (Classes 1–8)</h3>
+    <div class="audit-flow">
+      <div class="af-box source"><span class="af-icon">📋</span><div class="af-label">students</div><div class="af-sub">All active rows</div></div>
+      <div class="af-arrow">→ snapshot →</div>
+      <div class="af-box archive"><span class="af-icon">🗃️</span><div class="af-label">student_phase_history</div><div class="af-sub">Full phase snapshot</div></div>
+    </div>
+    <h3 style="margin-top:20px;">Class 8 Only — Graduate Path</h3>
+    <div class="audit-flow">
+      <div class="af-box source"><span class="af-icon">🎓</span><div class="af-label">students (class=8)</div><div class="af-sub">Graduating students</div></div>
+      <div class="af-arrow">→ move →</div>
+      <div class="af-box grad"><span class="af-icon">🏆</span><div class="af-label">graduated_students</div><div class="af-sub">Permanent record</div></div>
+      <div class="af-arrow">+ set</div>
+      <div class="af-box update"><span class="af-icon">🔒</span><div class="af-label">students.is_active = 0</div><div class="af-sub">Removed from active</div></div>
+    </div>
+    <h3 style="margin-top:20px;">Classes 1–8 — Promote Path</h3>
+    <div class="audit-flow">
+      <div class="af-box source"><span class="af-icon">📚</span><div class="af-label">students (class 1–8)</div><div class="af-sub">Continuing students</div></div>
+      <div class="af-arrow">→ UPDATE →</div>
+      <div class="af-box update"><span class="af-icon">✏️</span><div class="af-label">class+1, P1 seeded, P2-4 wiped</div><div class="af-sub">New year starts</div></div>
+    </div>
+    <h3 style="margin-top:20px;">Phase Approvals</h3>
+    <div class="audit-flow">
+      <div class="af-box source"><span class="af-icon">✅</span><div class="af-label">phase_approvals</div><div class="af-sub">All approvals</div></div>
+      <div class="af-arrow">→ archive →</div>
+      <div class="af-box archive"><span class="af-icon">🗃️</span><div class="af-label">phase_approvals_history</div><div class="af-sub">Permanent</div></div>
+      <div class="af-arrow">→ clear →</div>
+      <div class="af-box update"><span class="af-icon">🗑️</span><div class="af-label">phase_approvals</div><div class="af-sub">Emptied for new year</div></div>
+    </div>
+    <h3 style="margin-top:20px;">Promotion Event Log</h3>
+    <div class="audit-flow">
+      <div class="af-box log"><span class="af-icon">📝</span><div class="af-label">class_promotion_log</div><div class="af-sub">Who / when / how many</div></div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       3. FOUR NEW TABLES
+  ═════════════════════════════════════════ -->
+  <div class="section-title">🗄️ 3. Four New Database Tables</div>
+
+  <!-- TABLE 1 -->
+  <div class="card card-audit">
+    <h3>📝 Table 1 — <code>class_promotion_log</code></h3>
+    <p style="font-size:14px; color:var(--muted); margin-bottom:12px;">One row per promotion event. The master log.</p>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pk">promotion_id</span></td><td>INT AUTO_INCREMENT</td><td class="pk">PK</td><td>Unique promotion event ID</td></tr>
+        <tr><td>academic_year</td><td>VARCHAR(10)</td><td class="nn">NOT NULL</td><td>Year being closed, e.g. "2025-26"</td></tr>
+        <tr><td>promoted_by</td><td>VARCHAR(100)</td><td class="nn">NOT NULL</td><td>Username of DATA_ADMIN who ran it</td></tr>
+        <tr><td>promotion_date</td><td>DATETIME</td><td class="nn">NOT NULL</td><td>Exact timestamp</td></tr>
+        <tr><td>students_promoted</td><td>INT</td><td></td><td>Count of students moved to next class (Class 1–7)</td></tr>
+        <tr><td>students_graduated</td><td>INT</td><td></td><td>Count of Class 8 students who graduated</td></tr>
+        <tr><td>remarks</td><td>TEXT</td><td></td><td>Optional admin note entered on confirm screen</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TABLE 2 -->
+  <div class="card card-audit">
+    <h3>🗃️ Table 2 — <code>student_phase_history</code></h3>
+    <p style="font-size:14px; color:var(--muted); margin-bottom:12px;">Complete phase data snapshot for EVERY active student (Classes 1–8) at the moment of promotion.</p>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pk">history_id</span></td><td>INT AUTO_INCREMENT</td><td class="pk">PK</td><td></td></tr>
+        <tr><td><span class="fk">promotion_id</span></td><td>INT</td><td class="fk">FK → class_promotion_log</td><td>Which event this belongs to</td></tr>
+        <tr><td>student_id</td><td>INT</td><td class="nn">NOT NULL</td><td>Reference to students.student_id</td></tr>
+        <tr><td>student_name</td><td>VARCHAR(255)</td><td></td><td>Name snapshot</td></tr>
+        <tr><td>student_pen</td><td>VARCHAR(50)</td><td></td><td>PEN number snapshot</td></tr>
+        <tr><td>udise_no</td><td>VARCHAR(20)</td><td></td><td>School at time of promotion</td></tr>
+        <tr><td>division</td><td>VARCHAR(100)</td><td></td><td></td></tr>
+        <tr><td>district</td><td>VARCHAR(100)</td><td></td><td></td></tr>
+        <tr><td>class_before</td><td>VARCHAR(10)</td><td></td><td>Class before promotion e.g. "7" or "8"</td></tr>
+        <tr><td>class_after</td><td>VARCHAR(10)</td><td></td><td>"8" or "GRADUATED"</td></tr>
+        <tr><td>phase1_marathi, phase1_math, phase1_english, phase1_date</td><td>INT / DATETIME</td><td></td><td>Phase 1 snapshot</td></tr>
+        <tr><td>phase2_marathi, phase2_math, phase2_english, phase2_date</td><td>INT / DATETIME</td><td></td><td>Phase 2 snapshot</td></tr>
+        <tr><td>phase3_marathi, phase3_math, phase3_english, phase3_date</td><td>INT / DATETIME</td><td></td><td>Phase 3 snapshot</td></tr>
+        <tr><td>phase4_marathi, phase4_math, phase4_english, phase4_date</td><td>INT / DATETIME</td><td></td><td>Phase 4 snapshot — this seeds next year's Phase 1</td></tr>
+        <tr><td>archived_at</td><td>DATETIME</td><td class="nn">NOT NULL</td><td>NOW() at promotion time</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TABLE 3 -->
+  <div class="card card-grad">
+    <h3>🏆 Table 3 — <code>graduated_students</code> <span class="tag tag-grad">NEW — Permanent</span></h3>
+    <p style="font-size:14px; color:var(--muted); margin-bottom:12px;">Permanent record of every Class 8 student who graduated. Never deleted. Admin can view this from the dashboard.</p>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pk">graduation_id</span></td><td>INT AUTO_INCREMENT</td><td class="pk">PK</td><td>Unique graduation record ID</td></tr>
+        <tr><td><span class="fk">promotion_id</span></td><td>INT</td><td class="fk">FK → class_promotion_log</td><td>Which promotion event graduated this student</td></tr>
+        <tr><td>student_id</td><td>INT</td><td class="nn">NOT NULL</td><td>Original students.student_id (row kept, is_active=0)</td></tr>
+        <tr><td>student_name</td><td>VARCHAR(255)</td><td class="nn">NOT NULL</td><td>Full name</td></tr>
+        <tr><td>student_pen</td><td>VARCHAR(50)</td><td></td><td>Unique student PEN number</td></tr>
+        <tr><td>gender</td><td>VARCHAR(10)</td><td></td><td>M / F</td></tr>
+        <tr><td>udise_no</td><td>VARCHAR(20)</td><td></td><td>School UDISE</td></tr>
+        <tr><td>division</td><td>VARCHAR(100)</td><td></td><td></td></tr>
+        <tr><td>district</td><td>VARCHAR(100)</td><td></td><td></td></tr>
+        <tr><td>section</td><td>VARCHAR(10)</td><td></td><td></td></tr>
+        <tr><td>graduated_from_class</td><td>VARCHAR(10)</td><td></td><td>Always "9" (final class)</td></tr>
+        <tr><td>academic_year</td><td>VARCHAR(10)</td><td></td><td>e.g. "2025-26"</td></tr>
+        <tr><td>final_marathi_level</td><td>INT</td><td></td><td>Phase 4 Marathi level (their final level)</td></tr>
+        <tr><td>final_math_level</td><td>INT</td><td></td><td>Phase 4 Math level</td></tr>
+        <tr><td>final_english_level</td><td>INT</td><td></td><td>Phase 4 English level</td></tr>
+        <tr><td>fln_completed</td><td>TINYINT(1)</td><td></td><td>Did student achieve full FLN by graduation?</td></tr>
+        <tr><td>phase1_marathi, phase1_math, phase1_english</td><td>INT</td><td></td><td>Year's Phase 1 levels</td></tr>
+        <tr><td>phase2_marathi, phase2_math, phase2_english</td><td>INT</td><td></td><td>Year's Phase 2 levels</td></tr>
+        <tr><td>phase3_marathi, phase3_math, phase3_english</td><td>INT</td><td></td><td>Year's Phase 3 levels</td></tr>
+        <tr><td>phase4_marathi, phase4_math, phase4_english</td><td>INT</td><td></td><td>Year's Phase 4 levels (final)</td></tr>
+        <tr><td>graduated_at</td><td>DATETIME</td><td class="nn">NOT NULL</td><td>Timestamp of graduation (NOW() at promotion)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TABLE 4 -->
+  <div class="card card-audit">
+    <h3>✅ Table 4 — <code>phase_approvals_history</code></h3>
+    <p style="font-size:14px; color:var(--muted); margin-bottom:12px;">Archives every Head Master approval before <code>phase_approvals</code> is cleared for the new year.</p>
+    <table class="schema-table">
+      <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pk">history_id</span></td><td>INT AUTO_INCREMENT</td><td class="pk">PK</td><td></td></tr>
+        <tr><td><span class="fk">promotion_id</span></td><td>INT</td><td class="fk">FK → class_promotion_log</td><td></td></tr>
+        <tr><td>udise_no</td><td>VARCHAR(20)</td><td></td><td>School that was approved</td></tr>
+        <tr><td>phase_number</td><td>INT</td><td></td><td>1, 2, 3, or 4</td></tr>
+        <tr><td>approval_status</td><td>VARCHAR(50)</td><td></td><td>APPROVED / REJECTED / PENDING</td></tr>
+        <tr><td>approved_by</td><td>VARCHAR(100)</td><td></td><td>Head Master username</td></tr>
+        <tr><td>approval_date</td><td>DATETIME</td><td></td><td>When decision was made</td></tr>
+        <tr><td>remarks</td><td>TEXT</td><td></td><td>Rejection reason if any</td></tr>
+        <tr><td>archived_at</td><td>DATETIME</td><td class="nn">NOT NULL</td><td>NOW() at promotion</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       4. SQL — 6-STEP SEQUENCE
+  ═════════════════════════════════════════ -->
+  <div class="section-title">🗄️ 4. SQL — Full 6-Step Promotion Sequence</div>
+
+  <div class="alert alert-success">
+    <span class="alert-icon">🔐</span>
+    <span><strong>All 6 steps run inside a single database transaction.</strong> If any step fails, everything rolls back — no partial state.</span>
+  </div>
+
+  <div class="card">
+    <h3>Step 1 — Create Promotion Log Entry</h3>
+<pre><span class="cm">-- First, so we have @promo_id for all FK references below</span>
+<span class="kw">INSERT INTO</span> class_promotion_log
+  (academic_year, promoted_by, promotion_date, remarks)
+<span class="kw">VALUES</span>
+  (<span class="st">'2025-26'</span>, <span class="st">'admin_username'</span>, NOW(), <span class="st">'Year-end promotion June 2026'</span>);
+
+<span class="kw">SET</span> @promo_id = LAST_INSERT_ID();</pre>
+  </div>
+
+  <div class="card">
+    <h3>Step 2 — Archive ALL Active Student Phase Data (Classes 1–8)</h3>
+<pre><span class="cm">-- Full snapshot of every active student before anything changes</span>
+<span class="kw">INSERT INTO</span> student_phase_history (
+  promotion_id, student_id, student_name, student_pen,
+  udise_no, division, district,
+  class_before, class_after,
+  phase1_marathi, phase1_math, phase1_english, phase1_date,
+  phase2_marathi, phase2_math, phase2_english, phase2_date,
+  phase3_marathi, phase3_math, phase3_english, phase3_date,
+  phase4_marathi, phase4_math, phase4_english, phase4_date,
+  archived_at
+)
+<span class="kw">SELECT</span>
+  @promo_id,
+  student_id, student_name, student_pen,
+  udise_no, division, district,
+  class,
+  <span class="kw">CASE WHEN</span> class = <span class="st">'9'</span>
+       <span class="kw">THEN</span> <span class="st">'GRADUATED'</span>
+       <span class="kw">ELSE</span> <span class="fn">CAST</span>((<span class="fn">CAST</span>(class <span class="kw">AS</span> UNSIGNED) + <span class="vl">1</span>) <span class="kw">AS</span> CHAR)
+  <span class="kw">END</span>,
+  phase1_marathi, phase1_math, phase1_english, phase1_date,
+  phase2_marathi, phase2_math, phase2_english, phase2_date,
+  phase3_marathi, phase3_math, phase3_english, phase3_date,
+  phase4_marathi, phase4_math, phase4_english, phase4_date,
+  NOW()
+<span class="kw">FROM</span> students
+<span class="kw">WHERE</span> is_active = <span class="vl">1</span>;</pre>
+  </div>
+
+  <div class="card card-grad">
+    <h3>Step 3 — Move Class 9 Students to graduated_students</h3>
+<pre><span class="cm">-- Class 9 = FINAL CLASS. Copy full record to permanent graduate table.</span>
+<span class="kw">INSERT INTO</span> graduated_students (
+  promotion_id, student_id, student_name, student_pen, gender,
+  udise_no, division, district, section,
+  graduated_from_class, academic_year,
+  final_marathi_level, final_math_level, final_english_level,
+  fln_completed,
+  phase1_marathi, phase1_math, phase1_english,
+  phase2_marathi, phase2_math, phase2_english,
+  phase3_marathi, phase3_math, phase3_english,
+  phase4_marathi, phase4_math, phase4_english,
+  graduated_at
+)
+<span class="kw">SELECT</span>
+  @promo_id, student_id, student_name, student_pen, gender,
+  udise_no, division, district, section,
+  <span class="st">'9'</span>, <span class="st">'2025-26'</span>,   <span class="cm">-- graduated_from_class = 9 (final class)</span>
+  phase4_marathi, phase4_math, phase4_english,   <span class="cm">-- final levels</span>
+  fln_completed,
+  phase1_marathi, phase1_math, phase1_english,
+  phase2_marathi, phase2_math, phase2_english,
+  phase3_marathi, phase3_math, phase3_english,
+  phase4_marathi, phase4_math, phase4_english,
+  NOW()
+<span class="kw">FROM</span> students
+<span class="kw">WHERE</span> class = <span class="st">'9'</span> <span class="kw">AND</span> is_active = <span class="vl">1</span>;
+
+<span class="cm">-- Mark Class 9 students inactive — row kept, never deleted</span>
+<span class="kw">UPDATE</span> students
+<span class="kw">SET</span>
+  is_active    = <span class="vl">0</span>,
+  updated_by   = <span class="st">'admin_username'</span>,
+  updated_date = NOW()
+<span class="kw">WHERE</span> class = <span class="st">'9'</span> <span class="kw">AND</span> is_active = <span class="vl">1</span>;</pre>
+  </div>
+
+  <div class="card">
+    <h3>Step 4 — Archive Phase Approvals then Clear</h3>
+<pre><span class="kw">INSERT INTO</span> phase_approvals_history (
+  promotion_id, udise_no, phase_number,
+  approval_status, approved_by, approval_date, remarks, archived_at
+)
+<span class="kw">SELECT</span>
+  @promo_id, udise_no, phase_number,
+  approval_status, approved_by, approval_date, remarks, NOW()
+<span class="kw">FROM</span> phase_approvals;
+
+<span class="cm">-- Safe to clear now — original data is in history</span>
+<span class="kw">DELETE FROM</span> phase_approvals;</pre>
+  </div>
+
+  <div class="card">
+    <h3>Step 5 — Promote Classes 1–8 (UPDATE)</h3>
+<pre><span class="cm">-- Classes 1-8 all increment by 1 (Class 8 becomes Class 9)</span>
+<span class="cm">-- Class 9 already handled above (graduated), so BETWEEN 1 AND 8</span>
+<span class="kw">UPDATE</span> students
+<span class="kw">SET</span>
+  class          = <span class="fn">CAST</span>((<span class="fn">CAST</span>(class <span class="kw">AS</span> UNSIGNED) + <span class="vl">1</span>) <span class="kw">AS</span> CHAR),
+
+  <span class="cm">-- Seed Phase 1 from last year's Phase 4 (carry-forward baseline)</span>
+  phase1_marathi = phase4_marathi,
+  phase1_math    = phase4_math,
+  phase1_english = phase4_english,
+  phase1_date    = <span class="kw">NULL</span>,   <span class="cm">-- not yet assessed in new year</span>
+
+  <span class="cm">-- Wipe Phases 2, 3, 4</span>
+  phase2_marathi = <span class="kw">NULL</span>, phase2_math = <span class="kw">NULL</span>, phase2_english = <span class="kw">NULL</span>, phase2_date = <span class="kw">NULL</span>,
+  phase3_marathi = <span class="kw">NULL</span>, phase3_math = <span class="kw">NULL</span>, phase3_english = <span class="kw">NULL</span>, phase3_date = <span class="kw">NULL</span>,
+  phase4_marathi = <span class="kw">NULL</span>, phase4_math = <span class="kw">NULL</span>, phase4_english = <span class="kw">NULL</span>, phase4_date = <span class="kw">NULL</span>,
+
+  updated_by     = <span class="st">'admin_username'</span>,
+  updated_date   = NOW()
+
+<span class="kw">WHERE</span> is_active = <span class="vl">1</span>
+  <span class="kw">AND</span> <span class="fn">CAST</span>(class <span class="kw">AS</span> UNSIGNED) <span class="kw">BETWEEN</span> <span class="vl">1</span> <span class="kw">AND</span> <span class="vl">8</span>;</pre>
+  </div>
+
+  <div class="card">
+    <h3>Step 6 — Update Promotion Log Counts</h3>
+<pre><span class="kw">UPDATE</span> class_promotion_log
+<span class="kw">SET</span>
+  students_promoted  = (<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> students
+                        <span class="kw">WHERE</span> is_active = <span class="vl">1</span>
+                          <span class="kw">AND</span> <span class="fn">CAST</span>(class <span class="kw">AS</span> UNSIGNED) <span class="kw">BETWEEN</span> <span class="vl">2</span> <span class="kw">AND</span> <span class="vl">9</span>),
+  students_graduated = (<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> graduated_students
+                        <span class="kw">WHERE</span> promotion_id = @promo_id)
+<span class="kw">WHERE</span> promotion_id = @promo_id;</pre>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       5. FILES
+  ═════════════════════════════════════════ -->
+  <div class="section-title">📁 5. Files — Created vs Modified</div>
+
+  <table>
+    <thead>
+      <tr><th>File</th><th>Action</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>create_audit_tables.sql</code></td>
+        <td><span class="tag tag-new">NEW</span> <span class="tag tag-db">DB</span></td>
+        <td>CREATE TABLE for all 4 new tables. Run once on the database.</td>
+      </tr>
+      <tr>
+        <td><code>PromoteClassesServlet.java</code></td>
+        <td><span class="tag tag-new">NEW</span></td>
+        <td>GET = preview JSON, POST = runs all 6 SQL steps in one transaction. DATA_ADMIN only.</td>
+      </tr>
+      <tr>
+        <td><code>promote-classes.jsp</code></td>
+        <td><span class="tag tag-new">NEW</span></td>
+        <td>Confirmation page: class-wise preview table, remarks box, type-to-confirm "PROMOTE", result screen.</td>
+      </tr>
+      <tr>
+        <td><code>promotion-audit.jsp</code></td>
+        <td><span class="tag tag-new">NEW</span></td>
+        <td>Lists all past promotion events. Drill into any event to see student-level phase history.</td>
+      </tr>
+      <tr>
+        <td><code>graduated-students.jsp</code></td>
+        <td><span class="tag tag-new">NEW</span> <span class="tag tag-grad">GRAD</span></td>
+        <td>View all graduated students. Filter by academic year / division / district / school. Shows final levels and FLN status.</td>
+      </tr>
+      <tr>
+        <td><code>StudentDAO.java</code></td>
+        <td><span class="tag tag-modify">MODIFY</span></td>
+        <td>Add <code>getPromotionPreview()</code> and <code>promoteAllClasses(username, academicYear, remarks)</code>.</td>
+      </tr>
+      <tr>
+        <td><code>data-admin-dashboard.jsp</code></td>
+        <td><span class="tag tag-modify">MODIFY</span></td>
+        <td>Add 3 new cards: "Promote Classes" (orange), "Promotion Audit" (green), "Graduated Students" (gold).</td>
+      </tr>
+      <tr>
+        <td><code>web.xml</code></td>
+        <td><span class="tag tag-modify">MODIFY</span></td>
+        <td>Register <code>PromoteClassesServlet</code> at <code>/promote-classes</code>.</td>
+      </tr>
+      <tr>
+        <td>Phase lock logic — <code>manage-students.jsp</code></td>
+        <td><span class="tag tag-auto">NO CHANGE</span></td>
+        <td>Already locks Phase 2/3/4 when Phase 1 not complete. Works automatically after promotion.</td>
+      </tr>
+    </tbody>
+  </table>
+
+
+  <!-- ══════════════════════════════════════
+       6. IMPLEMENTATION STEPS
+  ═════════════════════════════════════════ -->
+  <div class="section-title">🛠️ 6. Implementation Steps (In Order)</div>
+
+  <div class="impl-step impl-step-green">
+    <h4>Step 1 — Run SQL: Create 4 New Tables</h4>
+    <span class="file-chip">create_audit_tables.sql</span>
+    <ul>
+      <li>Create <code>class_promotion_log</code></li>
+      <li>Create <code>student_phase_history</code> (FK to promotion log)</li>
+      <li>Create <code>graduated_students</code> (FK to promotion log)</li>
+      <li>Create <code>phase_approvals_history</code> (FK to promotion log)</li>
+      <li>Run once on the database — no app restart needed</li>
+    </ul>
+  </div>
+
+  <div class="impl-step">
+    <h4>Step 2 — Add DAO Methods to StudentDAO.java</h4>
+    <span class="file-chip">StudentDAO.java</span>
+    <ul>
+      <li><code>List&lt;Map&gt; getPromotionPreview()</code> — returns class-wise counts + Class 8 graduate count</li>
+      <li><code>Map promoteAllClasses(String username, String academicYear, String remarks)</code> — runs all 6 SQL steps in a single connection with <code>setAutoCommit(false)</code>, commit on success, rollback on any failure</li>
+    </ul>
+  </div>
+
+  <div class="impl-step">
+    <h4>Step 3 — Create PromoteClassesServlet.java</h4>
+    <span class="file-chip">PromoteClassesServlet.java</span>
+    <ul>
+      <li>Check session → must be DATA_ADMIN, else return 403</li>
+      <li><strong>GET:</strong> return JSON from <code>getPromotionPreview()</code></li>
+      <li><strong>POST:</strong> accept <code>academicYear</code> + <code>remarks</code> params, call DAO, return JSON <code>{success, promoted, graduated, promotionId}</code></li>
+    </ul>
+  </div>
+
+  <div class="impl-step">
+    <h4>Step 4 — Create promote-classes.jsp</h4>
+    <span class="file-chip">promote-classes.jsp</span>
+    <ul>
+      <li>On load: fetch preview → show table: Class 1→2: N students … Class 8→Graduated: N students</li>
+      <li>Academic Year input (auto-filled: "2025-26", editable)</li>
+      <li>Optional Remarks text area</li>
+      <li>Type-to-confirm: must type "PROMOTE" to enable button</li>
+      <li>On confirm: POST → spinner → success card showing Promotion ID, students promoted, students graduated</li>
+    </ul>
+  </div>
+
+  <div class="impl-step impl-step-green">
+    <h4>Step 5 — Create promotion-audit.jsp</h4>
+    <span class="file-chip">promotion-audit.jsp</span>
+    <ul>
+      <li>Lists all past promotions from <code>class_promotion_log</code> (newest first)</li>
+      <li>Columns: ID, Academic Year, Date, Admin, Promoted, Graduated</li>
+      <li>"View Details" expands to show <code>student_phase_history</code> for that promotion</li>
+      <li>Filter by Division / District for drill-down</li>
+    </ul>
+  </div>
+
+  <div class="impl-step impl-step-gold">
+    <h4>Step 6 — Create graduated-students.jsp</h4>
+    <span class="file-chip">graduated-students.jsp</span>
+    <ul>
+      <li>Lists all rows from <code>graduated_students</code> (newest year first)</li>
+      <li>Filter by: Academic Year / Division / District / UDISE</li>
+      <li>Columns: Name, PEN, School, Year, Final Marathi/Math/English level, FLN Completed</li>
+      <li>Shows summary count at top: "Total Graduated: 1,240 across 3 years"</li>
+    </ul>
+  </div>
+
+  <div class="impl-step">
+    <h4>Step 7 — Update data-admin-dashboard.jsp</h4>
+    <span class="file-chip">data-admin-dashboard.jsp</span>
+    <ul>
+      <li>Add <strong>"Promote Classes"</strong> card — orange gradient</li>
+      <li>Add <strong>"Promotion Audit"</strong> card — green gradient</li>
+      <li>Add <strong>"Graduated Students"</strong> card — gold gradient</li>
+    </ul>
+  </div>
+
+  <div class="impl-step">
+    <h4>Step 8 — Register Servlet + Build + Test</h4>
+    <span class="file-chip">web.xml</span>
+    <ul>
+      <li>Register <code>PromoteClassesServlet</code> at <code>/promote-classes</code></li>
+      <li>Build WAR and deploy to Tomcat</li>
+      <li>Test: verify Class 7→8 promoted, Class 8→graduated, phase history rows created, approvals archived</li>
+      <li>Confirm Phase 2/3/4 locked on teacher page after promotion</li>
+      <li>Confirm graduated students visible on dashboard page</li>
+    </ul>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       7. DASHBOARD — 3 NEW CARDS
+  ═════════════════════════════════════════ -->
+  <div class="section-title">🖥️ 7. Admin Dashboard — New Cards</div>
+
+  <div class="grid-3">
+    <div class="card" style="border-top: 4px solid #dd6b20; text-align:center;">
+      <div style="font-size:40px; margin-bottom:10px;">🎓</div>
+      <div style="font-size:17px; font-weight:700; margin-bottom:6px;">Promote Classes</div>
+      <div style="font-size:13px; color:var(--muted);">Advance students to next class for new academic year. Class 8 graduates exit system.</div>
+      <div style="margin-top:12px;"><span class="tag" style="background:#fed7aa; color:#7c2d12;">⚠ One-time action per year</span></div>
+    </div>
+    <div class="card" style="border-top: 4px solid #38a169; text-align:center;">
+      <div style="font-size:40px; margin-bottom:10px;">📋</div>
+      <div style="font-size:17px; font-weight:700; margin-bottom:6px;">Promotion Audit</div>
+      <div style="font-size:13px; color:var(--muted);">View all past promotion events. Drill into student phase history year by year.</div>
+      <div style="margin-top:12px;"><span class="tag tag-audit">Full audit trail</span></div>
+    </div>
+    <div class="card" style="border-top: 4px solid #d69e2e; text-align:center;">
+      <div style="font-size:40px; margin-bottom:10px;">🏆</div>
+      <div style="font-size:17px; font-weight:700; margin-bottom:6px;">Graduated Students</div>
+      <div style="font-size:13px; color:var(--muted);">Permanent record of all Class 8 graduates. Filter by year, district, school.</div>
+      <div style="margin-top:12px;"><span class="tag" style="background:#fefcbf; color:#744210;">Permanent — never deleted</span></div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       8. SUMMARY TABLE
+  ═════════════════════════════════════════ -->
+  <div class="section-title">📊 8. Before vs After — Complete Summary</div>
+
+  <table>
+    <thead>
+      <tr><th>Field / Table</th><th>Before Promotion</th><th>After Promotion</th><th>Old Data Preserved?</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>students.class</code> (1–8)</td><td>"3"</td><td>"4"</td><td>✅ In student_phase_history</td></tr>
+      <tr><td><code>students.class</code> (9 — final)</td><td>"9"</td><td>Unchanged — is_active=0</td><td>✅ In student_phase_history + graduated_students</td></tr>
+      <tr><td><code>phase1_*</code> levels</td><td>Year's Phase 1 data</td><td>Seeded from Phase 4</td><td>✅ In student_phase_history</td></tr>
+      <tr><td><code>phase1_date</code></td><td>Set</td><td>NULL</td><td>✅ In student_phase_history</td></tr>
+      <tr><td><code>phase2/3/4_*</code></td><td>Last year's data</td><td>NULL (wiped for classes 1–7)</td><td>✅ In student_phase_history</td></tr>
+      <tr><td><code>phase_approvals</code></td><td>All approval records</td><td>Cleared</td><td>✅ In phase_approvals_history</td></tr>
+      <tr><td><code>graduated_students</code></td><td>N/A</td><td>New rows for all Class 8 students</td><td>Permanent — never deleted</td></tr>
+      <tr><td><code>class_promotion_log</code></td><td>N/A</td><td>New log row created</td><td>This IS the audit record</td></tr>
+      <tr><td>Phase 1 on teacher screen</td><td>Old year's Phase 1</td><td>Shows seeded Phase 4 levels</td><td>—</td></tr>
+      <tr><td>Phase 2/3/4 on teacher screen</td><td>Available (if approved)</td><td>🔒 Locked automatically</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="alert alert-success" style="margin-top: 24px;">
+    <span class="alert-icon">✅</span>
+    <div>
+      <strong>Ready to implement.</strong> All decisions confirmed:
+      <ul style="margin-top:6px; padding-left:18px;">
+        <li>Classes 1–8 → promoted normally (1→2 … 8→9)</li>
+        <li>Class 9 (final class) → moved permanently to <code>graduated_students</code>, marked inactive in <code>students</code></li>
+        <li>Full audit trail — all phase data archived in <code>student_phase_history</code></li>
+        <li>Phase approvals archived in <code>phase_approvals_history</code></li>
+        <li>Admin can view graduates from the dashboard via <code>graduated-students.jsp</code></li>
+        <li>Everything runs in one DB transaction — atomic, safe, rollback-able</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  VJNT Class Management — GATEE Portal &nbsp;|&nbsp;
+  Promote Classes + Audit + Graduated Students Plan &nbsp;|&nbsp;
+  19 June 2026
+</div>
+
+</body>
+</html>

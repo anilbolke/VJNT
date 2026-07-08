@@ -37,8 +37,7 @@ public class DistrictProfileServlet extends HttpServlet {
         User user = (User) session.getAttribute("user");
         
         // Check if user is district coordinator
-        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR)) {
+        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR) &&  !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             response.sendRedirect(request.getContextPath() + "/login.jsp");
             return;
         }
@@ -61,8 +60,7 @@ public class DistrictProfileServlet extends HttpServlet {
         User user = (User) session.getAttribute("user");
         
         // Check if user is district coordinator
-        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR)) {
+        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) &&  !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             response.sendRedirect(request.getContextPath() + "/login.jsp");
             return;
         }
@@ -143,3 +141,4 @@ public class DistrictProfileServlet extends HttpServlet {
         }
     }
 }
+

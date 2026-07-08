@@ -27,7 +27,7 @@ public class SaveNotificationServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (!user.getUserType().equals(User.UserType.DIVISION)) {
+        if (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             response.sendRedirect(request.getContextPath() + "/division-dashboard.jsp");
             return;
         }

@@ -304,7 +304,7 @@ public class PalakMelavaDAO {
                      "FROM schools s " +
                      "LEFT JOIN school_contacts sc_hm ON s.udise_no = sc_hm.udise_no AND sc_hm.contact_type = 'Head Master' " +
                      "LEFT JOIN palak_melava pm ON s.udise_no = pm.udise_no " +
-                     "LEFT JOIN students st ON s.udise_no = st.udise_no " +
+                     "LEFT JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no " +
                      "WHERE s.district_name = ? " +
                      "GROUP BY s.udise_no, s.school_name, sc_hm.full_name, sc_hm.mobile, sc_hm.whatsapp_number " +
                      "ORDER BY s.school_name";

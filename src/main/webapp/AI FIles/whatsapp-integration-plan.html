@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WhatsApp Integration Plan — GATEE Portal</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f2f5;color:#2d3748;padding:24px;}
+  .page{max-width:1000px;margin:0 auto;}
+
+  /* Cover */
+  .cover{background:linear-gradient(135deg,#25D366 0%,#128C7E 60%,#075E54 100%);
+         border-radius:16px;padding:40px;color:#fff;margin-bottom:28px;text-align:center;}
+  .cover .wa-icon{font-size:64px;margin-bottom:12px;}
+  .cover h1{font-size:30px;font-weight:800;margin-bottom:8px;}
+  .cover p{font-size:15px;opacity:0.88;}
+  .cover .badge{display:inline-block;background:rgba(255,255,255,0.2);border-radius:20px;
+                padding:5px 16px;font-size:13px;margin-top:12px;}
+
+  /* Section card */
+  .card{background:#fff;border-radius:12px;padding:28px;margin-bottom:22px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.07);}
+  .card h2{font-size:19px;font-weight:700;color:#1a202c;margin-bottom:18px;
+           display:flex;align-items:center;gap:10px;border-bottom:2px solid #e2e8f0;padding-bottom:10px;}
+  .card h3{font-size:15px;font-weight:700;color:#2d3748;margin:18px 0 8px;}
+  .card p{font-size:14px;color:#4a5568;line-height:1.7;margin-bottom:10px;}
+
+  /* Status ribbon */
+  .status-plan{display:inline-block;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;
+               border-radius:6px;padding:3px 12px;font-size:12px;font-weight:700;}
+
+  /* Comparison table */
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  th{background:#075E54;color:#fff;padding:10px 14px;text-align:left;}
+  td{padding:10px 14px;border-bottom:1px solid #e2e8f0;vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#f7fafc;}
+  .recommended{background:#f0fff4;font-weight:700;}
+  .recommended td{color:#276749;}
+  .check{color:#25D366;font-weight:700;}
+  .cross{color:#e53e3e;}
+
+  /* Trigger table */
+  .trigger-table th{background:#128C7E;}
+  .priority-high{background:#fff5f5;color:#c53030;font-weight:700;font-size:11px;
+                 border-radius:4px;padding:2px 7px;display:inline-block;}
+  .priority-med {background:#fffbeb;color:#92400e;font-weight:700;font-size:11px;
+                 border-radius:4px;padding:2px 7px;display:inline-block;}
+  .priority-low {background:#ebf8ff;color:#2b6cb0;font-weight:700;font-size:11px;
+                 border-radius:4px;padding:2px 7px;display:inline-block;}
+
+  /* Flow steps */
+  .steps{counter-reset:step;display:flex;flex-direction:column;gap:12px;}
+  .step{display:flex;gap:14px;align-items:flex-start;}
+  .step-num{width:32px;height:32px;background:#25D366;color:#fff;border-radius:50%;
+            display:flex;align-items:center;justify-content:center;font-weight:700;
+            font-size:14px;flex-shrink:0;}
+  .step-body{flex:1;padding-top:4px;}
+  .step-body strong{font-size:14px;display:block;margin-bottom:3px;}
+  .step-body span{font-size:13px;color:#718096;}
+
+  /* DB table */
+  .db-block{background:#1a202c;border-radius:8px;padding:18px;margin-top:10px;
+            font-family:monospace;font-size:12px;color:#e2e8f0;overflow-x:auto;white-space:pre;}
+
+  /* Template boxes */
+  .template-box{background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;
+                padding:16px;margin-bottom:14px;}
+  .template-box .tpl-label{font-size:11px;font-weight:700;color:#276749;text-transform:uppercase;
+                            letter-spacing:1px;margin-bottom:6px;}
+  .template-box .tpl-name{font-size:13px;font-weight:700;color:#1a202c;margin-bottom:8px;}
+  .template-box .tpl-body{font-size:13px;color:#2d3748;background:#fff;border-radius:6px;
+                           padding:12px;border-left:3px solid #25D366;line-height:1.7;}
+  .tpl-var{background:#d1fae5;color:#065f46;border-radius:3px;padding:1px 5px;font-weight:600;}
+
+  /* Phase chips */
+  .phases{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .phase-chip{background:#ebf8ff;border:1px solid #90cdf4;border-radius:6px;
+              padding:8px 14px;font-size:13px;font-weight:600;color:#2b6cb0;}
+
+  /* File list */
+  .file-list{list-style:none;}
+  .file-list li{padding:8px 0;border-bottom:1px solid #e2e8f0;font-size:13px;
+                display:flex;align-items:center;gap:10px;}
+  .file-list li:last-child{border-bottom:none;}
+  .file-tag{font-size:11px;font-weight:700;border-radius:4px;padding:2px 7px;}
+  .tag-new{background:#c6f6d5;color:#276749;}
+  .tag-mod{background:#bee3f8;color:#2b6cb0;}
+  .tag-sql{background:#fbd38d;color:#7c2d12;}
+
+  /* Roadmap */
+  .roadmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:10px;}
+  .phase-card{border-radius:8px;padding:16px;border:1px solid #e2e8f0;}
+  .phase-card.p1{background:#f0fff4;border-color:#9ae6b4;}
+  .phase-card.p2{background:#ebf8ff;border-color:#90cdf4;}
+  .phase-card.p3{background:#faf5ff;border-color:#d6bcfa;}
+  .phase-card.p4{background:#fffbeb;border-color:#fcd34d;}
+  .phase-card h4{font-size:13px;font-weight:700;margin-bottom:8px;}
+  .phase-card.p1 h4{color:#276749;}
+  .phase-card.p2 h4{color:#2b6cb0;}
+  .phase-card.p3 h4{color:#6b21a8;}
+  .phase-card.p4 h4{color:#92400e;}
+  .phase-card ul{list-style:none;font-size:12px;color:#4a5568;}
+  .phase-card ul li{padding:3px 0;}
+  .phase-card ul li::before{content:"✓ ";}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- Cover -->
+<div class="cover">
+  <div class="wa-icon">💬</div>
+  <h1>WhatsApp Integration Plan</h1>
+  <p>GATEE Portal — VJNT Class Management System</p>
+  <div class="badge">STATUS: PLAN ONLY — Implementation Pending</div>
+</div>
+
+<!-- 1. Objective -->
+<div class="card">
+  <h2>🎯 1. Objective</h2>
+  <p>Send automated WhatsApp notifications to school coordinators, Head Masters, division officers, and DATA_ADMIN at key events in the FLN assessment lifecycle — phase submissions, approvals, class promotions, reminders, and more — using pre-approved message templates.</p>
+  <p>Phone numbers are already present in the database:</p>
+  <ul style="margin-left:20px;font-size:14px;color:#4a5568;line-height:2;">
+    <li><strong>school_contacts.whatsapp_number / mobile</strong> — school coordinator & Head Master contacts per UDISE</li>
+    <li><strong>teachers.mobile_number</strong> — teacher contacts</li>
+    <li><strong>users.mobile</strong> — system user contacts (DATA_ADMIN, officers)</li>
+  </ul>
+</div>
+
+<!-- 2. API Provider -->
+<div class="card">
+  <h2>📡 2. WhatsApp API Provider — Recommendation</h2>
+  <p>WhatsApp Business API requires a Business Solution Provider (BSP). Compare options below:</p>
+  <table>
+    <thead>
+      <tr><th>Provider</th><th>Indian BSP</th><th>Marathi Templates</th><th>REST API</th><th>Free Tier</th><th>Cost (approx)</th></tr>
+    </thead>
+    <tbody>
+      <tr class="recommended">
+        <td>⭐ <strong>MSG91</strong></td>
+        <td class="check">✔ Yes</td>
+        <td class="check">✔ Yes</td>
+        <td class="check">✔ Simple</td>
+        <td>Trial credits</td>
+        <td>~₹0.30–0.50/msg</td>
+      </tr>
+      <tr>
+        <td><strong>Gupshup</strong></td>
+        <td class="check">✔ Yes</td>
+        <td class="check">✔ Yes</td>
+        <td class="check">✔ Simple</td>
+        <td>Limited</td>
+        <td>~₹0.35/msg</td>
+      </tr>
+      <tr>
+        <td><strong>Twilio</strong></td>
+        <td class="cross">✘ No</td>
+        <td class="check">✔ Yes</td>
+        <td class="check">✔ Simple</td>
+        <td>₹750 credit</td>
+        <td>~₹0.80/msg</td>
+      </tr>
+      <tr>
+        <td><strong>Meta Cloud API</strong></td>
+        <td class="cross">✘ Direct</td>
+        <td class="check">✔ Yes</td>
+        <td>Complex setup</td>
+        <td>1000 free/month</td>
+        <td>~₹0.59/msg</td>
+      </tr>
+    </tbody>
+  </table>
+  <h3>Recommendation: MSG91</h3>
+  <p>MSG91 is an Indian BSP with a simple REST API, Marathi/Hindi template support, good delivery rates, and affordable pricing. Integration takes 2–3 days. Sign up at <strong>msg91.com</strong>, create a WhatsApp sender, get templates approved, and add the API key to the app config.</p>
+</div>
+
+<!-- 3. Message Triggers -->
+<div class="card">
+  <h2>🔔 3. When to Send Messages (Triggers)</h2>
+  <table class="trigger-table">
+    <thead>
+      <tr><th>Event</th><th>Trigger Point (Code Location)</th><th>Recipient</th><th>Priority</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Phase 1 submitted for approval</strong></td>
+        <td>Phase approval servlet — when school submits</td>
+        <td>Head Master of that school</td>
+        <td><span class="priority-high">HIGH</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase approved by Head Master</strong></td>
+        <td>Phase approval servlet — on APPROVED status</td>
+        <td>School Coordinator</td>
+        <td><span class="priority-high">HIGH</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase rejected by Head Master</strong></td>
+        <td>Phase approval servlet — on REJECTED status</td>
+        <td>School Coordinator</td>
+        <td><span class="priority-high">HIGH</span></td>
+      </tr>
+      <tr>
+        <td><strong>Class promotion completed</strong></td>
+        <td>PromoteClassesServlet — after commit</td>
+        <td>All school coordinators + DATA_ADMIN</td>
+        <td><span class="priority-high">HIGH</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase deadline reminder</strong></td>
+        <td>Scheduled job (new) — run weekly</td>
+        <td>Schools that haven't started current phase</td>
+        <td><span class="priority-med">MEDIUM</span></td>
+      </tr>
+      <tr>
+        <td><strong>Student FLN achieved</strong></td>
+        <td>manage-students.jsp save logic</td>
+        <td>School coordinator</td>
+        <td><span class="priority-med">MEDIUM</span></td>
+      </tr>
+      <tr>
+        <td><strong>New academic year started</strong></td>
+        <td>PromoteClassesServlet — after commit</td>
+        <td>Division officers + DATA_ADMIN</td>
+        <td><span class="priority-med">MEDIUM</span></td>
+      </tr>
+      <tr>
+        <td><strong>Palak Melava (parent meeting) recorded</strong></td>
+        <td>Palak Melava save servlet</td>
+        <td>District officer</td>
+        <td><span class="priority-low">LOW</span></td>
+      </tr>
+      <tr>
+        <td><strong>Test message (admin manual send)</strong></td>
+        <td>New WhatsApp admin panel</td>
+        <td>Any number (for testing)</td>
+        <td><span class="priority-low">LOW</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 4. Message Templates -->
+<div class="card">
+  <h2>📝 4. Message Templates</h2>
+  <p>WhatsApp requires all outbound messages to use pre-approved templates. Templates must be submitted to Meta via the BSP before use. Variables are marked with <span class="tpl-var">{{placeholders}}</span>.</p>
+
+  <div class="template-box">
+    <div class="tpl-label">Template 1 — Phase Submitted</div>
+    <div class="tpl-name">gatee_phase_submitted</div>
+    <div class="tpl-body">
+      नमस्कार <span class="tpl-var">{{head_master_name}}</span>,<br/><br/>
+      शाळा UDISE <span class="tpl-var">{{udise_no}}</span> — <span class="tpl-var">{{school_name}}</span> यांनी <strong>टप्पा <span class="tpl-var">{{phase_number}}</span></strong> साठी मंजुरी अर्ज सादर केला आहे.<br/><br/>
+      कृपया GATEE Portal वर लॉग इन करून मंजुरी द्या.<br/>
+      <em>GATEE Portal — VJNT Class Management</em>
+    </div>
+  </div>
+
+  <div class="template-box">
+    <div class="tpl-label">Template 2 — Phase Approved</div>
+    <div class="tpl-name">gatee_phase_approved</div>
+    <div class="tpl-body">
+      नमस्कार <span class="tpl-var">{{coordinator_name}}</span>,<br/><br/>
+      आपल्या शाळेचा (<span class="tpl-var">{{school_name}}</span>) <strong>टप्पा <span class="tpl-var">{{phase_number}}</span></strong> मुख्याध्यापकांनी मंजूर केला आहे. ✅<br/><br/>
+      आता <strong>टप्पा <span class="tpl-var">{{next_phase}}</span></strong> भरणे सुरू करता येईल.<br/>
+      <em>GATEE Portal — VJNT Class Management</em>
+    </div>
+  </div>
+
+  <div class="template-box">
+    <div class="tpl-label">Template 3 — Phase Rejected</div>
+    <div class="tpl-name">gatee_phase_rejected</div>
+    <div class="tpl-body">
+      नमस्कार <span class="tpl-var">{{coordinator_name}}</span>,<br/><br/>
+      आपल्या शाळेचा (<span class="tpl-var">{{school_name}}</span>) <strong>टप्पा <span class="tpl-var">{{phase_number}}</span></strong> परत पाठवला आहे. ❌<br/><br/>
+      कारण: <span class="tpl-var">{{rejection_reason}}</span><br/><br/>
+      कृपया सुधारणा करून पुन्हा सादर करा.<br/>
+      <em>GATEE Portal — VJNT Class Management</em>
+    </div>
+  </div>
+
+  <div class="template-box">
+    <div class="tpl-label">Template 4 — Class Promotion Completed</div>
+    <div class="tpl-name">gatee_promotion_done</div>
+    <div class="tpl-body">
+      नमस्कार <span class="tpl-var">{{coordinator_name}}</span>,<br/><br/>
+      शैक्षणिक वर्ष <span class="tpl-var">{{academic_year}}</span> साठी वर्ग पदोन्नती पूर्ण झाली आहे. 🎓<br/>
+      <strong><span class="tpl-var">{{students_promoted}}</span></strong> विद्यार्थी पुढील वर्गात गेले.<br/>
+      <strong><span class="tpl-var">{{students_graduated}}</span></strong> विद्यार्थी इयत्ता ९ वी उत्तीर्ण झाले.<br/><br/>
+      कृपया नवीन शैक्षणिक वर्षासाठी टप्पा १ भरणे सुरू करा.<br/>
+      <em>GATEE Portal — VJNT Class Management</em>
+    </div>
+  </div>
+
+  <div class="template-box">
+    <div class="tpl-label">Template 5 — Phase Reminder (Weekly)</div>
+    <div class="tpl-name">gatee_phase_reminder</div>
+    <div class="tpl-body">
+      नमस्कार <span class="tpl-var">{{coordinator_name}}</span>,<br/><br/>
+      आठवण: शाळा <span class="tpl-var">{{school_name}}</span> (UDISE: <span class="tpl-var">{{udise_no}}</span>) साठी <strong>टप्पा <span class="tpl-var">{{phase_number}}</span></strong> अद्याप पूर्ण झालेले नाही.<br/><br/>
+      कृपया <span class="tpl-var">{{deadline_date}}</span> पूर्वी डेटा भरा.<br/>
+      <em>GATEE Portal — VJNT Class Management</em>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Message Flow -->
+<div class="card">
+  <h2>🔄 5. Message Send Flow</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Event fires in servlet</strong>
+        <span>e.g. Head Master approves Phase 1 → approval servlet calls WhatsAppService.send()</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>WhatsAppService looks up recipient number</strong>
+        <span>Queries school_contacts table for whatsapp_number by udise_no and contact_type</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Build template payload</strong>
+        <span>Maps event data to template variables (school_name, phase_number, coordinator_name, etc.)</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>HTTP POST to MSG91 API</strong>
+        <span>Sends JSON payload with template name, recipient number, and variable values</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>Log result to whatsapp_message_log</strong>
+        <span>Stores message ID, recipient, template, status (SENT/FAILED), timestamp — always logged even on failure</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <strong>Admin can view logs from dashboard</strong>
+        <span>New "WhatsApp Logs" card in DATA_ADMIN dashboard shows delivery status per message</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Database Changes -->
+<div class="card">
+  <h2>🗄️ 6. Database Tables to Create</h2>
+
+  <h3>whatsapp_config</h3>
+  <div class="db-block">CREATE TABLE whatsapp_config (
+    config_id     INT          NOT NULL AUTO_INCREMENT,
+    config_key    VARCHAR(100) NOT NULL UNIQUE,  -- 'api_key','sender_id','base_url','enabled'
+    config_value  TEXT,
+    updated_by    VARCHAR(100),
+    updated_date  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (config_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;</div>
+
+  <h3>whatsapp_templates</h3>
+  <div class="db-block">CREATE TABLE whatsapp_templates (
+    template_id   INT          NOT NULL AUTO_INCREMENT,
+    template_key  VARCHAR(100) NOT NULL UNIQUE,  -- internal key e.g. 'PHASE_APPROVED'
+    template_name VARCHAR(100) NOT NULL,          -- MSG91 approved template name
+    description   VARCHAR(255),
+    is_active     TINYINT(1)   DEFAULT 1,
+    PRIMARY KEY (template_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;</div>
+
+  <h3>whatsapp_message_log</h3>
+  <div class="db-block">CREATE TABLE whatsapp_message_log (
+    log_id        BIGINT       NOT NULL AUTO_INCREMENT,
+    template_key  VARCHAR(100),                   -- e.g. 'PHASE_APPROVED'
+    recipient_no  VARCHAR(15)  NOT NULL,
+    udise_no      VARCHAR(20),
+    event_ref     VARCHAR(200),                   -- e.g. 'promotion_id=3' or 'phase=2,udise=123'
+    variables_json TEXT,                           -- JSON of template variables used
+    status        ENUM('SENT','FAILED','PENDING') DEFAULT 'PENDING',
+    provider_msg_id VARCHAR(100),                  -- MSG91 message ID for delivery tracking
+    error_message TEXT,
+    sent_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (log_id),
+    INDEX idx_wml_udise   (udise_no),
+    INDEX idx_wml_status  (status),
+    INDEX idx_wml_sent_at (sent_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;</div>
+</div>
+
+<!-- 7. Files to Create -->
+<div class="card">
+  <h2>📁 7. Files to Create / Modify</h2>
+  <ul class="file-list">
+    <li><span class="file-tag tag-sql">SQL</span> <code>create_whatsapp_tables.sql</code> — run once on DB to create 3 tables above</li>
+    <li><span class="file-tag tag-new">NEW</span> <code>src/main/java/com/vjnt/service/WhatsAppService.java</code> — core service: lookup number, build payload, HTTP POST to MSG91, log result</li>
+    <li><span class="file-tag tag-new">NEW</span> <code>src/main/java/com/vjnt/servlet/WhatsAppAdminServlet.java</code> — REST API for admin panel (test send, view logs, toggle templates)</li>
+    <li><span class="file-tag tag-new">NEW</span> <code>src/main/webapp/whatsapp-admin.jsp</code> — DATA_ADMIN panel: message logs, test send, config</li>
+    <li><span class="file-tag tag-mod">MODIFY</span> <code>PromoteClassesServlet.java</code> — call WhatsAppService after successful commit</li>
+    <li><span class="file-tag tag-mod">MODIFY</span> <code>Phase approval servlet</code> — call WhatsAppService on APPROVED / REJECTED</li>
+    <li><span class="file-tag tag-mod">MODIFY</span> <code>data-admin-dashboard.jsp</code> — add "WhatsApp Logs" card in Year-End Actions area</li>
+    <li><span class="file-tag tag-new">NEW</span> <code>src/main/java/com/vjnt/servlet/WhatsAppReminderServlet.java</code> — weekly reminder trigger (called via a scheduled URL hit or cron)</li>
+  </ul>
+
+  <h3>External Dependency to add to WEB-INF/lib</h3>
+  <p>No extra JAR needed — MSG91 API uses plain HTTPS REST calls. Use <code>java.net.HttpURLConnection</code> or the existing HTTP utilities. No extra library required.</p>
+</div>
+
+<!-- 8. WhatsAppService Design -->
+<div class="card">
+  <h2>⚙️ 8. WhatsAppService — Key Methods</h2>
+  <div class="db-block">public class WhatsAppService {
+
+    // Main send method — called from any servlet
+    public static boolean send(String templateKey, String recipientMobile, Map&lt;String,String&gt; variables, String eventRef)
+
+    // Convenience methods
+    public static void notifyPhaseSubmitted(String udise, int phaseNumber)
+    public static void notifyPhaseApproved(String udise, int phaseNumber, String remarks)
+    public static void notifyPhaseRejected(String udise, int phaseNumber, String reason)
+    public static void notifyPromotionDone(long promotionId, String academicYear, int promoted, int graduated)
+    public static void sendPhaseReminders()   // called by reminder job — queries all incomplete schools
+
+    // Internal helpers
+    private static String lookupWhatsAppNumber(String udise, String contactType)
+    private static String getConfig(String key)                  // reads from whatsapp_config table
+    private static void logMessage(String template, String mobile, String status, String msgId, String error)
+}</div>
+</div>
+
+<!-- 9. MSG91 API -->
+<div class="card">
+  <h2>🌐 9. MSG91 API Integration Detail</h2>
+  <h3>Endpoint</h3>
+  <p><code>POST https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/</code></p>
+  <h3>Request JSON (per message)</h3>
+  <div class="db-block">{
+  "integrated_number": "91XXXXXXXXXX",       // your MSG91 WhatsApp sender number
+  "content_type": "template",
+  "payload": {
+    "to": [{ "user_property_1": "91&lt;recipient_number&gt;" }],
+    "type": "template",
+    "template": {
+      "name": "gatee_phase_approved",        // pre-approved template name
+      "language": { "code": "mr" },          // mr = Marathi, en = English
+      "components": [
+        {
+          "type": "body",
+          "parameters": [
+            { "type": "text", "text": "Coordinator Name" },
+            { "type": "text", "text": "School Name" },
+            { "type": "text", "text": "2" },
+            { "type": "text", "text": "3" }
+          ]
+        }
+      ]
+    }
+  }
+}</div>
+  <h3>Authentication</h3>
+  <p>Add header: <code>authkey: &lt;YOUR_MSG91_AUTH_KEY&gt;</code> — stored in <code>whatsapp_config</code> table (not hardcoded).</p>
+</div>
+
+<!-- 10. Admin Panel -->
+<div class="card">
+  <h2>🖥️ 10. WhatsApp Admin Panel — Features</h2>
+  <ul style="margin-left:20px;font-size:14px;color:#4a5568;line-height:2.2;">
+    <li><strong>Message Log</strong> — paginated table of all sent messages: recipient, template, status (SENT/FAILED), timestamp</li>
+    <li><strong>Filter by status</strong> — view only FAILED messages to retry or diagnose</li>
+    <li><strong>Test Send</strong> — enter any mobile number + select template + fill variables → send test message</li>
+    <li><strong>Enable / Disable triggers</strong> — toggle individual triggers on/off (e.g. disable reminders)</li>
+    <li><strong>Config panel</strong> — update API key, sender ID without redeploying the app</li>
+    <li><strong>Template list</strong> — view all registered templates and their approval status</li>
+  </ul>
+</div>
+
+<!-- 11. Implementation Phases -->
+<div class="card">
+  <h2>🗓️ 11. Implementation Roadmap</h2>
+  <div class="roadmap">
+    <div class="phase-card p1">
+      <h4>Phase A — Setup (1–2 days)</h4>
+      <ul>
+        <li>Sign up on MSG91</li>
+        <li>Submit 5 templates for approval</li>
+        <li>Run create_whatsapp_tables.sql</li>
+        <li>Add API key to whatsapp_config</li>
+      </ul>
+    </div>
+    <div class="phase-card p2">
+      <h4>Phase B — Core Service (2–3 days)</h4>
+      <ul>
+        <li>Create WhatsAppService.java</li>
+        <li>Implement send() + logging</li>
+        <li>Test with hardcoded number</li>
+        <li>Create WhatsAppAdminServlet</li>
+      </ul>
+    </div>
+    <div class="phase-card p3">
+      <h4>Phase C — Triggers (2 days)</h4>
+      <ul>
+        <li>Hook into PromoteClassesServlet</li>
+        <li>Hook into phase approval servlet</li>
+        <li>Test all trigger flows</li>
+        <li>Add admin panel JSP</li>
+      </ul>
+    </div>
+    <div class="phase-card p4">
+      <h4>Phase D — Reminders (1–2 days)</h4>
+      <ul>
+        <li>WhatsAppReminderServlet</li>
+        <li>Schedule via cron / Tomcat scheduler</li>
+        <li>Bulk send to incomplete schools</li>
+        <li>UAT testing</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:16px;font-size:13px;color:#718096;">
+    <strong>Total estimated effort: 6–9 days</strong> (including MSG91 template approval turnaround of 1–3 business days).
+  </p>
+</div>
+
+<!-- 12. Important Notes -->
+<div class="card">
+  <h2>⚠️ 12. Important Considerations</h2>
+  <ul style="margin-left:20px;font-size:14px;color:#4a5568;line-height:2.2;">
+    <li><strong>Template approval required</strong> — all 5 templates must be approved by Meta via MSG91 before going live. This takes 1–3 business days.</li>
+    <li><strong>WhatsApp number format</strong> — always send with country code: <code>91XXXXXXXXXX</code> (no +, no spaces). Validate on insert.</li>
+    <li><strong>Recipient must have WhatsApp</strong> — use <code>whatsapp_number</code> column if present, fall back to <code>mobile</code>. If neither, skip send, log as SKIPPED.</li>
+    <li><strong>24-hour rule</strong> — WhatsApp only allows template messages for outbound. User-initiated conversations are free for 24 hours. Templates are always charged.</li>
+    <li><strong>Send asynchronously</strong> — never call WhatsAppService synchronously inside a DB transaction. Call after <code>conn.commit()</code> to avoid holding transactions open during HTTP calls.</li>
+    <li><strong>Never block on failure</strong> — if WhatsApp send fails, log the error but do not rollback the main operation (phase approval / promotion must succeed regardless).</li>
+    <li><strong>API key security</strong> — store in <code>whatsapp_config</code> DB table, NOT in source code or property files that go into the WAR.</li>
+  </ul>
+</div>
+
+</div>
+</body>
+</html>

@@ -53,7 +53,7 @@ public class AddTeacherServlet extends HttpServlet {
                 return;
             }
             
-            if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) {
+            if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
                 jsonResponse.append("{\"success\":false,\"message\":\"Unauthorized access. Only School Coordinators can add teachers.\"}");
                 out.print(jsonResponse.toString());
                 return;
@@ -130,12 +130,46 @@ public class AddTeacherServlet extends HttpServlet {
                         teacherId = generatedKeys.getInt(1);
                     }
                     generatedKeys.close();
-                    
-                    
+                    pstmt.close();
+
+                    // Create portal login for the teacher:
+                    // username = mobile number, password = default (Pass@123),
+                    // must change password on first login.
+                    String loginMessage;
+                    String checkUserSql = "SELECT COUNT(*) FROM users WHERE username = ?";
+                    pstmt = conn.prepareStatement(checkUserSql);
+                    pstmt.setString(1, teacherMobile);
+                    rs = pstmt.executeQuery();
+                    boolean loginExists = rs.next() && rs.getInt(1) > 0;
+                    rs.close();
+                    pstmt.close();
+
+                    if (loginExists) {
+                        loginMessage = "Login already exists for mobile " + teacherMobile;
+                    } else {
+                        String userSql = "INSERT INTO users (username, password, user_type, division_name, district_name, " +
+                                         "udise_no, is_first_login, must_change_password, is_active, created_by, full_name, mobile) " +
+                                         "VALUES (?, ?, 'TEACHER', ?, ?, ?, 1, 1, 1, ?, ?, ?)";
+                        pstmt = conn.prepareStatement(userSql);
+                        pstmt.setString(1, teacherMobile);
+                        pstmt.setString(2, com.vjnt.util.PasswordUtil.hashPassword(com.vjnt.util.PasswordUtil.getDefaultPassword()));
+                        pstmt.setString(3, user.getDivisionName());
+                        pstmt.setString(4, user.getDistrictName());
+                        pstmt.setString(5, udiseCode);
+                        pstmt.setString(6, user.getUsername());
+                        pstmt.setString(7, teacherName.trim());
+                        pstmt.setString(8, teacherMobile);
+                        int userRows = pstmt.executeUpdate();
+                        loginMessage = userRows > 0
+                                ? "Login created - Username: " + teacherMobile + ", Password: " + com.vjnt.util.PasswordUtil.getDefaultPassword()
+                                : "Failed to create login";
+                    }
+
                     jsonResponse.append("{\"success\":true,\"message\":\"Teacher added successfully\",");
                     jsonResponse.append("\"teacherId\":").append(teacherId).append(",");
                     jsonResponse.append("\"teacherName\":\"").append(teacherName.trim().replace("\"", "\\\"")).append("\",");
                     jsonResponse.append("\"mobile\":\"").append(teacherMobile).append("\",");
+                    jsonResponse.append("\"loginInfo\":\"").append(loginMessage.replace("\"", "\\\"")).append("\",");
                     jsonResponse.append("\"subjects\":\"").append(subjects.replace("\"", "\\\"")).append("\"}");
                 } else {
                     jsonResponse.append("{\"success\":false,\"message\":\"Failed to add teacher. Please try again.\"}");

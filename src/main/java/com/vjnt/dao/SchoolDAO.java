@@ -199,7 +199,7 @@ public class SchoolDAO {
         List<School> schools = new ArrayList<>();
         // Get distinct UDISE codes from students table for the given division
         String sql = "SELECT DISTINCT s.* FROM schools s " +
-                     "INNER JOIN students st ON s.udise_no = st.udise_no " +
+                     "INNER JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no " +
                      "WHERE st.division = ? AND st.is_active = 1 " +
                      "ORDER BY s.district_name, s.school_name";
         

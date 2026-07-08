@@ -1,0 +1,403 @@
+package com.vjnt.servlet;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.vjnt.model.User;
+import com.vjnt.util.DatabaseConnection;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.sql.*;
+import java.text.SimpleDateFormat;
+
+@WebServlet("/GetDistrictStudentsServlet")
+public class GetDistrictStudentsServlet extends HttpServlet {
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("user") == null) {
+            response.getWriter().write("{\"success\": false, \"message\": \"Not authenticated\"}");
+            return;
+        }
+
+        User user = (User) session.getAttribute("user");
+        String district = request.getParameter("district");
+
+        if (district == null || district.trim().isEmpty()) {
+            response.getWriter().write("{\"success\": false, \"message\": \"District name required\"}");
+            return;
+        }
+        if (hasSearch) {
+            searchQuery = searchQuery.trim();
+        }
+        
+        if (pageParam != null) {
+            try {
+                page = Integer.parseInt(pageParam);
+            } catch (NumberFormatException e) {
+                page = 1;
+            }
+        }
+        
+        if (pageSizeParam != null) {
+            try {
+                pageSize = Integer.parseInt(pageSizeParam);
+                // Limit page size to prevent abuse
+                if (pageSize > 500) pageSize = 500;
+                if (pageSize < 10) pageSize = 10;
+            } catch (NumberFormatException e) {
+                pageSize = 100;
+            }
+        }
+
+        JsonObject result = new JsonObject();
+        JsonArray studentsArray = new JsonArray();
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+
+            // First, get total count (with search filter if provided)
+            StringBuilder countSql = new StringBuilder();
+            countSql.append("SELECT COUNT(DISTINCT student_id) as total FROM students WHERE district = ?");
+            
+            if (hasSearch) {
+                countSql.append(" AND (student_name LIKE ? OR student_pen LIKE ? OR udise_no LIKE ? OR class_category LIKE ?)");
+            }
+            
+            PreparedStatement countPs = conn.prepareStatement(countSql.toString());
+            int paramIndex = 1;
+            countPs.setString(paramIndex++, district);
+            
+            if (hasSearch) {
+                String searchPattern = "%" + searchQuery + "%";
+                countPs.setString(paramIndex++, searchPattern);
+                countPs.setString(paramIndex++, searchPattern);
+                countPs.setString(paramIndex++, searchPattern);
+                countPs.setString(paramIndex++, searchPattern);
+            }
+            
+            ResultSet countRs = countPs.executeQuery();
+            
+            int totalStudents = 0;
+            if (countRs.next()) {
+                totalStudents = countRs.getInt("total");
+            }
+            countRs.close();
+            countPs.close();
+
+            // Calculate pagination
+            int totalPages = (int) Math.ceil((double) totalStudents / pageSize);
+            int offset = (page - 1) * pageSize;
+
+            // Get students with their details by district with pagination (and search filter if provided)
+            StringBuilder studentSql = new StringBuilder();
+            studentSql.append("SELECT student_id, student_pen, student_name, class_category, gender, udise_no, ");
+            studentSql.append("marathi_level_text, math_level_text, english_level_text, ");
+            studentSql.append("phase1_marathi_level, phase1_math_level, phase1_english_level, phase1_date, ");
+            studentSql.append("phase2_marathi_level, phase2_math_level, phase2_english_level, phase2_date, ");
+            studentSql.append("phase3_marathi_level, phase3_math_level, phase3_english_level, phase3_date, ");
+            studentSql.append("phase4_marathi_level, phase4_math_level, phase4_english_level, phase4_date ");
+            studentSql.append("FROM students ");
+            studentSql.append("WHERE district = ? ");
+            
+            if (hasSearch) {
+                studentSql.append("AND (student_name LIKE ? OR student_pen LIKE ? OR udise_no LIKE ? OR class_category LIKE ?) ");
+            }
+            
+            studentSql.append("ORDER BY student_name ");
+            studentSql.append("LIMIT ? OFFSET ?");
+
+            PreparedStatement ps = conn.prepareStatement(studentSql.toString());
+            paramIndex = 1;
+            ps.setString(paramIndex++, district);
+            
+            if (hasSearch) {
+                String searchPattern = "%" + searchQuery + "%";
+                ps.setString(paramIndex++, searchPattern);
+                ps.setString(paramIndex++, searchPattern);
+                ps.setString(paramIndex++, searchPattern);
+                ps.setString(paramIndex++, searchPattern);
+            }
+            
+            ps.setInt(paramIndex++, pageSize);
+            ps.setInt(paramIndex++, offset);
+            ResultSet rs = ps.executeQuery();
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+
+            while (rs.next()) {
+                JsonObject student = new JsonObject();
+                int studentId = rs.getInt("student_id");
+                String penNumber = rs.getString("student_pen");
+
+                student.addProperty("studentId", studentId);
+                student.addProperty("penNumber", penNumber);
+                student.addProperty("name", rs.getString("student_name"));
+                student.addProperty("studentClass", rs.getString("class_category"));
+                student.addProperty("gender", rs.getString("gender"));
+                student.addProperty("udiseNo", rs.getString("udise_no"));
+
+                // Current levels - TEXT values from new columns
+                String marathiLevelText = rs.getString("marathi_level_text");
+                String mathLevelText = rs.getString("math_level_text");
+                String englishLevelText = rs.getString("english_level_text");
+                
+                // Add text values
+                student.addProperty("marathiLevelText", marathiLevelText != null ? marathiLevelText : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("mathLevelText", mathLevelText != null ? mathLevelText : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("englishLevelText", englishLevelText != null ? englishLevelText : "1. स्तर निश्चित केला नाही.");
+                
+                // Extract numeric level for backward compatibility
+                int marathiLevel = extractLevelNumber(marathiLevelText);
+                int mathLevel = extractLevelNumber(mathLevelText);
+                int englishLevel = extractLevelNumber(englishLevelText);
+                
+                student.addProperty("marathiLevel", marathiLevel);
+                student.addProperty("mathLevel", mathLevel);
+                student.addProperty("englishLevel", englishLevel);
+
+                // Phase-wise levels and dates
+                // Phase 1
+                String phase1MarathiLevel = rs.getString("phase1_marathi_level");
+                String phase1MathLevel = rs.getString("phase1_math_level");
+                String phase1EnglishLevel = rs.getString("phase1_english_level");
+                Date phase1Date = rs.getDate("phase1_date");
+                
+                student.addProperty("phase1MarathiText", phase1MarathiLevel != null ? phase1MarathiLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase1MathText", phase1MathLevel != null ? phase1MathLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase1EnglishText", phase1EnglishLevel != null ? phase1EnglishLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase1Marathi", extractLevelNumber(phase1MarathiLevel));
+                student.addProperty("phase1Math", extractLevelNumber(phase1MathLevel));
+                student.addProperty("phase1English", extractLevelNumber(phase1EnglishLevel));
+                student.addProperty("phase1Date", phase1Date != null ? sdf.format(phase1Date) : null);
+                
+                // Phase 2
+                String phase2MarathiLevel = rs.getString("phase2_marathi_level");
+                String phase2MathLevel = rs.getString("phase2_math_level");
+                String phase2EnglishLevel = rs.getString("phase2_english_level");
+                Date phase2Date = rs.getDate("phase2_date");
+                
+                student.addProperty("phase2MarathiText", phase2MarathiLevel != null ? phase2MarathiLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase2MathText", phase2MathLevel != null ? phase2MathLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase2EnglishText", phase2EnglishLevel != null ? phase2EnglishLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase2Marathi", extractLevelNumber(phase2MarathiLevel));
+                student.addProperty("phase2Math", extractLevelNumber(phase2MathLevel));
+                student.addProperty("phase2English", extractLevelNumber(phase2EnglishLevel));
+                student.addProperty("phase2Date", phase2Date != null ? sdf.format(phase2Date) : null);
+                
+                // Phase 3
+                String phase3MarathiLevel = rs.getString("phase3_marathi_level");
+                String phase3MathLevel = rs.getString("phase3_math_level");
+                String phase3EnglishLevel = rs.getString("phase3_english_level");
+                Date phase3Date = rs.getDate("phase3_date");
+                
+                student.addProperty("phase3MarathiText", phase3MarathiLevel != null ? phase3MarathiLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase3MathText", phase3MathLevel != null ? phase3MathLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase3EnglishText", phase3EnglishLevel != null ? phase3EnglishLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase3Marathi", extractLevelNumber(phase3MarathiLevel));
+                student.addProperty("phase3Math", extractLevelNumber(phase3MathLevel));
+                student.addProperty("phase3English", extractLevelNumber(phase3EnglishLevel));
+                student.addProperty("phase3Date", phase3Date != null ? sdf.format(phase3Date) : null);
+                
+                // Phase 4
+                String phase4MarathiLevel = rs.getString("phase4_marathi_level");
+                String phase4MathLevel = rs.getString("phase4_math_level");
+                String phase4EnglishLevel = rs.getString("phase4_english_level");
+                Date phase4Date = rs.getDate("phase4_date");
+                
+                student.addProperty("phase4MarathiText", phase4MarathiLevel != null ? phase4MarathiLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase4MathText", phase4MathLevel != null ? phase4MathLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase4EnglishText", phase4EnglishLevel != null ? phase4EnglishLevel : "1. स्तर निश्चित केला नाही.");
+                student.addProperty("phase4Marathi", extractLevelNumber(phase4MarathiLevel));
+                student.addProperty("phase4Math", extractLevelNumber(phase4MathLevel));
+                student.addProperty("phase4English", extractLevelNumber(phase4EnglishLevel));
+                student.addProperty("phase4Date", phase4Date != null ? sdf.format(phase4Date) : null);
+
+                // Get activities for this student
+                JsonArray activities = getStudentActivities(conn, studentId);
+                student.add("activities", activities);
+
+                // Get videos for this student
+                JsonArray videos = getStudentVideos(conn, penNumber);
+                student.add("videos", videos);
+
+                studentsArray.add(student);
+            }
+
+            result.addProperty("success", true);
+            result.add("students", studentsArray);
+            
+            // Add pagination metadata
+            result.addProperty("currentPage", page);
+            result.addProperty("pageSize", pageSize);
+            result.addProperty("totalStudents", totalStudents);
+            result.addProperty("totalPages", totalPages);
+            result.addProperty("hasNextPage", page < totalPages);
+            result.addProperty("hasPreviousPage", page > 1);
+            
+            // Add search metadata
+            result.addProperty("hasSearch", hasSearch);
+            if (hasSearch) {
+                result.addProperty("searchQuery", searchQuery);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            result.addProperty("success", false);
+            result.addProperty("message", "Database error: " + e.getMessage());
+        }
+
+        response.getWriter().write(new Gson().toJson(result));
+    }
+
+    private JsonArray getStudentActivities(Connection conn, int studentId) {
+        JsonArray activities = new JsonArray();
+
+        try {
+            String activitySql = "SELECT swa.activity_text, swa.language, swa.week_number, swa.day_number, " +
+                                "swa.activity_count, swa.assigned_date, swa.completed " +
+                                "FROM student_weekly_activities swa " +
+                                "WHERE swa.student_id = ? " +
+                                "ORDER BY swa.language, swa.week_number DESC, swa.day_number DESC";
+
+            PreparedStatement ps = conn.prepareStatement(activitySql);
+            ps.setInt(1, studentId);
+            ResultSet rs = ps.executeQuery();
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+
+            while (rs.next()) {
+                JsonObject activity = new JsonObject();
+                activity.addProperty("activityName", rs.getString("activity_text"));
+                activity.addProperty("language", rs.getString("language"));
+                activity.addProperty("weekNumber", rs.getInt("week_number"));
+                activity.addProperty("dayNumber", rs.getInt("day_number"));
+                activity.addProperty("activityCount", rs.getInt("activity_count"));
+                
+                Date assignedDate = rs.getDate("assigned_date");
+                activity.addProperty("assignedDate", assignedDate != null ? sdf.format(assignedDate) : null);
+                
+                activity.addProperty("completed", rs.getBoolean("completed"));
+                activities.add(activity);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching activities: " + e.getMessage());
+        }
+
+        return activities;
+    }
+
+    private JsonArray getStudentVideos(Connection conn, String penNumber) {
+        JsonArray videos = new JsonArray();
+
+        try {
+            String videoSql = "SELECT v.title, v.youtube_url, v.thumbnail_url, v.upload_date, " +
+                             "v.category, v.sub_category, v.youtube_video_id " +
+                             "FROM videos v " +
+                             "INNER JOIN students s ON v.uploaded_by = s.student_id " +
+                             "WHERE s.student_pen = ? AND v.status = 'active' " +
+                             "ORDER BY v.upload_date DESC";
+
+            PreparedStatement ps = conn.prepareStatement(videoSql);
+            ps.setString(1, penNumber);
+            ResultSet rs = ps.executeQuery();
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+
+            while (rs.next()) {
+                JsonObject video = new JsonObject();
+                video.addProperty("title", rs.getString("title"));
+                video.addProperty("url", rs.getString("youtube_url"));
+                video.addProperty("thumbnailUrl", rs.getString("thumbnail_url"));
+                video.addProperty("category", rs.getString("category"));
+                video.addProperty("subCategory", rs.getString("sub_category"));
+                video.addProperty("videoId", rs.getString("youtube_video_id"));
+                
+                Timestamp uploadDate = rs.getTimestamp("upload_date");
+                video.addProperty("uploadDate", uploadDate != null ? sdf.format(uploadDate) : null);
+                
+                videos.add(video);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching videos for PEN " + penNumber + ": " + e.getMessage());
+        }
+
+        return videos;
+    }
+
+    private String getMarathiLevelText(int level) {
+        switch (level) {
+        	case 0: return "स्थर निश्चित केला नाही";
+        	case 1: return "प्रारंभिक स्तर";
+            case 2: return "अक्षर स्तर";
+            case 3: return "शब्द स्तर";
+            case 4: return "वाक्य स्तर";
+            case 5: return "समजपूर्वक उतारा वाचन स्तर";
+            case 6: return "मराठी वाचन व लेखन FLN स्तर 100% पूर्ण";
+            default: return "स्तर निश्चित केला नाही";
+        }
+    }
+    
+    // Get Math level text based on level number
+    private String getMathLevelText(int level) {
+        switch (level) {
+        	case 0: return "स्थर निश्चित केला नाही";
+            case 1: return "प्रारंभिक स्तर";
+            case 2: return "अंक ज्ञान स्तर";
+            case 3: return "संख्याज्ञान स्तर";
+            case 4: return "बेरीज स्तर";
+            case 5: return "वजाबाकी स्तर";
+            case 6: return "गुणाकार स्तर";
+            case 7: return "भागाकार स्तर";
+            case 8: return "गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण";
+            default: return "स्तर निश्चित केला नाही";
+        }
+    }
+    
+    // Get English level text based on level number
+    private String getEnglishLevelText(int level) {
+        switch (level) {
+        	case 0: return "स्थर निश्चित केला नाही";
+            case 1: return "Beginner level";
+            case 2: return "Alphabet level
+";
+            case 3: return "Word level";
+            case 4: return "Sentence level";
+            case 5: return "Paragraph Reading with Understanding";
+            case 6: return "English reading and writing FLN level 100% complete";
+            default: return "स्तर निश्चित केला नाही";
+        }
+    }
+    
+    /**
+     * Extract numeric level from text format
+     * e.g., "3. अक्षर स्तर" → 3, "1. स्तर निश्चित केला नाही." → 1
+     */
+    private int extractLevelNumber(String levelText) {
+        if (levelText == null || levelText.trim().isEmpty()) {
+            return 1; // Default to "not determined" level
+        }
+        
+        // Extract number before the dot
+        try {
+            String[] parts = levelText.split("\\.");
+            if (parts.length > 0) {
+                return Integer.parseInt(parts[0].trim());
+            }
+        } catch (NumberFormatException e) {
+            // If parsing fails, return default
+        }
+        
+        return 1; // Default to "not determined" level
+    }
+}

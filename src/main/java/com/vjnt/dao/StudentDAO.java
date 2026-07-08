@@ -5,7 +5,10 @@ import com.vjnt.util.DatabaseConnection;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Student Data Access Object
@@ -308,6 +311,33 @@ public class StudentDAO {
         return students;
     }
     
+    /**
+     * Get the distinct, non-empty division names present in the students table.
+     * Used to populate the "All Divisions" dropdown on Super Division Officer pages.
+     */
+    public List<String> getDistinctDivisions() {
+        List<String> divisions = new ArrayList<>();
+        String sql = "SELECT DISTINCT division FROM students " +
+                     "WHERE division IS NOT NULL AND TRIM(division) <> '' AND is_active = 1 " +
+                     "ORDER BY division";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                String division = rs.getString("division");
+                if (division != null && !division.trim().isEmpty()) {
+                    divisions.add(division.trim());
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting distinct divisions: " + e.getMessage());
+        }
+        return divisions;
+    }
+
     /**
      * Get students by district
      */
@@ -634,31 +664,29 @@ public class StudentDAO {
      * Note: Only counts students where is_active = 1
      */
     public boolean isPhaseComplete(String udiseNo, int phase) {
-        // Check if all ACTIVE students have completed their phase assessment
-        // A phase is complete when phase{N}_date is NOT NULL for all active students
-        // EXCLUDE students with fln_completed = TRUE (they are not counted in the calculation)
-        // CRITICAL FIX: Only count students who have ALL THREE subject levels (marathi, math, english)
-        // For Phase 1-3 ONLY - Phase 4 is still in progress, so count all students
+        // Phase is complete only when EVERY active (non-FLN) student in the school
+        // has the phase{N}_date set, AND (for phases 1-3) all three subject levels.
+        // The subject-level + date filter belongs INSIDE the CASE so the denominator
+        // (total_students) counts the full school roster, not just the saved rows.
         String phaseColumn = "phase" + phase + "_date";
         String marathiCol = "phase" + phase + "_marathi";
         String mathCol = "phase" + phase + "_math";
         String englishCol = "phase" + phase + "_english";
-        
+
+        String completedCondition = phaseColumn + " IS NOT NULL";
+        if (phase >= 1 && phase <= 3) {
+            completedCondition += " AND " + marathiCol + " IS NOT NULL" +
+                                  " AND " + mathCol + " IS NOT NULL" +
+                                  " AND " + englishCol + " IS NOT NULL";
+        }
+
         String sql = "SELECT " +
                      "COUNT(*) as total_students, " +
-                     "SUM(CASE WHEN " + phaseColumn + " IS NOT NULL THEN 1 ELSE 0 END) as completed_students " +
+                     "SUM(CASE WHEN " + completedCondition + " THEN 1 ELSE 0 END) as completed_students " +
                      "FROM students " +
                      "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
                      "AND is_active = 1 " +
-                     "AND (fln_completed IS NULL OR fln_completed = FALSE) ";
-        
-        // Only apply subject-level filtering for Phase 1-3 (completed phases)
-        // Phase 4 is still in progress, so count all students
-        if (phase >= 1 && phase <= 3) {
-            sql += "AND " + marathiCol + " IS NOT NULL " +
-                   "AND " + mathCol + " IS NOT NULL " +
-                   "AND " + englishCol + " IS NOT NULL";
-        }
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -853,30 +881,28 @@ public class StudentDAO {
      * Phase is complete ONLY if approved by Head Master
      */
     public int getPhaseCompletionPercentage(String udiseNo, int phase) {
-        // Calculate percentage of ACTIVE students who have completed the phase
-        // EXCLUDE students with fln_completed = TRUE (they are not counted in the calculation)
-        // CRITICAL FIX: Only count students who have ALL THREE subject levels (marathi, math, english)
-        // For Phase 1-3 ONLY - Phase 4 is still in progress, so count all students
+        // Percentage is over the full active (non-FLN) roster. The subject-level +
+        // date filter belongs INSIDE the CASE so the denominator counts the whole
+        // school, not just rows already saved for this phase.
         String phaseColumn = "phase" + phase + "_date";
         String marathiCol = "phase" + phase + "_marathi";
         String mathCol = "phase" + phase + "_math";
         String englishCol = "phase" + phase + "_english";
-        
+
+        String completedCondition = phaseColumn + " IS NOT NULL";
+        if (phase >= 1 && phase <= 3) {
+            completedCondition += " AND " + marathiCol + " IS NOT NULL" +
+                                  " AND " + mathCol + " IS NOT NULL" +
+                                  " AND " + englishCol + " IS NOT NULL";
+        }
+
         String sql = "SELECT " +
                      "COUNT(*) as total_students, " +
-                     "SUM(CASE WHEN " + phaseColumn + " IS NOT NULL THEN 1 ELSE 0 END) as completed_students " +
+                     "SUM(CASE WHEN " + completedCondition + " THEN 1 ELSE 0 END) as completed_students " +
                      "FROM students " +
                      "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
                      "AND is_active = 1 " +
-                     "AND (fln_completed IS NULL OR fln_completed = FALSE) ";
-        
-        // Only apply subject-level filtering for Phase 1-3 (completed phases)
-        // Phase 4 is still in progress, so count all students
-        if (phase >= 1 && phase <= 3) {
-            sql += "AND " + marathiCol + " IS NOT NULL " +
-                   "AND " + mathCol + " IS NOT NULL " +
-                   "AND " + englishCol + " IS NOT NULL";
-        }
+                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -1446,5 +1472,242 @@ public class StudentDAO {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PROMOTE CLASSES
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns class-wise student counts for the promotion preview screen.
+     * List is ordered by class number ascending.
+     * Each map has: "class", "count", "action"
+     */
+    // Roman numeral class mappings (I–IX) with Arabic fallback
+    private static final String CLASS_NEXT_CASE =
+        "CASE class " +
+        "WHEN 'I' THEN 'II' WHEN 'II' THEN 'III' WHEN 'III' THEN 'IV' " +
+        "WHEN 'IV' THEN 'V' WHEN 'V' THEN 'VI' WHEN 'VI' THEN 'VII' " +
+        "WHEN 'VII' THEN 'VIII' WHEN 'VIII' THEN 'IX' " +
+        "WHEN '1' THEN '2' WHEN '2' THEN '3' WHEN '3' THEN '4' WHEN '4' THEN '5' " +
+        "WHEN '5' THEN '6' WHEN '6' THEN '7' WHEN '7' THEN '8' WHEN '8' THEN '9' " +
+        "ELSE class END";
+
+    private static final String CLASS_AFTER_CASE =
+        "CASE class " +
+        "WHEN 'I' THEN 'II' WHEN 'II' THEN 'III' WHEN 'III' THEN 'IV' " +
+        "WHEN 'IV' THEN 'V' WHEN 'V' THEN 'VI' WHEN 'VI' THEN 'VII' " +
+        "WHEN 'VII' THEN 'VIII' WHEN 'VIII' THEN 'IX' WHEN 'IX' THEN 'GRADUATED' " +
+        "WHEN '1' THEN '2' WHEN '2' THEN '3' WHEN '3' THEN '4' WHEN '4' THEN '5' " +
+        "WHEN '5' THEN '6' WHEN '6' THEN '7' WHEN '7' THEN '8' WHEN '8' THEN '9' " +
+        "WHEN '9' THEN 'GRADUATED' ELSE class END";
+
+    private static final String PROMOTE_IN = "('I','II','III','IV','V','VI','VII','VIII','1','2','3','4','5','6','7','8')";
+    private static final String GRAD_IN    = "('IX','9')";
+
+    private String nextClassLabel(String cls) {
+        if (cls == null) return "?";
+        switch (cls.trim()) {
+            case "I": return "II"; case "II": return "III"; case "III": return "IV";
+            case "IV": return "V"; case "V": return "VI"; case "VI": return "VII";
+            case "VII": return "VIII"; case "VIII": return "IX";
+            case "1": return "2"; case "2": return "3"; case "3": return "4";
+            case "4": return "5"; case "5": return "6"; case "6": return "7";
+            case "7": return "8"; case "8": return "9";
+            default: return cls;
+        }
+    }
+
+    public List<Map<String, Object>> getPromotionPreview() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        String sql = "SELECT class, COUNT(*) AS cnt FROM students WHERE is_active = 1 " +
+                     "GROUP BY class ORDER BY " +
+                     "FIELD(class,'I','II','III','IV','V','VI','VII','VIII','IX'," +
+                           "'1','2','3','4','5','6','7','8','9')";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String cls  = rs.getString("class");
+                int cnt     = rs.getInt("cnt");
+                boolean grad = "IX".equals(cls) || "9".equals(cls);
+                String action = grad ? "→ GRADUATE" : "→ Class " + nextClassLabel(cls);
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("class",  cls);
+                row.put("count",  cnt);
+                row.put("action", action);
+                result.add(row);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching promotion preview: " + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Runs the full class-promotion sequence inside a single transaction.
+     * Returns a result map: success(boolean), promotionId(long),
+     * studentsPromoted(int), studentsGraduated(int), message(String).
+     *
+     * Promotion rules:
+     *   Classes 1-8 → incremented by 1 (phase1 seeded from phase4, phases 2-4 wiped)
+     *   Class 9     → moved to graduated_students, marked is_active=0
+     */
+    public Map<String, Object> promoteAllClasses(String promotedBy, String academicYear, String remarks) {
+        Map<String, Object> result = new HashMap<>();
+
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // ── Step 1: Insert promotion log entry ───────────────────────────
+            long promotionId;
+            String sqlLog = "INSERT INTO class_promotion_log " +
+                            "(academic_year, promoted_by, promotion_date, remarks) " +
+                            "VALUES (?, ?, NOW(), ?)";
+            try (PreparedStatement ps = conn.prepareStatement(sqlLog, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, academicYear);
+                ps.setString(2, promotedBy);
+                ps.setString(3, remarks);
+                ps.executeUpdate();
+                ResultSet keys = ps.getGeneratedKeys();
+                keys.next();
+                promotionId = keys.getLong(1);
+            }
+            System.out.println("Promotion log created: id=" + promotionId);
+
+            // ── Step 2: Archive ALL active student phase data ────────────────
+            String sqlArchive =
+                "INSERT INTO student_phase_history " +
+                "  (promotion_id, student_id, student_name, student_pen, udise_no, " +
+                "   division, district, class_before, class_after, " +
+                "   phase1_marathi, phase1_math, phase1_english, phase1_date, " +
+                "   phase2_marathi, phase2_math, phase2_english, phase2_date, " +
+                "   phase3_marathi, phase3_math, phase3_english, phase3_date, " +
+                "   phase4_marathi, phase4_math, phase4_english, phase4_date, archived_at) " +
+                "SELECT ?, student_id, student_name, student_pen, udise_no, " +
+                "       division, district, class, " + CLASS_AFTER_CASE + ", " +
+                "       phase1_marathi, phase1_math, phase1_english, phase1_date, " +
+                "       phase2_marathi, phase2_math, phase2_english, phase2_date, " +
+                "       phase3_marathi, phase3_math, phase3_english, phase3_date, " +
+                "       phase4_marathi, phase4_math, phase4_english, phase4_date, NOW() " +
+                "FROM students WHERE is_active = 1";
+            try (PreparedStatement ps = conn.prepareStatement(sqlArchive)) {
+                ps.setLong(1, promotionId);
+                int rows = ps.executeUpdate();
+                System.out.println("Archived " + rows + " student phase history rows");
+            }
+
+            // ── Step 3a: Archive phase approvals ────────────────────────────
+            String sqlArchiveApprovals =
+                "INSERT INTO phase_approvals_history " +
+                "  (promotion_id, udise_no, phase_number, approval_status, " +
+                "   approved_by, approval_date, remarks, archived_at) " +
+                "SELECT ?, udise_no, phase_number, approval_status, " +
+                "       approved_by, approval_date, remarks, NOW() " +
+                "FROM phase_approvals";
+            try (PreparedStatement ps = conn.prepareStatement(sqlArchiveApprovals)) {
+                ps.setLong(1, promotionId);
+                int rows = ps.executeUpdate();
+                System.out.println("Archived " + rows + " phase approval rows");
+            }
+
+            // ── Step 3b: Clear phase_approvals for new year ──────────────────
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM phase_approvals")) {
+                ps.executeUpdate();
+            }
+
+            // ── Step 4a: Insert graduating students (Class 9) ────────────────
+            String sqlGraduate =
+                "INSERT INTO graduated_students " +
+                "  (promotion_id, student_id, student_name, student_pen, gender, " +
+                "   udise_no, division, district, section, graduated_from_class, academic_year, " +
+                "   final_marathi_level, final_math_level, final_english_level, fln_completed, " +
+                "   phase1_marathi, phase1_math, phase1_english, " +
+                "   phase2_marathi, phase2_math, phase2_english, " +
+                "   phase3_marathi, phase3_math, phase3_english, " +
+                "   phase4_marathi, phase4_math, phase4_english, graduated_at) " +
+                "SELECT ?, student_id, student_name, student_pen, gender, " +
+                "       udise_no, division, district, section, '9', ?, " +
+                "       phase4_marathi, phase4_math, phase4_english, fln_completed, " +
+                "       phase1_marathi, phase1_math, phase1_english, " +
+                "       phase2_marathi, phase2_math, phase2_english, " +
+                "       phase3_marathi, phase3_math, phase3_english, " +
+                "       phase4_marathi, phase4_math, phase4_english, NOW() " +
+                "FROM students WHERE class IN " + GRAD_IN + " AND is_active = 1";
+            int studentsGraduated;
+            try (PreparedStatement ps = conn.prepareStatement(sqlGraduate)) {
+                ps.setLong(1, promotionId);
+                ps.setString(2, academicYear);
+                studentsGraduated = ps.executeUpdate();
+                System.out.println("Graduated " + studentsGraduated + " Class-9 students");
+            }
+
+            // ── Step 4b: Mark Class IX/9 students inactive ───────────────────
+            String sqlDeactivate =
+                "UPDATE students SET is_active=0, updated_by=?, updated_date=NOW() " +
+                "WHERE class IN " + GRAD_IN + " AND is_active=1";
+            try (PreparedStatement ps = conn.prepareStatement(sqlDeactivate)) {
+                ps.setString(1, promotedBy);
+                ps.executeUpdate();
+            }
+
+            // ── Step 5: Promote Classes I–VIII (Roman) / 1–8 (Arabic) ───────
+            // COALESCE: use last completed phase as baseline for new Phase 1
+            String sqlPromote =
+                "UPDATE students SET " +
+                "  class          = " + CLASS_NEXT_CASE + ", " +
+                "  phase1_marathi = COALESCE(phase4_marathi, phase3_marathi, phase2_marathi, phase1_marathi), " +
+                "  phase1_math    = COALESCE(phase4_math,    phase3_math,    phase2_math,    phase1_math), " +
+                "  phase1_english = COALESCE(phase4_english, phase3_english, phase2_english, phase1_english), " +
+                "  phase1_date    = NULL, " +
+                "  phase2_marathi = NULL, phase2_math = NULL, phase2_english = NULL, phase2_date = NULL, " +
+                "  phase3_marathi = NULL, phase3_math = NULL, phase3_english = NULL, phase3_date = NULL, " +
+                "  phase4_marathi = NULL, phase4_math = NULL, phase4_english = NULL, phase4_date = NULL, " +
+                "  updated_by     = ?, updated_date = NOW() " +
+                "WHERE is_active = 1 AND class IN " + PROMOTE_IN;
+            int studentsPromoted;
+            try (PreparedStatement ps = conn.prepareStatement(sqlPromote)) {
+                ps.setString(1, promotedBy);
+                studentsPromoted = ps.executeUpdate();
+                System.out.println("Promoted " + studentsPromoted + " students (classes 1-8)");
+            }
+
+            // ── Step 6: Update promotion log counts ──────────────────────────
+            String sqlUpdateLog =
+                "UPDATE class_promotion_log SET " +
+                "  students_promoted  = ?, " +
+                "  students_graduated = ? " +
+                "WHERE promotion_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdateLog)) {
+                ps.setInt(1, studentsPromoted);
+                ps.setInt(2, studentsGraduated);
+                ps.setLong(3, promotionId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            System.out.println("Promotion transaction committed. id=" + promotionId);
+
+            result.put("success",           true);
+            result.put("promotionId",        promotionId);
+            result.put("studentsPromoted",   studentsPromoted);
+            result.put("studentsGraduated",  studentsGraduated);
+            result.put("message",            "Class promotion completed successfully");
+
+        } catch (SQLException e) {
+            System.err.println("Promotion failed — rolling back: " + e.getMessage());
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { /* ignore */ }
+            }
+            result.put("success", false);
+            result.put("message", "Promotion failed: " + e.getMessage());
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ex) { /* ignore */ }
+            }
+        }
+        return result;
     }
 }

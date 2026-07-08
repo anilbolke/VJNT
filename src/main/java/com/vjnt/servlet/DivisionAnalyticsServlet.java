@@ -42,7 +42,8 @@ public class DivisionAnalyticsServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+        if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && 
+                             !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -129,7 +130,7 @@ public class DivisionAnalyticsServlet extends HttpServlet {
             sql.append("MAX(pm.meeting_date) as last_meeting_date, ");
             sql.append("COUNT(DISTINCT pm.udise_no) as schools_with_meetings ");
             sql.append("FROM palak_melava pm ");
-            sql.append("INNER JOIN schools sch ON pm.udise_no = sch.udise_no ");
+            sql.append("INNER JOIN schools sch ON pm.udise_no = sch.udise_no COLLATE utf8mb4_unicode_ci ");
             sql.append("WHERE pm.udise_no IN (SELECT DISTINCT udise_no FROM students WHERE division = ? AND is_active = 1) ");
             
             boolean hasDateFilter = (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty());

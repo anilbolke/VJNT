@@ -42,25 +42,53 @@ public class GetDivisionStudentsServlet extends HttpServlet {
         JsonObject result = new JsonObject();
         JsonArray studentsArray = new JsonArray();
 
+        // Allow SUPER_DIVISION_OFFICER to omit the division parameter and view all students
         try (Connection conn = DatabaseConnection.getConnection()) {
 
-            // Get students with their details from all districts in this division
-            String studentSql = "SELECT s.student_id, s.student_pen, s.student_name, s.class_category, s.gender, " +
-                               "s.marathi_akshara_level, s.marathi_shabda_level, s.marathi_vakya_level, s.marathi_samajpurvak_level, " +
-                               "s.math_akshara_level, s.math_shabda_level, s.math_vakya_level, s.math_samajpurvak_level, " +
-                               "s.english_akshara_level, " +
-                               "s.phase1_marathi, s.phase1_math, s.phase1_english, s.phase1_date, " +
-                               "s.phase2_marathi, s.phase2_math, s.phase2_english, s.phase2_date, " +
-                               "s.phase3_marathi, s.phase3_math, s.phase3_english, s.phase3_date, " +
-                               "s.phase4_marathi, s.phase4_math, s.phase4_english, s.phase4_date, " +
-                               "s.district, s.udise_no, sc.school_name " +
-                               "FROM students s " +
-                               "LEFT JOIN schools sc ON s.udise_no = sc.udise_no " +
-                               "WHERE s.division = ? " +
-                               "ORDER BY s.district, sc.school_name, s.student_name";
+            String studentSql;
+            PreparedStatement ps;
 
-            PreparedStatement ps = conn.prepareStatement(studentSql);
-            ps.setString(1, division);
+            if (division == null || division.trim().isEmpty()) {
+                // Only SUPER_DIVISION_OFFICER can request without a division
+                if (user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                    response.getWriter().write("{\"success\": false, \"message\": \"Division name required\"}");
+                    return;
+                }
+
+                // Get all students across all divisions
+                studentSql = "SELECT s.student_id, s.student_pen, s.student_name, s.class_category, s.gender, " +
+                             "s.marathi_akshara_level, s.marathi_shabda_level, s.marathi_vakya_level, s.marathi_samajpurvak_level, " +
+                             "s.math_akshara_level, s.math_shabda_level, s.math_vakya_level, s.math_samajpurvak_level, " +
+                             "s.english_akshara_level, " +
+                             "s.phase1_marathi, s.phase1_math, s.phase1_english, s.phase1_date, " +
+                             "s.phase2_marathi, s.phase2_math, s.phase2_english, s.phase2_date, " +
+                             "s.phase3_marathi, s.phase3_math, s.phase3_english, s.phase3_date, " +
+                             "s.phase4_marathi, s.phase4_math, s.phase4_english, s.phase4_date, " +
+                             "s.district, s.udise_no, sc.school_name " +
+                             "FROM students s " +
+                             "LEFT JOIN schools sc ON s.udise_no = sc.udise_no COLLATE utf8mb4_unicode_ci " +
+                             "ORDER BY s.division, s.district, sc.school_name, s.student_name";
+
+                ps = conn.prepareStatement(studentSql);
+            } else {
+                studentSql = "SELECT s.student_id, s.student_pen, s.student_name, s.class_category, s.gender, " +
+                             "s.marathi_akshara_level, s.marathi_shabda_level, s.marathi_vakya_level, s.marathi_samajpurvak_level, " +
+                             "s.math_akshara_level, s.math_shabda_level, s.math_vakya_level, s.math_samajpurvak_level, " +
+                             "s.english_akshara_level, " +
+                             "s.phase1_marathi, s.phase1_math, s.phase1_english, s.phase1_date, " +
+                             "s.phase2_marathi, s.phase2_math, s.phase2_english, s.phase2_date, " +
+                             "s.phase3_marathi, s.phase3_math, s.phase3_english, s.phase3_date, " +
+                             "s.phase4_marathi, s.phase4_math, s.phase4_english, s.phase4_date, " +
+                             "s.district, s.udise_no, sc.school_name " +
+                             "FROM students s " +
+                             "LEFT JOIN schools sc ON s.udise_no = sc.udise_no COLLATE utf8mb4_unicode_ci " +
+                             "WHERE s.division = ? " +
+                             "ORDER BY s.district, sc.school_name, s.student_name";
+
+                ps = conn.prepareStatement(studentSql);
+                ps.setString(1, division);
+            }
+
             ResultSet rs = ps.executeQuery();
 
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");

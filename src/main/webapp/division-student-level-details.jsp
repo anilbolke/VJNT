@@ -2,7 +2,7 @@
 <%@ page import="com.vjnt.model.User" %>
 <%
     User user = (User) session.getAttribute("user");
-    if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+    if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
         response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }
@@ -532,6 +532,7 @@
     <script>
         let allStudents = [];
         let filteredStudents = [];
+        let serverTotals = null;
         let currentPage = 1;
         const rowsPerPage = 100; // Increased from 50 for better performance
         let isLoading = false;
@@ -656,10 +657,22 @@
                 .then(response => response.json())
                 .then(data => {
                     const loadTime = ((performance.now() - startTime) / 1000).toFixed(2);
-                    console.log('Loaded ' + data.length + ' students in ' + loadTime + 's');
-                    
-                    allStudents = data;
-                    filteredStudents = data;
+                    // Support both old array format and new object format
+                    if (Array.isArray(data)) {
+                        allStudents = data;
+                        filteredStudents = data;
+                        serverTotals = null;
+                        console.log('Loaded ' + data.length + ' students in ' + loadTime + 's');
+                    } else {
+                        allStudents = data.students || [];
+                        filteredStudents = allStudents;
+                        serverTotals = {
+                            totalCount: data.totalCount,
+                            totalSchools: data.totalSchools,
+                            totalDistricts: data.totalDistricts
+                        };
+                        console.log('Loaded ' + allStudents.length + ' students (total: ' + data.totalCount + ') in ' + loadTime + 's');
+                    }
                     updateSummary();
                     displayPage(1);
                 })
@@ -675,9 +688,16 @@
         
         // Update summary cards
         function updateSummary() {
-            const uniqueSchools = new Set(filteredStudents.map(s => s.udiseNo));
-            const uniqueDistricts = new Set(filteredStudents.map(s => s.district));
-            
+            const isFiltered = filteredStudents.length !== allStudents.length;
+
+            const displayStudents = (serverTotals && !isFiltered) ? serverTotals.totalCount : filteredStudents.length;
+            const displaySchools = (serverTotals && !isFiltered)
+                ? serverTotals.totalSchools
+                : new Set(filteredStudents.map(s => s.udiseNo)).size;
+            const displayDistricts = (serverTotals && !isFiltered)
+                ? serverTotals.totalDistricts
+                : new Set(filteredStudents.map(s => s.district)).size;
+
             let totalLevels = 0;
             let levelCount = 0;
             filteredStudents.forEach(student => {
@@ -689,10 +709,10 @@
                 });
             });
             
-            document.getElementById('totalStudents').textContent = filteredStudents.length;
-            document.getElementById('totalSchools').textContent = uniqueSchools.size;
-            document.getElementById('totalDistricts').textContent = uniqueDistricts.size;
-            document.getElementById('avgLevel').textContent = levelCount > 0 ? 
+            document.getElementById('totalStudents').textContent = displayStudents;
+            document.getElementById('totalSchools').textContent = displaySchools;
+            document.getElementById('totalDistricts').textContent = displayDistricts;
+            document.getElementById('avgLevel').textContent = levelCount > 0 ?
                 (totalLevels / levelCount).toFixed(1) : '-';
         }
         

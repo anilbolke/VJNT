@@ -40,31 +40,50 @@ public class GetSchoolStudentsServlet extends HttpServlet {
         User user = (User) session.getAttribute("user");
         String udise = request.getParameter("udise");
 
-        if (udise == null || udise.trim().isEmpty()) {
-            response.getWriter().write("{\"success\": false, \"message\": \"UDISE number required\"}");
-            return;
-        }
-
         JsonObject result = new JsonObject();
         JsonArray studentsArray = new JsonArray();
 
         try (Connection conn = DatabaseConnection.getConnection()) {
 
-            // Get students with their details
-            String studentSql = "SELECT student_id, student_pen, student_name, class_category, gender, " +
-                               "marathi_akshara_level, marathi_shabda_level, marathi_vakya_level, marathi_samajpurvak_level, " +
-                               "math_akshara_level, math_shabda_level, math_vakya_level, math_samajpurvak_level, " +
-                               "english_akshara_level, " +
-                               "phase1_marathi, phase1_math, phase1_english, phase1_date, " +
-                               "phase2_marathi, phase2_math, phase2_english, phase2_date, " +
-                               "phase3_marathi, phase3_math, phase3_english, phase3_date, " +
-                               "phase4_marathi, phase4_math, phase4_english, phase4_date " +
-                               "FROM students " +
-                               "WHERE udise_no = ? " +
-                               "ORDER BY student_name";
+            String studentSql;
+            PreparedStatement ps;
 
-            PreparedStatement ps = conn.prepareStatement(studentSql);
-            ps.setString(1, udise);
+            if (udise == null || udise.trim().isEmpty()) {
+                if (user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                    response.getWriter().write("{\"success\": false, \"message\": \"UDISE number required\"}");
+                    return;
+                }
+
+                studentSql = "SELECT student_id, student_pen, student_name, class_category, gender, " +
+                             "marathi_akshara_level, marathi_shabda_level, marathi_vakya_level, marathi_samajpurvak_level, " +
+                             "math_akshara_level, math_shabda_level, math_vakya_level, math_samajpurvak_level, " +
+                             "english_akshara_level, " +
+                             "phase1_marathi, phase1_math, phase1_english, phase1_date, " +
+                             "phase2_marathi, phase2_math, phase2_english, phase2_date, " +
+                             "phase3_marathi, phase3_math, phase3_english, phase3_date, " +
+                             "phase4_marathi, phase4_math, phase4_english, phase4_date, " +
+                             "division, district, udise_no " +
+                             "FROM students " +
+                             "ORDER BY division, district, udise_no, student_name";
+
+                ps = conn.prepareStatement(studentSql);
+            } else {
+                studentSql = "SELECT student_id, student_pen, student_name, class_category, gender, " +
+                             "marathi_akshara_level, marathi_shabda_level, marathi_vakya_level, marathi_samajpurvak_level, " +
+                             "math_akshara_level, math_shabda_level, math_vakya_level, math_samajpurvak_level, " +
+                             "english_akshara_level, " +
+                             "phase1_marathi, phase1_math, phase1_english, phase1_date, " +
+                             "phase2_marathi, phase2_math, phase2_english, phase2_date, " +
+                             "phase3_marathi, phase3_math, phase3_english, phase3_date, " +
+                             "phase4_marathi, phase4_math, phase4_english, phase4_date " +
+                             "FROM students " +
+                             "WHERE udise_no = ? " +
+                             "ORDER BY student_name";
+
+                ps = conn.prepareStatement(studentSql);
+                ps.setString(1, udise);
+            }
+
             ResultSet rs = ps.executeQuery();
 
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");

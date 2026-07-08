@@ -42,9 +42,9 @@ public class DistrictAnalyticsServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (user == null || (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && 
-                             !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR) &&
-                             !user.getUserType().equals(User.UserType.DIVISION))) {
+        if (user == null || (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR) &&    !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER) &&
+                             !user.getUserType().equals(User.UserType.DIVISION) &&
+                             !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -107,7 +107,7 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             // Get schools by district
             String schoolSql = "SELECT DISTINCT s.udise_no, s.school_name " +
                               "FROM students st " +
-                              "LEFT JOIN schools s ON st.udise_no = s.udise_no " +
+                              "LEFT JOIN schools s ON st.udise_no = s.udise_no COLLATE utf8mb4_unicode_ci " +
                               "WHERE st.district = ?";
             PreparedStatement schoolPs = conn.prepareStatement(schoolSql);
             schoolPs.setString(1, districtName);
@@ -356,7 +356,7 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             sql.append("AVG(COALESCE(st.math_samajpurvak_level, 0)) as avg_math_samaj, ");
             sql.append("COUNT(*) as student_count ");
             sql.append("FROM students st ");
-            sql.append("LEFT JOIN schools s ON st.udise_no = s.udise_no ");
+            sql.append("LEFT JOIN schools s ON st.udise_no = s.udise_no COLLATE utf8mb4_unicode_ci ");
             sql.append("WHERE st.district = ? ");
             
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
@@ -530,7 +530,7 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             sql.append("MIN(st.created_date) as first_student_date, ");
             sql.append("MAX(st.created_date) as last_student_date ");
             sql.append("FROM students st ");
-            sql.append("LEFT JOIN schools s ON st.udise_no = s.udise_no ");
+            sql.append("LEFT JOIN schools s ON st.udise_no = s.udise_no COLLATE utf8mb4_unicode_ci ");
             sql.append("WHERE st.district = ? ");
             
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
@@ -607,3 +607,4 @@ public class DistrictAnalyticsServlet extends HttpServlet {
         return result;
     }
 }
+

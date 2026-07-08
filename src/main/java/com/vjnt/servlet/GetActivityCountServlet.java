@@ -21,8 +21,8 @@ public class GetActivityCountServlet extends HttpServlet {
         
         // Check authentication
         User user = (User) request.getSession().getAttribute("user");
-        if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
-                             !user.getUserType().equals(User.UserType.HEAD_MASTER))) {
+        if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) &&  !user.getUserType().equals(User.UserType.HEAD_MASTER) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER) &&
+                             !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.setContentType("application/json");
             response.getWriter().write("{\"success\": false, \"message\": \"Unauthorized\"}");
             return;
@@ -60,3 +60,4 @@ public class GetActivityCountServlet extends HttpServlet {
         }
     }
 }
+

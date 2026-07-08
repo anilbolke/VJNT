@@ -44,7 +44,7 @@ public class DivisionSchoolContactsAnalyticsServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+        if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().print("{\"error\": \"Unauthorized access\"}");
             return;

@@ -172,18 +172,18 @@ public class GetStudentComprehensiveDataServlet extends HttpServlet {
                     "swa.activity_identifier, swa.activity_count, swa.completed, swa.assigned_by, " +
                     "swa.assigned_date, ta.teacher_name, u.full_name, " +
                     "(SELECT t.teacher_name FROM teachers t " +
-                    "    WHERE t.udise_code COLLATE utf8mb4_0900_ai_ci = swa.udise_no COLLATE utf8mb4_0900_ai_ci " +
-                    "    AND (FIND_IN_SET(swa.language COLLATE utf8mb4_0900_ai_ci, t.subjects_taught COLLATE utf8mb4_0900_ai_ci) > 0 " +
-                    "         OR FIND_IN_SET(CASE swa.language WHEN 'Marathi' THEN 'मराठी' WHEN 'English' THEN 'इंग्रजी' WHEN 'Math' THEN 'गणित' ELSE swa.language END COLLATE utf8mb4_0900_ai_ci, t.subjects_taught COLLATE utf8mb4_0900_ai_ci) > 0) " +
+                    "    WHERE t.udise_code COLLATE utf8mb4_unicode_ci = swa.udise_no COLLATE utf8mb4_unicode_ci " +
+                    "    AND (FIND_IN_SET(swa.language COLLATE utf8mb4_unicode_ci, t.subjects_taught COLLATE utf8mb4_unicode_ci) > 0 " +
+                    "         OR FIND_IN_SET(CASE swa.language WHEN 'Marathi' THEN 'मराठी' WHEN 'English' THEN 'इंग्रजी' WHEN 'Math' THEN 'गणित' ELSE swa.language END COLLATE utf8mb4_unicode_ci, t.subjects_taught COLLATE utf8mb4_unicode_ci) > 0) " +
                     "    AND t.is_active = 1 LIMIT 1) AS subject_teacher_name " +
                     "FROM student_weekly_activities swa " +
-                    "LEFT JOIN teacher_assignments ta ON swa.udise_no COLLATE utf8mb4_0900_ai_ci = ta.udise_code COLLATE utf8mb4_0900_ai_ci " +
-                    "    AND swa.student_class COLLATE utf8mb4_0900_ai_ci = ta.class COLLATE utf8mb4_0900_ai_ci " +
-                    "    AND swa.section COLLATE utf8mb4_0900_ai_ci = ta.section COLLATE utf8mb4_0900_ai_ci " +
+                    "LEFT JOIN teacher_assignments ta ON swa.udise_no COLLATE utf8mb4_unicode_ci = ta.udise_code COLLATE utf8mb4_unicode_ci " +
+                    "    AND swa.student_class COLLATE utf8mb4_unicode_ci = ta.class COLLATE utf8mb4_unicode_ci " +
+                    "    AND swa.section COLLATE utf8mb4_unicode_ci = ta.section COLLATE utf8mb4_unicode_ci " +
                     "    AND ta.is_active = 1 " +
-                    "    AND (FIND_IN_SET(swa.language COLLATE utf8mb4_0900_ai_ci, ta.subjects_assigned COLLATE utf8mb4_0900_ai_ci) > 0 " +
-                    "         OR FIND_IN_SET(CASE swa.language WHEN 'Marathi' THEN 'मराठी' WHEN 'English' THEN 'इंग्रजी' WHEN 'Math' THEN 'गणित' ELSE swa.language END COLLATE utf8mb4_0900_ai_ci, ta.subjects_assigned COLLATE utf8mb4_0900_ai_ci) > 0) " +
-                    "LEFT JOIN users u ON swa.assigned_by COLLATE utf8mb4_0900_ai_ci = u.username COLLATE utf8mb4_0900_ai_ci " +
+                    "    AND (FIND_IN_SET(swa.language COLLATE utf8mb4_unicode_ci, ta.subjects_assigned COLLATE utf8mb4_unicode_ci) > 0 " +
+                    "         OR FIND_IN_SET(CASE swa.language WHEN 'Marathi' THEN 'मराठी' WHEN 'English' THEN 'इंग्रजी' WHEN 'Math' THEN 'गणित' ELSE swa.language END COLLATE utf8mb4_unicode_ci, ta.subjects_assigned COLLATE utf8mb4_unicode_ci) > 0) " +
+                    "LEFT JOIN users u ON swa.assigned_by COLLATE utf8mb4_unicode_ci = u.username COLLATE utf8mb4_unicode_ci " +
                     "WHERE swa.student_pen = ? " +
                     "ORDER BY swa.language, swa.week_number, swa.day_number";
         

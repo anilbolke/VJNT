@@ -3,12 +3,14 @@ package com.vjnt.servlet;
 import com.vjnt.util.DatabaseConnection;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import com.vjnt.model.User;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -38,10 +40,17 @@ public class DivisionStudentLevelDistributionServlet extends HttpServlet {
         JSONObject result = new JSONObject();
         
         try {
+            HttpSession session = request.getSession(false);
+            User user = null;
+            if (session != null) user = (User) session.getAttribute("user");
+
             if (divisionName == null || divisionName.isEmpty()) {
-                result.put("error", "Division name is required");
-                response.getWriter().write(result.toString());
-                return;
+                // Only SUPER_DIVISION_OFFICER may omit division parameter
+                if (user == null || user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                    result.put("error", "Division name is required");
+                    response.getWriter().write(result.toString());
+                    return;
+                }
             }
             
             if ("school".equalsIgnoreCase(viewType) && districtName != null && !districtName.isEmpty()) {
@@ -209,7 +218,7 @@ public class DivisionStudentLevelDistributionServlet extends HttpServlet {
             }
             
             sql.append(" FROM students s ");
-            sql.append("LEFT JOIN schools sch ON s.udise_no = sch.udise_no ");
+            sql.append("LEFT JOIN schools sch ON s.udise_no = sch.udise_no COLLATE utf8mb4_unicode_ci ");
             sql.append("WHERE s.division = ? AND s.district = ? AND s.is_active = 1 ");
             sql.append("GROUP BY s.udise_no, sch.school_name, s.district ");
             sql.append("ORDER BY sch.school_name");

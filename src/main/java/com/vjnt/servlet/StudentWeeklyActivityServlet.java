@@ -30,8 +30,8 @@ public class StudentWeeklyActivityServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
         
-        if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
-                            !user.getUserType().equals(User.UserType.HEAD_MASTER))) {
+        if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.HEAD_MASTER) &&   !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER) &&
+                            !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -84,8 +84,8 @@ public class StudentWeeklyActivityServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User user = (session != null) ? (User) session.getAttribute("user") : null;
         
-        if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
-                            !user.getUserType().equals(User.UserType.HEAD_MASTER))) {
+        if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) &&  !user.getUserType().equals(User.UserType.HEAD_MASTER) &&   !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER) &&
+                            !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -147,3 +147,4 @@ public class StudentWeeklyActivityServlet extends HttpServlet {
         }
     }
 }
+

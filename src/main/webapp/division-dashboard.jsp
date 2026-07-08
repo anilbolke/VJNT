@@ -90,11 +90,12 @@
         teacherConn = com.vjnt.util.DatabaseConnection.getConnection();
         // Query to get teacher count by district
         // Join teachers table with schools table to get district information
-        String teacherCountSql = "SELECT s.district_name, COUNT(DISTINCT t.teacher_id) as teacher_count " +
+        String teacherCountSql = "SELECT st.district as district_name, COUNT(DISTINCT t.teacher_id) as teacher_count " +
                                  "FROM teachers t " +
-                                 "INNER JOIN schools s ON t.udise_code = s.udise_no " +
+                                 "INNER JOIN (SELECT DISTINCT udise_no COLLATE utf8mb4_unicode_ci as udise_no, district FROM students WHERE is_active = 1) st " +
+                                 "ON t.udise_code COLLATE utf8mb4_unicode_ci = st.udise_no " +
                                  "WHERE t.is_active = 1 " +
-                                 "GROUP BY s.district_name";
+                                 "GROUP BY st.district";
         teacherStmt = teacherConn.prepareStatement(teacherCountSql);
         teacherRs = teacherStmt.executeQuery();
         
@@ -676,6 +677,7 @@
     </style>
 </head>
 <body>
+<jsp:include page="academic-year-bar.jsp" />
     <div class="header">
         <div class="header-content">
             <div class="header-left">
@@ -721,6 +723,14 @@
                                     <span>📊</span>
                                     <span>Phase Completion Status</span>
                                 </a>
+                                <a href="javascript:void(0)" onclick="togglePhaseStatusSection()" class="dropdown-item" title="School-wise phase stages with WhatsApp alerts for schools with pending data">
+                                    <span>📶</span>
+                                    <span>Phase Status &amp; WhatsApp Alerts</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/division-tickets.jsp" class="dropdown-item" title="View and take action on support tickets raised by teachers, school coordinators and head masters">
+                                    <span>🎫</span>
+                                    <span>Support Tickets</span>
+                                </a>
                             </div>
                             
                             <!-- Analytics & Reports Section -->
@@ -755,6 +765,10 @@
                                     <span>📊</span>
                                     <span>Level Jumps Analytics Charts</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/division-teacher-progress.jsp" class="dropdown-item" title="View teacher-wise FLN progress — class targets, progress & non-progress students">
+                                    <span>👨‍🏫</span>
+                                    <span>Teacher Progress Report</span>
+                                </a>
                                 <a href="<%= request.getContextPath() %>/division-student-level-details.jsp" class="dropdown-item" title="View individual student level details with filters">
                                     <span>👨‍🎓</span>
                                     <span>Student Level Details</span>
@@ -771,11 +785,23 @@
                                     <span>🔄</span>
                                     <span>Phase-wise Comparison</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/graduated-students.jsp" class="dropdown-item" title="View list of students who graduated from Class IX">
+                                    <span>🎓</span>
+                                    <span>उत्तीर्ण विद्यार्थी</span>
+                                </a>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Account Actions -->
+                    <a href="<%= request.getContextPath() %>/division-tickets.jsp" class="btn btn-change-password" title="View and take action on support tickets raised by teachers, school coordinators and head masters" style="background:linear-gradient(135deg,#43A047,#66BB6A);">
+                        <span>🎫</span>
+                        <span>Support Tickets</span>
+                    </a>
+                    <a href="<%= request.getContextPath() %>/helpdesk.jsp" class="btn btn-change-password" title="मदत केंद्र" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+                        <span>🙋</span>
+                        <span>मदत केंद्र</span>
+                    </a>
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password" title="Change your password">
                         <span>🔐</span>
                         <span>Change Password</span>
@@ -1487,11 +1513,12 @@
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">Mobile</th>
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">WhatsApp</th>
                                 <th style="padding: 12px; text-align: left; font-weight: 600;">Remarks</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">WhatsApp Alert</th>
                             </tr>
                         </thead>
                         <tbody id="schoolContactsTableBody">
                             <tr>
-                                <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                                <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
                                     <div class="spinner" style="margin: 0 auto 15px;"></div>
                                     Loading contacts...
                                 </td>
@@ -1535,6 +1562,135 @@
             </div>
         </div>
         
+        <!-- Phase Status & WhatsApp Alerts Modal - opened via Quick Actions -->
+        <div id="phaseStatusSection" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);">
+        <div style="position: relative; margin: 2% auto; max-width: 1700px; width: 96%; background: white; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.3);">
+            <!-- Modal Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">📶 School Phase Status &amp; WhatsApp Alerts</h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95;">Current stage of all 4 phases for every school. Send a WhatsApp alert to the Head Master and School Coordinator of schools that have not filled data.</p>
+                </div>
+                <button onclick="closePhaseStatusModal()"
+                        style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 32px; cursor: pointer; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-weight: 300; flex-shrink: 0;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    ×
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div style="padding: 25px 30px;">
+
+            <!-- Summary Cards -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;" id="psTotalSchools">-</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Total Schools</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;" id="psAllApproved">-</div>
+                    <div style="font-size: 14px; margin-top: 5px;">All Phases Approved</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700;" id="psNeedsAlert">-</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Schools with Pending Data</div>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <!-- Filters -->
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+                    <input type="text" id="psSearchBox" placeholder="Search by school, UDISE, district..."
+                           style="flex: 1; min-width: 250px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                           onkeyup="filterPhaseStatus()">
+                    <select id="psDistrictFilter" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="filterPhaseStatus()">
+                        <option value="">All Districts</option>
+                    </select>
+                    <select id="psStageFilter" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="filterPhaseStatus()">
+                        <option value="">All Schools</option>
+                        <option value="needsAlert" selected>Data Not Filled / Pending</option>
+                        <option value="allApproved">All Phases Approved</option>
+                    </select>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 14px; color: #666;">Show:</span>
+                        <select id="psPerPage" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="changePsPerPage()">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                        </select>
+                    </div>
+                    <button onclick="loadPhaseStatus()" style="padding: 10px 18px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">🔄 Refresh</button>
+                    <button id="psBulkAlertBtn" onclick="sendBulkPhaseAlerts()" style="padding: 10px 18px; background: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">📨 Alert All Filtered Schools</button>
+                </div>
+
+                <div id="psBulkProgress" style="display: none; margin-bottom: 15px; padding: 12px 15px; background: #FFF8E1; border: 1px solid #FFB300; border-radius: 6px; font-size: 14px;"></div>
+
+                <!-- Table -->
+                <div style="overflow-x: auto;">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">District</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">UDISE No</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">School Name</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">Students</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">Phase 1</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">Phase 2</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">Phase 3</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">Phase 4</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">Current Stage</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">WhatsApp Alert</th>
+                            </tr>
+                        </thead>
+                        <tbody id="phaseStatusTableBody">
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 40px; color: #999;">
+                                    <div class="spinner" style="margin: 0 auto 15px;"></div>
+                                    Loading phase status...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div id="psPaginationContainer" style="margin-top: 20px; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="color: #666; font-size: 14px;" id="psPageInfo">
+                            Showing 0 - 0 of 0 schools
+                        </div>
+
+                        <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                            <button onclick="goToPsPage('first')" id="psFirstBtn"
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                « First
+                            </button>
+                            <button onclick="goToPsPage('prev')" id="psPrevBtn"
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                ‹ Previous
+                            </button>
+
+                            <div id="psPageNumbers" style="display: flex; gap: 5px;">
+                                <!-- Page numbers will be inserted here -->
+                            </div>
+
+                            <button onclick="goToPsPage('next')" id="psNextBtn"
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                Next ›
+                            </button>
+                            <button onclick="goToPsPage('last')" id="psLastBtn"
+                                    style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                Last »
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+
         <!-- Phase Completion Status Section - Hidden by default -->
         <div id="phaseCompletionSection" style="display: none;">
         <div class="section-card" style="margin-top: 30px;">
@@ -2842,7 +2998,7 @@
             document.getElementById('totalTeachers').textContent = '-';
             
             // Show loading in table
-            document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;"><div class="spinner" style="margin: 0 auto 15px;"></div>Loading contacts...</td></tr>';
+            document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;"><div class="spinner" style="margin: 0 auto 15px;"></div>Loading contacts...</td></tr>';
             
             // Fetch all contacts from all districts
             fetch(contextPath + '/division-contacts-analytics')
@@ -2850,7 +3006,7 @@
                 .then(data => {
                     if (data.error) {
                         console.error('Error:', data.error);
-                        document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: red;">Error: ' + data.error + '</td></tr>';
+                        document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: red;">Error: ' + data.error + '</td></tr>';
                         return;
                     }
                     
@@ -2868,14 +3024,14 @@
                 })
                 .catch(error => {
                     console.error('Error loading school contacts:', error);
-                    document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: red;">Failed to load contacts</td></tr>';
+                    document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: red;">Failed to load contacts</td></tr>';
                 });
         }
         
         // Load all contacts from all districts
         function loadAllDistrictContacts(districts) {
             if (districts.length === 0) {
-                document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No contacts found</td></tr>';
+                document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">No contacts found</td></tr>';
                 return;
             }
             
@@ -2911,7 +3067,7 @@
                     });
                     
                     if (allContactsList.length === 0) {
-                        document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No contacts found</td></tr>';
+                        document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">No contacts found</td></tr>';
                         return;
                     }
                     
@@ -2932,7 +3088,7 @@
                 })
                 .catch(error => {
                     console.error('Error loading all contacts:', error);
-                    document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: red;">Failed to load contacts</td></tr>';
+                    document.getElementById('schoolContactsTableBody').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: red;">Failed to load contacts</td></tr>';
                 });
         }
         
@@ -2942,7 +3098,7 @@
             const totalContacts = filteredContactsList.length;
             
             if (totalContacts === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No contacts match the filter criteria</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">No contacts match the filter criteria</td></tr>';
                 document.getElementById('contactsPaginationContainer').style.display = 'none';
                 return;
             }
@@ -2982,6 +3138,19 @@
                 }
                 
                 html += '<td style="padding: 12px; font-size: 12px; color: #666;">' + escapeHtml(remarks) + '</td>';
+
+                // WhatsApp approval alert button (Head Master / School Coordinator only)
+                const canAlert = (contact.contactType === 'Head Master' || contact.contactType === 'School Coordinator');
+                const hasNumber = (contact.whatsappNumber && contact.whatsappNumber !== '-') || (contact.mobile && contact.mobile !== '-');
+                if (canAlert && hasNumber) {
+                    html += '<td style="padding: 12px; text-align: center;">';
+                    html += '<button id="waAlertBtn_' + contact.contactId + '" onclick="sendHmApprovalAlert(' + contact.contactId + ')" ';
+                    html += 'style="background: #25D366; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap;" ';
+                    html += 'title="Send hm_approval_alert WhatsApp template">📨 Send Alert</button>';
+                    html += '</td>';
+                } else {
+                    html += '<td style="padding: 12px; text-align: center; color: #bbb;">-</td>';
+                }
                 html += '</tr>';
             });
             
@@ -3117,6 +3286,378 @@
             return badges[type] || '<span style="background: #607D8B; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">👤 ' + escapeHtml(type) + '</span>';
         }
         
+        // Send hm_approval_alert WhatsApp template to a school contact
+        function sendHmApprovalAlert(contactId) {
+            const contact = allContactsList.find(c => c.contactId === contactId);
+            if (!contact) {
+                alert('Contact not found. Please refresh the page.');
+                return;
+            }
+
+            const number = (contact.whatsappNumber && contact.whatsappNumber !== '-') ? contact.whatsappNumber : contact.mobile;
+            if (!confirm('Send WhatsApp approval alert to:\n\n' +
+                    contact.fullName + ' (' + contact.contactType + ')\n' +
+                    contact.schoolName + '\nUDISE: ' + contact.udiseNo + '\nNumber: ' + number + '\n\nProceed?')) {
+                return;
+            }
+
+            const btn = document.getElementById('waAlertBtn_' + contactId);
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Sending...';
+                btn.style.background = '#999';
+            }
+
+            fetch(contextPath + '/send-hm-approval-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ contactId: contactId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (btn) {
+                        btn.textContent = '✓ Sent';
+                        btn.style.background = '#2E7D32';
+                    }
+                } else {
+                    const firstError = (data.results && data.results.length > 0 && data.results[0].error)
+                        ? data.results[0].error : (data.error || 'Unknown error');
+                    alert('Failed to send WhatsApp alert:\n' + firstError);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '📨 Send Alert';
+                        btn.style.background = '#25D366';
+                    }
+                }
+            })
+            .catch(error => {
+                alert('Failed to send WhatsApp alert: ' + error);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '📨 Send Alert';
+                    btn.style.background = '#25D366';
+                }
+            });
+        }
+
+        // ===== School Phase Status & WhatsApp Alerts =====
+        let allPhaseStatusList = [];
+        let filteredPhaseStatusList = [];
+        let psCurrentPage = 1;
+        let psPerPage = 50;
+        let phaseStatusLoaded = false;
+
+        // Open Phase Status popup from Quick Actions menu; loads data on first open
+        function togglePhaseStatusSection() {
+            const modal = document.getElementById('phaseStatusSection');
+            modal.style.display = 'block';
+            modal.scrollTop = 0;
+            document.body.style.overflow = 'hidden';
+            if (!phaseStatusLoaded) {
+                phaseStatusLoaded = true;
+                loadPhaseStatus();
+            }
+        }
+
+        function closePhaseStatusModal() {
+            document.getElementById('phaseStatusSection').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function loadPhaseStatus() {
+            document.getElementById('phaseStatusTableBody').innerHTML =
+                '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #999;"><div class="spinner" style="margin: 0 auto 15px;"></div>Loading phase status...</td></tr>';
+
+            fetch(contextPath + '/division-phase-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('phaseStatusTableBody').innerHTML =
+                            '<tr><td colspan="10" style="text-align: center; padding: 20px; color: red;">Error: ' + escapeHtml(data.error) + '</td></tr>';
+                        return;
+                    }
+
+                    allPhaseStatusList = data.schools || [];
+                    document.getElementById('psTotalSchools').textContent = data.totalSchools || 0;
+                    document.getElementById('psAllApproved').textContent = data.schoolsAllApproved || 0;
+                    document.getElementById('psNeedsAlert').textContent = data.schoolsNeedingAlert || 0;
+
+                    // Populate district filter
+                    const districts = [...new Set(allPhaseStatusList.map(s => s.districtName))].sort();
+                    const districtSelect = document.getElementById('psDistrictFilter');
+                    const currentDistrict = districtSelect.value;
+                    districtSelect.innerHTML = '<option value="">All Districts</option>';
+                    districts.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d;
+                        opt.textContent = d;
+                        districtSelect.appendChild(opt);
+                    });
+                    districtSelect.value = currentDistrict;
+
+                    filterPhaseStatus();
+                })
+                .catch(error => {
+                    console.error('Error loading phase status:', error);
+                    document.getElementById('phaseStatusTableBody').innerHTML =
+                        '<tr><td colspan="10" style="text-align: center; padding: 20px; color: red;">Failed to load phase status</td></tr>';
+                });
+        }
+
+        function filterPhaseStatus() {
+            const searchTerm = document.getElementById('psSearchBox').value.toLowerCase();
+            const districtFilter = document.getElementById('psDistrictFilter').value;
+            const stageFilter = document.getElementById('psStageFilter').value;
+
+            filteredPhaseStatusList = allPhaseStatusList.filter(school => {
+                const matchesSearch = !searchTerm ||
+                    school.schoolName.toLowerCase().includes(searchTerm) ||
+                    (school.udiseNo && school.udiseNo.toLowerCase().includes(searchTerm)) ||
+                    (school.districtName && school.districtName.toLowerCase().includes(searchTerm));
+                const matchesDistrict = !districtFilter || school.districtName === districtFilter;
+                const matchesStage = !stageFilter ||
+                    (stageFilter === 'needsAlert' && school.needsAlert) ||
+                    (stageFilter === 'allApproved' && !school.needsAlert);
+                return matchesSearch && matchesDistrict && matchesStage;
+            });
+
+            psCurrentPage = 1;
+            renderPhaseStatusTable();
+        }
+
+        function getPhaseStageBadge(status) {
+            const badges = {
+                'APPROVED': '<span style="background: #4CAF50; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">✅ Approved</span>',
+                'PENDING': '<span style="background: #FF9800; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">⏳ Pending Approval</span>',
+                'IN_PROGRESS': '<span style="background: #2196F3; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">📝 In Progress</span>',
+                'NOT_STARTED': '<span style="background: #F44336; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">❌ Not Started</span>'
+            };
+            return badges[status] || escapeHtml(status);
+        }
+
+        function renderPhaseStatusTable() {
+            const tbody = document.getElementById('phaseStatusTableBody');
+            const totalSchools = filteredPhaseStatusList.length;
+
+            if (totalSchools === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">No schools match the filter criteria</td></tr>';
+                document.getElementById('psPaginationContainer').style.display = 'none';
+                return;
+            }
+
+            // Calculate pagination
+            const totalPages = Math.ceil(totalSchools / psPerPage);
+            if (psCurrentPage > totalPages) psCurrentPage = totalPages;
+            const startIndex = (psCurrentPage - 1) * psPerPage;
+            const endIndex = Math.min(startIndex + psPerPage, totalSchools);
+            const pageSchools = filteredPhaseStatusList.slice(startIndex, endIndex);
+
+            let html = '';
+            pageSchools.forEach((school, index) => {
+                html += '<tr style="border-bottom: 1px solid #e0e0e0; ' + (index % 2 === 0 ? 'background: #f9f9f9;' : '') + '">';
+                html += '<td style="padding: 10px;">' + escapeHtml(school.districtName) + '</td>';
+                html += '<td style="padding: 10px; font-family: monospace; color: #666;">' + escapeHtml(school.udiseNo) + '</td>';
+                html += '<td style="padding: 10px; font-weight: 500;">' + escapeHtml(school.schoolName) + '</td>';
+                html += '<td style="padding: 10px; text-align: center;">' + school.totalStudents + '</td>';
+
+                school.phases.forEach(phase => {
+                    html += '<td style="padding: 10px; text-align: center;">' + getPhaseStageBadge(phase.status);
+                    if (phase.status === 'IN_PROGRESS' || phase.status === 'PENDING') {
+                        html += '<div style="font-size: 11px; color: #666; margin-top: 4px;">' + phase.completedStudents + '/' + school.totalStudents + ' (' + phase.percentage + '%)</div>';
+                    }
+                    html += '</td>';
+                });
+
+                if (school.currentStage === 'ALL_APPROVED') {
+                    html += '<td style="padding: 10px; font-weight: 600; color: #2E7D32; white-space: nowrap;">🎉 All Phases Approved</td>';
+                } else {
+                    html += '<td style="padding: 10px; font-weight: 600; color: #E65100; white-space: nowrap;">' + escapeHtml(school.currentStage.replace('_', ' ')) + '</td>';
+                }
+
+                if (!school.needsAlert) {
+                    html += '<td style="padding: 10px; text-align: center; color: #bbb;">-</td>';
+                } else if (!school.hasAlertContact) {
+                    html += '<td style="padding: 10px; text-align: center;"><span style="font-size: 11px; color: #999;" title="No Head Master / School Coordinator contact with a number in School Contacts">⚠️ No contact</span></td>';
+                } else {
+                    html += '<td style="padding: 10px; text-align: center;">';
+                    html += '<button id="psAlertBtn_' + escapeHtml(school.udiseNo) + '" onclick="sendSchoolPhaseAlert(\'' + escapeHtml(school.udiseNo) + '\')" ';
+                    html += 'style="background: #25D366; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap;" ';
+                    html += 'title="Send hm_approval_alert to Head Master and School Coordinator">📨 Send Alert</button>';
+                    html += '</td>';
+                }
+                html += '</tr>';
+            });
+
+            tbody.innerHTML = html;
+
+            // Update pagination
+            document.getElementById('psPageInfo').textContent =
+                'Showing ' + (startIndex + 1) + ' - ' + endIndex + ' of ' + totalSchools + ' schools';
+            renderPsPagination(totalPages);
+            document.getElementById('psPaginationContainer').style.display = 'block';
+        }
+
+        function renderPsPagination(totalPages) {
+            const pageNumbersDiv = document.getElementById('psPageNumbers');
+            const firstBtn = document.getElementById('psFirstBtn');
+            const prevBtn = document.getElementById('psPrevBtn');
+            const nextBtn = document.getElementById('psNextBtn');
+            const lastBtn = document.getElementById('psLastBtn');
+
+            firstBtn.disabled = psCurrentPage === 1;
+            prevBtn.disabled = psCurrentPage === 1;
+            nextBtn.disabled = psCurrentPage === totalPages;
+            lastBtn.disabled = psCurrentPage === totalPages;
+
+            firstBtn.style.opacity = psCurrentPage === 1 ? '0.5' : '1';
+            prevBtn.style.opacity = psCurrentPage === 1 ? '0.5' : '1';
+            nextBtn.style.opacity = psCurrentPage === totalPages ? '0.5' : '1';
+            lastBtn.style.opacity = psCurrentPage === totalPages ? '0.5' : '1';
+
+            firstBtn.style.cursor = psCurrentPage === 1 ? 'not-allowed' : 'pointer';
+            prevBtn.style.cursor = psCurrentPage === 1 ? 'not-allowed' : 'pointer';
+            nextBtn.style.cursor = psCurrentPage === totalPages ? 'not-allowed' : 'pointer';
+            lastBtn.style.cursor = psCurrentPage === totalPages ? 'not-allowed' : 'pointer';
+
+            let pageNumbersHtml = '';
+            const maxPageButtons = 5;
+            let startPage = Math.max(1, psCurrentPage - Math.floor(maxPageButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+
+            if (endPage - startPage < maxPageButtons - 1) {
+                startPage = Math.max(1, endPage - maxPageButtons + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === psCurrentPage;
+                pageNumbersHtml += '<button onclick="goToPsPage(' + i + ')" ';
+                pageNumbersHtml += 'style="padding: 8px 12px; background: ' + (isActive ? '#667eea' : '#f5f5f5') + '; ';
+                pageNumbersHtml += 'color: ' + (isActive ? 'white' : '#333') + '; ';
+                pageNumbersHtml += 'border: 1px solid ' + (isActive ? '#667eea' : '#ddd') + '; ';
+                pageNumbersHtml += 'border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: ' + (isActive ? '600' : '400') + ';">';
+                pageNumbersHtml += i;
+                pageNumbersHtml += '</button>';
+            }
+
+            pageNumbersDiv.innerHTML = pageNumbersHtml;
+        }
+
+        function goToPsPage(page) {
+            const totalPages = Math.ceil(filteredPhaseStatusList.length / psPerPage);
+
+            if (page === 'first') {
+                psCurrentPage = 1;
+            } else if (page === 'prev') {
+                psCurrentPage = Math.max(1, psCurrentPage - 1);
+            } else if (page === 'next') {
+                psCurrentPage = Math.min(totalPages, psCurrentPage + 1);
+            } else if (page === 'last') {
+                psCurrentPage = totalPages;
+            } else {
+                psCurrentPage = page;
+            }
+
+            renderPhaseStatusTable();
+            document.getElementById('phaseStatusSection').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changePsPerPage() {
+            psPerPage = parseInt(document.getElementById('psPerPage').value);
+            psCurrentPage = 1;
+            renderPhaseStatusTable();
+        }
+
+        // Send alert to both Head Master and School Coordinator of one school
+        function sendSchoolPhaseAlert(udise, skipConfirm) {
+            const school = allPhaseStatusList.find(s => s.udiseNo === udise);
+            if (!school) {
+                alert('School not found. Please refresh.');
+                return Promise.resolve(false);
+            }
+
+            if (!skipConfirm && !confirm('Send WhatsApp approval alert to the Head Master and School Coordinator of:\n\n' +
+                    school.schoolName + '\nUDISE: ' + school.udiseNo + '\nCurrent stage: ' + school.currentStage + '\n\nProceed?')) {
+                return Promise.resolve(false);
+            }
+
+            const btn = document.getElementById('psAlertBtn_' + udise);
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Sending...';
+                btn.style.background = '#999';
+            }
+
+            return fetch(contextPath + '/send-hm-approval-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ udise: udise })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sent > 0) {
+                    if (btn) {
+                        btn.textContent = '✓ Sent (' + data.sent + ')';
+                        btn.style.background = '#2E7D32';
+                    }
+                    if (data.failed > 0 && !skipConfirm) {
+                        alert('Sent to ' + data.sent + ' contact(s), failed for ' + data.failed + '.');
+                    }
+                    return true;
+                } else {
+                    const firstError = (data.results && data.results.length > 0 && data.results[0].error)
+                        ? data.results[0].error : (data.error || 'Unknown error');
+                    if (!skipConfirm) alert('Failed to send WhatsApp alert:\n' + firstError);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '📨 Send Alert';
+                        btn.style.background = '#25D366';
+                    }
+                    return false;
+                }
+            })
+            .catch(error => {
+                if (!skipConfirm) alert('Failed to send WhatsApp alert: ' + error);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '📨 Send Alert';
+                    btn.style.background = '#25D366';
+                }
+                return false;
+            });
+        }
+
+        // Bulk: alert every filtered school that needs it and has a contact
+        async function sendBulkPhaseAlerts() {
+            const targets = filteredPhaseStatusList.filter(s => s.needsAlert && s.hasAlertContact);
+            if (targets.length === 0) {
+                alert('No schools in the current filter need an alert (or none have a Head Master / School Coordinator contact).');
+                return;
+            }
+
+            if (!confirm('Send WhatsApp approval alerts to the Head Master and School Coordinator of ' + targets.length + ' school(s)?\n\nThis will send up to ' + (targets.length * 2) + ' messages.')) {
+                return;
+            }
+
+            const bulkBtn = document.getElementById('psBulkAlertBtn');
+            const progress = document.getElementById('psBulkProgress');
+            bulkBtn.disabled = true;
+            bulkBtn.style.background = '#999';
+            progress.style.display = 'block';
+
+            let done = 0, ok = 0, fail = 0;
+            for (const school of targets) {
+                progress.textContent = 'Sending ' + (done + 1) + ' of ' + targets.length + ': ' + school.schoolName + '...';
+                const success = await sendSchoolPhaseAlert(school.udiseNo, true);
+                if (success) ok++; else fail++;
+                done++;
+            }
+
+            progress.textContent = 'Finished: alerts sent for ' + ok + ' school(s), failed for ' + fail + ' school(s).';
+            bulkBtn.disabled = false;
+            bulkBtn.style.background = '#25D366';
+        }
+
         // Close School Contacts Modal
         function closeSchoolContactsModal() {
             document.getElementById('schoolContactsModal').style.display = 'none';

@@ -745,6 +745,7 @@
     </style>
 </head>
 <body>
+<jsp:include page="academic-year-bar.jsp" />
     <div class="header">
         <div class="header-content">
             <div class="header-left">
@@ -828,11 +829,19 @@
                                     <span>👤</span>
                                     <span>My Profile</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/graduated-students.jsp" class="dropdown-item" title="View list of students who graduated from Class IX">
+                                    <span>🎓</span>
+                                    <span>उत्तीर्ण विद्यार्थी</span>
+                                </a>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Account Actions -->
+                    <a href="<%= request.getContextPath() %>/helpdesk.jsp" class="btn btn-change-password" title="मदत केंद्र" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+                        <span>🙋</span>
+                        <span>मदत केंद्र</span>
+                    </a>
                     <a href="<%= request.getContextPath() %>/change-password" class="btn btn-change-password" title="Change your password">
                         <span>🔐</span>
                         <span>Change Password</span>

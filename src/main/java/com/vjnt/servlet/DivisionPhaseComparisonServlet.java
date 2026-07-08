@@ -3,12 +3,14 @@ package com.vjnt.servlet;
 import com.vjnt.util.DatabaseConnection;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import com.vjnt.model.User;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -34,16 +36,46 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
         String districtName = request.getParameter("district");
         String viewType = request.getParameter("view"); // "division" or "district"
         String subject = request.getParameter("subject"); // "marathi", "math", or "english"
-        
+        String schoolUdise = request.getParameter("school"); // School UDISE filter
+        String studentClass = request.getParameter("class"); // Class filter (Roman numerals or empty)
+        String action = request.getParameter("action"); // Special action like "getSchools"
         
         JSONObject result = new JSONObject();
         
         try {
-            if (divisionName == null || divisionName.isEmpty()) {
-                result.put("error", "Division name is required");
-                result.put("success", false);
-                response.getWriter().write(result.toString());
+            // Handle special actions
+            if ("getSchools".equals(action) && districtName != null && !districtName.isEmpty()) {
+                // Return list of schools for a district
+                result = getSchoolsForDistrict(districtName);
+                result.put("success", true);
+                PrintWriter out = response.getWriter();
+                out.print(result.toString());
+                out.flush();
                 return;
+            }
+            
+            if ("getClasses".equals(action) && schoolUdise != null && !schoolUdise.isEmpty()) {
+                // Return list of classes for a school
+                result = getClassesForSchool(schoolUdise);
+                result.put("success", true);
+                PrintWriter out = response.getWriter();
+                out.print(result.toString());
+                out.flush();
+                return;
+            }
+            
+            HttpSession session = request.getSession(false);
+            User user = null;
+            if (session != null) user = (User) session.getAttribute("user");
+
+            if (divisionName == null || divisionName.isEmpty()) {
+                // Only SUPER_DIVISION_OFFICER may omit division parameter
+                if (user == null || user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                    result.put("error", "Division name is required");
+                    result.put("success", false);
+                    response.getWriter().write(result.toString());
+                    return;
+                }
             }
             
             if (subject == null || subject.isEmpty()) {
@@ -52,10 +84,10 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
             
             if ("district".equalsIgnoreCase(viewType) && districtName != null && !districtName.isEmpty()) {
                 // Get district-level phase comparison
-                result = getDistrictPhaseComparison(divisionName, districtName, subject);
+                result = getDistrictPhaseComparison(divisionName, districtName, subject, schoolUdise, studentClass);
             } else {
                 // Get division-level phase comparison
-                result = getDivisionPhaseComparison(divisionName, subject);
+                result = getDivisionPhaseComparison(divisionName, subject, schoolUdise, studentClass);
             }
             
             result.put("success", true);
@@ -75,7 +107,7 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
     /**
      * Get division-level phase comparison for all 4 phases
      */
-    private JSONObject getDivisionPhaseComparison(String divisionName, String subject) throws SQLException {
+    private JSONObject getDivisionPhaseComparison(String divisionName, String subject, String schoolUdise, String studentClass) throws SQLException {
         JSONObject result = new JSONObject();
         
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -85,7 +117,7 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
             
             // Get data for each phase
             for (int phase = 1; phase <= 4; phase++) {
-                JSONObject phaseData = getPhaseData(conn, divisionName, null, subject, phase, maxLevel);
+                JSONObject phaseData = getPhaseData(conn, divisionName, null, subject, phase, maxLevel, schoolUdise, studentClass);
                 result.put("phase" + phase, phaseData);
             }
             
@@ -118,14 +150,24 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
     private JSONArray getDistrictList(Connection conn, String divisionName) throws SQLException {
         JSONArray districts = new JSONArray();
         
-        String sql = "SELECT district, COUNT(DISTINCT student_id) as student_count " +
-                     "FROM students " +
-                     "WHERE division = ? AND is_active = 1 " +
-                     "GROUP BY district " +
-                     "ORDER BY district";
-        
-        PreparedStatement ps = conn.prepareStatement(sql);
-        ps.setString(1, divisionName);
+        String sql;
+        PreparedStatement ps;
+        if (divisionName != null && !divisionName.isEmpty()) {
+           sql = "SELECT district, COUNT(DISTINCT student_id) as student_count " +
+                 "FROM students " +
+                 "WHERE division = ? AND is_active = 1 " +
+                 "GROUP BY district " +
+                 "ORDER BY district";
+           ps = conn.prepareStatement(sql);
+           ps.setString(1, divisionName);
+        } else {
+           sql = "SELECT district, COUNT(DISTINCT student_id) as student_count " +
+                 "FROM students " +
+                 "WHERE is_active = 1 " +
+                 "GROUP BY district " +
+                 "ORDER BY district";
+           ps = conn.prepareStatement(sql);
+        }
         ResultSet rs = ps.executeQuery();
         
         while (rs.next()) {
@@ -144,7 +186,7 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
     /**
      * Get district-level phase comparison for all 4 phases
      */
-    private JSONObject getDistrictPhaseComparison(String divisionName, String districtName, String subject) throws SQLException {
+    private JSONObject getDistrictPhaseComparison(String divisionName, String districtName, String subject, String schoolUdise, String studentClass) throws SQLException {
         JSONObject result = new JSONObject();
         
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -154,7 +196,7 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
             
             // Get data for each phase
             for (int phase = 1; phase <= 4; phase++) {
-                JSONObject phaseData = getPhaseData(conn, divisionName, districtName, subject, phase, maxLevel);
+                JSONObject phaseData = getPhaseData(conn, divisionName, districtName, subject, phase, maxLevel, schoolUdise, studentClass);
                 result.put("phase" + phase, phaseData);
             }
             
@@ -179,10 +221,10 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
     }
     
     /**
-     * Get phase data for a specific phase
+     * Get phase data for a specific phase with school and class filters
      */
     private JSONObject getPhaseData(Connection conn, String divisionName, String districtName, 
-                                    String subject, int phase, int maxLevel) throws SQLException {
+                                    String subject, int phase, int maxLevel, String schoolUdise, String studentClass) throws SQLException {
         
         
         JSONObject phaseData = new JSONObject();
@@ -203,17 +245,36 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
         sql.append(" FROM students s ");
         sql.append("WHERE s.division = ? AND s.is_active = 1 ");
         
-        PreparedStatement ps;
-        if (districtName != null && !districtName.isEmpty()) {
-            sql.append("AND s.district = ?");
-            ps = conn.prepareStatement(sql.toString());
-            ps.setString(1, divisionName);
-            ps.setString(2, districtName);
-        } else {
-            ps = conn.prepareStatement(sql.toString());
-            ps.setString(1, divisionName);
+        // Add class filter if provided
+        if (studentClass != null && !studentClass.isEmpty()) {
+            sql.append("AND s.class = ? ");
         }
         
+        // Add district filter if provided
+        if (districtName != null && !districtName.isEmpty()) {
+            sql.append("AND s.district = ? ");
+        }
+        
+        // Add school filter if provided
+        if (schoolUdise != null && !schoolUdise.isEmpty()) {
+            sql.append("AND s.udise_no = ? ");
+        }
+        
+        PreparedStatement ps = conn.prepareStatement(sql.toString());
+        int paramIndex = 1;
+        ps.setString(paramIndex++, divisionName);
+        
+        if (studentClass != null && !studentClass.isEmpty()) {
+            ps.setString(paramIndex++, studentClass);
+        }
+        
+        if (districtName != null && !districtName.isEmpty()) {
+            ps.setString(paramIndex++, districtName);
+        }
+        
+        if (schoolUdise != null && !schoolUdise.isEmpty()) {
+            ps.setString(paramIndex++, schoolUdise);
+        }
         
         ResultSet rs = ps.executeQuery();
         
@@ -289,5 +350,87 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
             default:
                 return 6; // Marathi and English have levels 0-6
         }
+    }
+    
+    /**
+     * Get schools for a specific district filtered by class range
+     */
+    private JSONObject getSchoolsForDistrict(String districtName) throws SQLException {
+        JSONObject result = new JSONObject();
+        JSONArray schools = new JSONArray();
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            
+            // Get distinct schools from students table for the district
+            // Include only schools that have students in the specified class range
+            String sql = "SELECT DISTINCT s.udise_no, " +
+                        "MAX(sc.school_name) as school_name, " +
+                        "COUNT(DISTINCT s.student_id) as student_count " +
+                        "FROM students s " +
+                        "LEFT JOIN schools sc ON s.udise_no = sc.udise_no COLLATE utf8mb4_unicode_ci " +
+                        "WHERE s.district = ? AND s.is_active = 1 " +
+                        "GROUP BY s.udise_no " +
+                        "ORDER BY school_name";
+            
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, districtName);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                JSONObject school = new JSONObject();
+                school.put("udiseNo", rs.getString("udise_no"));
+                school.put("schoolName", rs.getString("school_name"));
+                school.put("studentCount", rs.getInt("student_count"));
+                schools.put(school);
+            }
+            
+            result.put("schools", schools);
+            result.put("districtName", districtName);
+            
+            rs.close();
+            ps.close();
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Get distinct classes for a selected school
+     */
+    private JSONObject getClassesForSchool(String schoolUdise) {
+        JSONObject result = new JSONObject();
+        JSONArray classes = new JSONArray();
+        
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            
+            String sql = "SELECT DISTINCT class FROM students " +
+                        "WHERE udise_no = ? AND is_active = 1 " +
+                        "ORDER BY FIELD(class, 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII')";
+            
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, schoolUdise);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                JSONObject classObj = new JSONObject();
+                String classValue = rs.getString("class");
+                classObj.put("class", classValue);
+                classObj.put("label", "Class " + classValue);
+                classes.put(classObj);
+            }
+            
+            result.put("classes", classes);
+            result.put("schoolUdise", schoolUdise);
+            
+            rs.close();
+            ps.close();
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            result.put("error", "Failed to fetch classes");
+        }
+        
+        return result;
     }
 }

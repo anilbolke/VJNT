@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher FLN Progress — Example</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #333; }
+
+/* Header */
+.page-header {
+    background: linear-gradient(135deg,#1a237e 0%,#283593 60%,#3949ab 100%);
+    color:#fff; padding:18px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+}
+.page-header h1 { font-size:1.3rem; font-weight:600; }
+.page-header .sub { font-size:.85rem; opacity:.8; margin-top:3px; }
+.btn-back {
+    background:rgba(255,255,255,.15); color:#fff; border:none;
+    padding:8px 16px; border-radius:6px; cursor:pointer; font-size:.85rem;
+    text-decoration:none; display:inline-flex; align-items:center; gap:6px;
+}
+
+/* Summary */
+.summary-section { padding:20px 24px 0; }
+.summary-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
+.summary-card {
+    background:#fff; border-radius:10px; padding:16px;
+    box-shadow:0 1px 6px rgba(0,0,0,.08); text-align:center;
+    border-top:3px solid #667eea;
+}
+.summary-card.green { border-top-color:#2e7d32; }
+.summary-card.blue  { border-top-color:#1565c0; }
+.summary-card.yellow{ border-top-color:#f57f17; }
+.summary-card.red   { border-top-color:#c62828; }
+.summary-card h2 { font-size:1.8rem; font-weight:700; color:#1a237e; }
+.summary-card p  { font-size:.78rem; color:#666; margin-top:4px; }
+
+/* Filter bar */
+.filter-bar {
+    background:#fff; margin:16px 24px; border-radius:10px;
+    padding:14px 18px; box-shadow:0 1px 6px rgba(0,0,0,.06);
+    display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+}
+.filter-bar select, .filter-bar input {
+    border:1px solid #ddd; border-radius:6px; padding:8px 12px;
+    font-size:.88rem; outline:none; min-width:160px;
+}
+.btn-apply { background:#667eea; color:#fff; border:none; border-radius:6px; padding:8px 18px; cursor:pointer; font-size:.88rem; }
+.btn-reset2 { background:#888; color:#fff; border:none; border-radius:6px; padding:8px 18px; cursor:pointer; font-size:.88rem; }
+
+/* Content */
+.content { padding:0 24px 40px; }
+
+/* Legend */
+.legend {
+    background:#fff; border-radius:10px; padding:14px 18px; margin-bottom:16px;
+    box-shadow:0 1px 6px rgba(0,0,0,.06);
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+}
+.legend-title { font-weight:600; font-size:.88rem; color:#444; margin-right:6px; }
+
+/* District */
+.district-block { background:#fff; border-radius:10px; margin-bottom:16px; box-shadow:0 1px 6px rgba(0,0,0,.07); overflow:hidden; }
+.district-header {
+    background:linear-gradient(90deg,#e8eaf6,#f5f5f5); padding:14px 18px; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0e0e0;
+    user-select:none;
+}
+.district-header:hover { background:linear-gradient(90deg,#dde0f5,#efefef); }
+.district-header h3 { font-size:1rem; color:#1a237e; }
+.district-meta { font-size:.8rem; color:#666; display:flex; gap:16px; }
+.arrow { transition:transform .25s; font-size:.9rem; }
+.open .arrow { transform:rotate(180deg); }
+
+/* School */
+.school-block { border-bottom:1px solid #f0f0f0; }
+.school-header {
+    padding:10px 18px 10px 32px; cursor:pointer; background:#fafafa;
+    display:flex; justify-content:space-between; align-items:center; user-select:none;
+}
+.school-header:hover { background:#f0f4ff; }
+.school-header h4 { font-size:.9rem; color:#283593; }
+
+/* Teachers grid */
+.teachers-grid { padding:12px 18px 12px 36px; display:flex; flex-direction:column; gap:10px; }
+
+/* Teacher card */
+.teacher-card {
+    border:1px solid #e8e8e8; border-radius:8px; padding:14px 16px;
+    background:#fff; transition:box-shadow .2s;
+}
+.teacher-card:hover { box-shadow:0 2px 10px rgba(0,0,0,.1); }
+.teacher-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+.teacher-info h5 { font-size:.95rem; color:#1a237e; margin-bottom:3px; }
+.teacher-info .tmeta { font-size:.78rem; color:#888; display:flex; gap:10px; flex-wrap:wrap; }
+.class-tag { background:#e8eaf6; color:#3949ab; padding:2px 8px; border-radius:12px; font-size:.75rem; font-weight:600; }
+.class-teacher-tag { background:#e8f5e9; color:#2e7d32; padding:2px 8px; border-radius:12px; font-size:.72rem; }
+.progress-section { min-width:220px; }
+.progress-bar-wrap { height:10px; background:#eee; border-radius:5px; overflow:hidden; margin-bottom:5px; }
+.progress-bar-fill { height:100%; border-radius:5px; transition:width .5s; }
+.bar-excellent         { background:linear-gradient(90deg,#2e7d32,#43a047); }
+.bar-good              { background:linear-gradient(90deg,#1565c0,#1976d2); }
+.bar-average           { background:linear-gradient(90deg,#f57f17,#ffa000); }
+.bar-needs-improvement { background:linear-gradient(90deg,#c62828,#e53935); }
+.bar-no-data           { background:#bbb; }
+.progress-labels { display:flex; justify-content:space-between; font-size:.75rem; color:#666; }
+
+.badge { display:inline-block; padding:4px 10px; border-radius:12px; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+.badge-excellent         { background:#e8f5e9; color:#2e7d32; }
+.badge-good              { background:#e3f2fd; color:#1565c0; }
+.badge-average           { background:#fff8e1; color:#f57f17; }
+.badge-needs-improvement { background:#ffebee; color:#c62828; }
+.badge-no-data           { background:#f5f5f5; color:#9e9e9e; }
+
+.student-counts { display:flex; gap:12px; margin-top:8px; flex-wrap:wrap; }
+.count-chip {
+    display:flex; align-items:center; gap:6px; font-size:.8rem;
+    padding:4px 10px; border-radius:20px; cursor:pointer; border:none; font-family:inherit;
+    transition:opacity .15s;
+}
+.count-chip:hover { opacity:.8; }
+.chip-progress    { background:#e8f5e9; color:#2e7d32; }
+.chip-nonprogress { background:#ffebee; color:#c62828; }
+.chip-total       { background:#e8eaf6; color:#3949ab; }
+
+/* Student table */
+.student-table-wrap { margin-top:10px; display:none; animation: fadeIn .2s; }
+.student-table-wrap.visible { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+
+.student-table { width:100%; border-collapse:collapse; font-size:.8rem; }
+.student-table th {
+    background:#f5f5f5; padding:7px 10px; text-align:left;
+    font-weight:600; color:#444; border-bottom:1px solid #ddd; position:sticky; top:0;
+}
+.student-table td { padding:6px 10px; border-bottom:1px solid #f0f0f0; }
+.student-table tr:hover td { background:#fafafa; }
+.level-pill { display:inline-block; padding:2px 8px; border-radius:10px; font-weight:600; font-size:.75rem; }
+.level-ok  { background:#c8e6c9; color:#1b5e20; }
+.level-bad { background:#ffcdd2; color:#b71c1c; }
+
+/* Note box */
+.note-box {
+    background:#fffde7; border-left:4px solid #f9a825; padding:14px 18px;
+    border-radius:6px; margin-bottom:16px; font-size:.85rem; color:#555;
+}
+.note-box strong { color:#e65100; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="page-header">
+    <div>
+        <h1>Teacher FLN Progress Report — <em>Example</em></h1>
+        <div class="sub">Nashik Division &nbsp;|&nbsp; Sample Data for Design Review</div>
+    </div>
+    <a href="#" class="btn-back">&#8592; Dashboard</a>
+</div>
+
+<!-- Summary -->
+<div class="summary-section">
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h2>42</h2><p>Total Teachers</p>
+        </div>
+        <div class="summary-card green">
+            <h2>14</h2><p>Excellent (&ge;80%)</p>
+        </div>
+        <div class="summary-card blue">
+            <h2>11</h2><p>Good (60–79%)</p>
+        </div>
+        <div class="summary-card yellow">
+            <h2>9</h2><p>Average (40–59%)</p>
+        </div>
+        <div class="summary-card red">
+            <h2>8</h2><p>Needs Improvement (&lt;40%)</p>
+        </div>
+        <div class="summary-card">
+            <h2>63.4%</h2><p>Avg Progress %</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+    <select>
+        <option>All Districts</option>
+        <option selected>Nashik</option>
+        <option>Nandurbar</option>
+        <option>Dhule</option>
+    </select>
+    <select>
+        <option>All Classes</option>
+        <option selected>Class 3</option>
+    </select>
+    <select id="badgeFilterEx">
+        <option value="">All Progress Levels</option>
+        <option value="excellent">Excellent (&ge;80%)</option>
+        <option value="good">Good (60–79%)</option>
+        <option value="average">Average (40–59%)</option>
+        <option value="needs-improvement">Needs Improvement (&lt;40%)</option>
+    </select>
+    <input type="text" id="searchEx" placeholder="Search teacher / school...">
+    <button class="btn-apply" onclick="filterCards()">Apply Filters</button>
+    <button class="btn-reset2" onclick="resetEx()">Reset</button>
+</div>
+
+<!-- Progress Legend -->
+<div class="content">
+<div class="legend">
+    <span class="legend-title">Progress Levels:</span>
+    <span class="badge badge-excellent">Excellent &ge;80%</span>
+    <span class="badge badge-good">Good 60–79%</span>
+    <span class="badge badge-average">Average 40–59%</span>
+    <span class="badge badge-needs-improvement">Needs Improvement &lt;40%</span>
+    &nbsp;|&nbsp;
+    <span style="font-size:.8rem;color:#555">
+        🟢 Level pill = meets class target &nbsp; 🔴 Level pill = below target
+    </span>
+</div>
+
+<!-- Class-Level Reference Table -->
+<div class="note-box">
+    <strong>Minimum "Good Level" by Class:</strong><br><br>
+    <table style="border-collapse:collapse;font-size:.82rem;width:100%;max-width:600px">
+        <thead>
+            <tr style="background:#fff3e0">
+                <th style="padding:5px 12px;border:1px solid #ffe082;text-align:left">Class</th>
+                <th style="padding:5px 12px;border:1px solid #ffe082">Marathi Min</th>
+                <th style="padding:5px 12px;border:1px solid #ffe082">Math Min</th>
+                <th style="padding:5px 12px;border:1px solid #ffe082">English Min</th>
+                <th style="padding:5px 12px;border:1px solid #ffe082;text-align:left">Level Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td style="padding:4px 12px;border:1px solid #ffe082">1 &amp; 2</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 2</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 2–3</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 2</td><td style="padding:4px 12px;border:1px solid #ffe082">अक्षर स्तर</td></tr>
+            <tr style="background:#fffde7"><td style="padding:4px 12px;border:1px solid #ffe082">3 &amp; 4</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 3</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 3–4</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 3</td><td style="padding:4px 12px;border:1px solid #ffe082">शब्द स्तर</td></tr>
+            <tr><td style="padding:4px 12px;border:1px solid #ffe082">5 &amp; 6</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 4</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 5</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 4</td><td style="padding:4px 12px;border:1px solid #ffe082">वाक्य स्तर</td></tr>
+            <tr style="background:#fffde7"><td style="padding:4px 12px;border:1px solid #ffe082">7 &amp; 8</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 5</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 6–7</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 5</td><td style="padding:4px 12px;border:1px solid #ffe082">समजपूर्वक वाचन</td></tr>
+            <tr><td style="padding:4px 12px;border:1px solid #ffe082">9</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 6</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 8</td><td style="padding:4px 12px;border:1px solid #ffe082;text-align:center">≥ 6</td><td style="padding:4px 12px;border:1px solid #ffe082">FLN Complete ✅</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ============================== SAMPLE DATA ============================== -->
+
+<!-- District 1: Nashik -->
+<div class="district-block" id="block-nashik">
+    <div class="district-header open" onclick="toggleEl(this)">
+        <h3>📍 Nashik</h3>
+        <div style="display:flex;align-items:center;gap:20px">
+            <div class="district-meta">
+                <span>5 teacher(s)</span><span>2 school(s)</span>
+            </div>
+            <span class="arrow">▼</span>
+        </div>
+    </div>
+    <div class="district-body">
+
+        <!-- School 1 -->
+        <div class="school-block">
+            <div class="school-header open" onclick="toggleSchoolEl(this)">
+                <h4>🏫 ZP Primary School Pimpri</h4>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span style="font-size:.78rem;color:#888">3 teacher(s)</span>
+                    <span class="arrow">▼</span>
+                </div>
+            </div>
+            <div class="school-body">
+            <div class="teachers-grid">
+
+                <!-- Teacher 1 — Excellent -->
+                <div class="teacher-card" data-badge="excellent">
+                    <div class="teacher-top">
+                        <div class="teacher-info">
+                            <h5>Ramesh Sharma</h5>
+                            <div class="tmeta">
+                                <span class="class-tag">Class 3-A</span>
+                                <span class="class-teacher-tag">Class Teacher</span>
+                                <span>📞 9876543210</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div style="text-align:right;margin-bottom:4px">
+                                <span class="badge badge-excellent">Excellent</span>
+                                <strong style="margin-left:8px;color:#1a237e">87%</strong>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill bar-excellent" style="width:87%"></div>
+                            </div>
+                            <div class="progress-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+                        </div>
+                    </div>
+                    <div class="student-counts">
+                        <span class="count-chip chip-total">👥 30 Total</span>
+                        <button class="count-chip chip-progress" onclick="toggleStudents('t1-progress','t1-nonprogress')">
+                            ✅ 26 Progress
+                        </button>
+                        <button class="count-chip chip-nonprogress" onclick="toggleStudents('t1-nonprogress','t1-progress')">
+                            ❌ 4 Non-Progress
+                        </button>
+                    </div>
+                    <!-- Progress students table -->
+                    <div class="student-table-wrap" id="t1-progress">
+                        <table class="student-table">
+                            <thead><tr><th>#</th><th>Student Name</th><th>PEN</th><th>Marathi</th><th>Math</th><th>English</th><th>Status</th></tr></thead>
+                            <tbody>
+                                <tr><td>1</td><td><strong>Ananya Patil</strong></td><td>MH10234</td><td><span class="level-pill level-ok">4</span></td><td><span class="level-pill level-ok">4</span></td><td><span class="level-pill level-ok">3</span></td><td><span class="badge badge-excellent">Good</span></td></tr>
+                                <tr><td>2</td><td><strong>Rohit Deshmukh</strong></td><td>MH10235</td><td><span class="level-pill level-ok">3</span></td><td><span class="level-pill level-ok">5</span></td><td><span class="level-pill level-ok">3</span></td><td><span class="badge badge-excellent">Good</span></td></tr>
+                                <tr><td>3</td><td><strong>Priya More</strong></td><td>MH10236</td><td><span class="level-pill level-ok">5</span></td><td><span class="level-pill level-ok">4</span></td><td><span class="level-pill level-ok">4</span></td><td><span class="badge badge-excellent">Good</span></td></tr>
+                                <tr><td colspan="7" style="text-align:center;color:#888;font-size:.78rem;padding:8px">... 23 more progress students ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Non-progress students table -->
+                    <div class="student-table-wrap" id="t1-nonprogress">
+                        <table class="student-table">
+                            <thead><tr><th>#</th><th>Student Name</th><th>PEN</th><th>Marathi</th><th>Math</th><th>English</th><th>Status</th></tr></thead>
+                            <tbody>
+                                <tr><td>1</td><td><strong>Suresh Jadhav</strong></td><td>MH10261</td><td><span class="level-pill level-bad">2</span></td><td><span class="level-pill level-bad">2</span></td><td><span class="level-pill level-bad">1</span></td><td><span class="badge badge-needs-improvement">Needs Help</span></td></tr>
+                                <tr><td>2</td><td><strong>Kavita Bhosale</strong></td><td>MH10262</td><td><span class="level-pill level-ok">3</span></td><td><span class="level-pill level-bad">2</span></td><td><span class="level-pill level-bad">2</span></td><td><span class="badge badge-needs-improvement">Needs Help</span></td></tr>
+                                <tr><td>3</td><td><strong>Anil Gaikwad</strong></td><td>MH10263</td><td><span class="level-pill level-bad">2</span></td><td><span class="level-pill level-ok">4</span></td><td><span class="level-pill level-bad">2</span></td><td><span class="badge badge-needs-improvement">Needs Help</span></td></tr>
+                                <tr><td>4</td><td><strong>Rekha Shinde</strong></td><td>MH10264</td><td><span class="level-pill level-bad">1</span></td><td><span class="level-pill level-bad">1</span></td><td><span class="level-pill level-bad">1</span></td><td><span class="badge badge-needs-improvement">Needs Help</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Teacher 2 — Good -->
+                <div class="teacher-card" data-badge="good">
+                    <div class="teacher-top">
+                        <div class="teacher-info">
+                            <h5>Sunita Kulkarni</h5>
+                            <div class="tmeta">
+                                <span class="class-tag">Class 3-B</span>
+                                <span class="class-teacher-tag">Class Teacher</span>
+                                <span>📞 9823451234</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div style="text-align:right;margin-bottom:4px">
+                                <span class="badge badge-good">Good</span>
+                                <strong style="margin-left:8px;color:#1a237e">72%</strong>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill bar-good" style="width:72%"></div>
+                            </div>
+                            <div class="progress-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+                        </div>
+                    </div>
+                    <div class="student-counts">
+                        <span class="count-chip chip-total">👥 25 Total</span>
+                        <button class="count-chip chip-progress" onclick="toggleStudents('t2-progress','t2-nonprogress')">
+                            ✅ 18 Progress
+                        </button>
+                        <button class="count-chip chip-nonprogress" onclick="toggleStudents('t2-nonprogress','t2-progress')">
+                            ❌ 7 Non-Progress
+                        </button>
+                    </div>
+                    <div class="student-table-wrap" id="t2-progress">
+                        <table class="student-table">
+                            <thead><tr><th>#</th><th>Student Name</th><th>PEN</th><th>Marathi</th><th>Math</th><th>English</th><th>Status</th></tr></thead>
+                            <tbody>
+                                <tr><td>1</td><td><strong>Meera Wagh</strong></td><td>MH20101</td><td><span class="level-pill level-ok">4</span></td><td><span class="level-pill level-ok">4</span></td><td><span class="level-pill level-ok">3</span></td><td><span class="badge badge-excellent">Good</span></td></tr>
+                                <tr><td colspan="7" style="text-align:center;color:#888;font-size:.78rem;padding:8px">... 17 more progress students ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="student-table-wrap" id="t2-nonprogress">
+                        <table class="student-table">
+                            <thead><tr><th>#</th><th>Student Name</th><th>PEN</th><th>Marathi</th><th>Math</th><th>English</th><th>Status</th></tr></thead>
+                            <tbody>
+                                <tr><td>1</td><td><strong>Ganesh Mane</strong></td><td>MH20121</td><td><span class="level-pill level-bad">2</span></td><td><span class="level-pill level-bad">2</span></td><td><span class="level-pill level-bad">2</span></td><td><span class="badge badge-needs-improvement">Needs Help</span></td></tr>
+                                <tr><td colspan="7" style="text-align:center;color:#888;font-size:.78rem;padding:8px">... 6 more non-progress students ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Teacher 3 — Needs Improvement -->
+                <div class="teacher-card" data-badge="needs-improvement">
+                    <div class="teacher-top">
+                        <div class="teacher-info">
+                            <h5>Prakash Nimkar</h5>
+                            <div class="tmeta">
+                                <span class="class-tag">Class 1-A</span>
+                                <span class="class-teacher-tag">Class Teacher</span>
+                                <span>📞 9765432100</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div style="text-align:right;margin-bottom:4px">
+                                <span class="badge badge-needs-improvement">Needs Improvement</span>
+                                <strong style="margin-left:8px;color:#1a237e">28%</strong>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill bar-needs-improvement" style="width:28%"></div>
+                            </div>
+                            <div class="progress-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+                        </div>
+                    </div>
+                    <div class="student-counts">
+                        <span class="count-chip chip-total">👥 32 Total</span>
+                        <button class="count-chip chip-progress" onclick="toggleStudents('t3-progress','t3-nonprogress')">
+                            ✅ 9 Progress
+                        </button>
+                        <button class="count-chip chip-nonprogress" onclick="toggleStudents('t3-nonprogress','t3-progress')">
+                            ❌ 23 Non-Progress
+                        </button>
+                    </div>
+                    <div class="student-table-wrap" id="t3-progress"></div>
+                    <div class="student-table-wrap" id="t3-nonprogress">
+                        <table class="student-table">
+                            <thead><tr><th>#</th><th>Student Name</th><th>PEN</th><th>Marathi</th><th>Math</th><th>English</th><th>Status</th></tr></thead>
+                            <tbody>
+                                <tr><td>1</td><td><strong>Vishal Pawar</strong></td><td>MH30201</td><td><span class="level-pill level-ok">2</span></td><td><span class="level-pill level-bad">1</span></td><td><span class="level-pill level-bad">0</span></td><td><span class="badge badge-needs-improvement">Needs Help</span></td></tr>
+                                <tr><td>2</td><td><strong>Shruti Kamble</strong></td><td>MH30202</td><td><span class="level-pill level-bad">1</span></td><td><span class="level-pill level-bad">1</span></td><td><span class="level-pill level-bad">1</span></td><td><span class="badge badge-needs-improvement">Needs Help</span></td></tr>
+                                <tr><td colspan="7" style="text-align:center;color:#888;font-size:.78rem;padding:8px">... 21 more non-progress students ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- teachers-grid -->
+            </div><!-- school-body -->
+        </div><!-- school-block -->
+
+        <!-- School 2 -->
+        <div class="school-block">
+            <div class="school-header" onclick="toggleSchoolEl(this)">
+                <h4>🏫 ZP Upper Primary School Ozar</h4>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span style="font-size:.78rem;color:#888">2 teacher(s)</span>
+                    <span class="arrow">▼</span>
+                </div>
+            </div>
+            <div class="school-body" style="display:none">
+            <div class="teachers-grid">
+
+                <!-- Teacher 4 — Average -->
+                <div class="teacher-card" data-badge="average">
+                    <div class="teacher-top">
+                        <div class="teacher-info">
+                            <h5>Vaishali Jagtap</h5>
+                            <div class="tmeta">
+                                <span class="class-tag">Class 5-A</span>
+                                <span class="class-teacher-tag">Class Teacher</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div style="text-align:right;margin-bottom:4px">
+                                <span class="badge badge-average">Average</span>
+                                <strong style="margin-left:8px;color:#1a237e">54%</strong>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill bar-average" style="width:54%"></div>
+                            </div>
+                            <div class="progress-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+                        </div>
+                    </div>
+                    <div class="student-counts">
+                        <span class="count-chip chip-total">👥 24 Total</span>
+                        <button class="count-chip chip-progress" onclick="toggleStudents('t4-progress','t4-nonprogress')">✅ 13 Progress</button>
+                        <button class="count-chip chip-nonprogress" onclick="toggleStudents('t4-nonprogress','t4-progress')">❌ 11 Non-Progress</button>
+                    </div>
+                    <div class="student-table-wrap" id="t4-progress"></div>
+                    <div class="student-table-wrap" id="t4-nonprogress"></div>
+                </div>
+
+                <!-- Teacher 5 — No Data -->
+                <div class="teacher-card" data-badge="no-data">
+                    <div class="teacher-top">
+                        <div class="teacher-info">
+                            <h5>Nilesh Chavan</h5>
+                            <div class="tmeta">
+                                <span class="class-tag">Class 7-B</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div style="text-align:right;margin-bottom:4px">
+                                <span class="badge badge-no-data">No Data</span>
+                                <strong style="margin-left:8px;color:#999">0 students assigned</strong>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill bar-no-data" style="width:0%"></div>
+                            </div>
+                            <div class="progress-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+                        </div>
+                    </div>
+                    <div class="student-counts">
+                        <span class="count-chip chip-total">👥 0 Total</span>
+                    </div>
+                </div>
+
+            </div>
+            </div>
+        </div>
+
+    </div><!-- district-body -->
+</div><!-- district-block Nashik -->
+
+
+<!-- District 2 — collapsed by default -->
+<div class="district-block" id="block-nandurbar">
+    <div class="district-header" onclick="toggleEl(this)">
+        <h3>📍 Nandurbar</h3>
+        <div style="display:flex;align-items:center;gap:20px">
+            <div class="district-meta">
+                <span>3 teacher(s)</span><span>1 school(s)</span>
+            </div>
+            <span class="arrow">▼</span>
+        </div>
+    </div>
+    <div class="district-body" style="display:none">
+        <div class="school-block">
+            <div class="school-header" onclick="toggleSchoolEl(this)">
+                <h4>🏫 ZP Primary School Taloda</h4>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span style="font-size:.78rem;color:#888">3 teacher(s)</span>
+                    <span class="arrow">▼</span>
+                </div>
+            </div>
+            <div class="school-body" style="display:none">
+                <div class="teachers-grid">
+                    <div class="teacher-card" data-badge="excellent">
+                        <div class="teacher-top">
+                            <div class="teacher-info">
+                                <h5>Sonal Mahajan</h5>
+                                <div class="tmeta"><span class="class-tag">Class 2-A</span><span class="class-teacher-tag">Class Teacher</span></div>
+                            </div>
+                            <div class="progress-section">
+                                <div style="text-align:right;margin-bottom:4px"><span class="badge badge-excellent">Excellent</span> <strong style="margin-left:8px;color:#1a237e">91%</strong></div>
+                                <div class="progress-bar-wrap"><div class="progress-bar-fill bar-excellent" style="width:91%"></div></div>
+                                <div class="progress-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+                            </div>
+                        </div>
+                        <div class="student-counts">
+                            <span class="count-chip chip-total">👥 22 Total</span>
+                            <button class="count-chip chip-progress" onclick="toggleStudents('t6-progress','t6-nonprogress')">✅ 20 Progress</button>
+                            <button class="count-chip chip-nonprogress" onclick="toggleStudents('t6-nonprogress','t6-progress')">❌ 2 Non-Progress</button>
+                        </div>
+                        <div class="student-table-wrap" id="t6-progress"></div>
+                        <div class="student-table-wrap" id="t6-nonprogress"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- content -->
+
+<script>
+function toggleEl(header) {
+    header.classList.toggle('open');
+    const body = header.nextElementSibling;
+    body.style.display = (body.style.display === 'none') ? '' : 'none';
+}
+function toggleSchoolEl(header) {
+    header.classList.toggle('open');
+    const body = header.nextElementSibling;
+    body.style.display = (body.style.display === 'none') ? '' : 'none';
+}
+
+function toggleStudents(showId, hideId) {
+    const showEl = document.getElementById(showId);
+    const hideEl = document.getElementById(hideId);
+
+    if (hideEl) {
+        hideEl.classList.remove('visible');
+    }
+    if (showEl) {
+        if (showEl.classList.contains('visible')) {
+            showEl.classList.remove('visible');
+        } else {
+            showEl.classList.add('visible');
+        }
+    }
+}
+
+function filterCards() {
+    const badge  = document.getElementById('badgeFilterEx').value;
+    const search = document.getElementById('searchEx').value.toLowerCase().trim();
+
+    document.querySelectorAll('.teacher-card').forEach(card => {
+        let show = true;
+        if (badge  && card.dataset.badge !== badge) show = false;
+        if (search) {
+            const name = card.querySelector('h5').textContent.toLowerCase();
+            if (!name.includes(search)) show = false;
+        }
+        card.style.display = show ? '' : 'none';
+    });
+}
+
+function resetEx() {
+    document.getElementById('badgeFilterEx').value = '';
+    document.getElementById('searchEx').value = '';
+    document.querySelectorAll('.teacher-card').forEach(c => c.style.display = '');
+}
+</script>
+</body>
+</html>

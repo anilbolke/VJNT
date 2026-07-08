@@ -37,9 +37,9 @@ public class DistrictCredentialsServlet extends HttpServlet {
         
         User user = (User) session.getAttribute("user");
         
-        // Check if user is district coordinator
-        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR)) {
+        // Check if user is district coordinator or super division officer
+        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER) &&
+            !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             response.sendRedirect(request.getContextPath() + "/login.jsp");
             return;
         }
@@ -70,9 +70,9 @@ public class DistrictCredentialsServlet extends HttpServlet {
         
         User user = (User) session.getAttribute("user");
         
-        // Check if user is district coordinator
-        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR)) {
+        // Check if user is district coordinator or super division officer
+        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR) &&  !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER) &&
+            !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             response.sendRedirect(request.getContextPath() + "/login.jsp");
             return;
         }
@@ -162,3 +162,4 @@ public class DistrictCredentialsServlet extends HttpServlet {
         }
     }
 }
+

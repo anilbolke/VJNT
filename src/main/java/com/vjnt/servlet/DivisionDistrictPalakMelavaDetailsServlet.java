@@ -46,7 +46,7 @@ public class DivisionDistrictPalakMelavaDetailsServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+        if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().print("{\"error\": \"Unauthorized access\"}");
             return;
@@ -56,12 +56,21 @@ public class DivisionDistrictPalakMelavaDetailsServlet extends HttpServlet {
         String startDate = request.getParameter("startDate");
         String endDate = request.getParameter("endDate");
         
+        // If district missing: allow only SUPER_DIVISION_OFFICER to request across all districts
         if (districtName == null || districtName.trim().isEmpty()) {
-            response.getWriter().print("{\"error\": \"District parameter is required\"}");
-            return;
+            if (user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
+                response.getWriter().print("{\"error\": \"District parameter is required\"}");
+                return;
+            }
+            // For SDO, set districtName to null so data will be fetched across all districts
+            districtName = null;
         }
         
         String divisionName = user.getDivisionName();
+        if (user.getUserType() == User.UserType.SUPER_DIVISION_OFFICER) {
+            // SDO has access to all divisions; indicate with null divisionName
+            divisionName = null;
+        }
         
         JSONObject result = getDistrictSchoolsPalakMelavaData(divisionName, districtName, startDate, endDate);
         
@@ -79,14 +88,28 @@ public class DivisionDistrictPalakMelavaDetailsServlet extends HttpServlet {
         
         try (Connection conn = DatabaseConnection.getConnection()) {
             
-            // First, get all schools in this district
-            String schoolSql = "SELECT DISTINCT s.udise_no, s.school_name " +
-                              "FROM students st " +
-                              "LEFT JOIN schools s ON st.udise_no = s.udise_no " +
-                              "WHERE st.district = ? AND st.division = ?";
-            PreparedStatement schoolPs = conn.prepareStatement(schoolSql);
-            schoolPs.setString(1, districtName);
-            schoolPs.setString(2, divisionName);
+            // First, get all schools in this district (or across division/all if parameters are null)
+            StringBuilder schoolSql = new StringBuilder();
+            schoolSql.append("SELECT DISTINCT s.udise_no, s.school_name FROM students st LEFT JOIN schools s ON st.udise_no = s.udise_no COLLATE utf8mb4_unicode_ci ");
+            boolean hasWhere = false;
+            if (districtName != null) {
+                schoolSql.append("WHERE st.district = ? ");
+                hasWhere = true;
+            }
+            if (divisionName != null) {
+                if (!hasWhere) {
+                    schoolSql.append("WHERE st.division = ? ");
+                    hasWhere = true;
+                } else {
+                    schoolSql.append("AND st.division = ? ");
+                }
+            }
+            schoolSql.append("ORDER BY s.school_name");
+
+            PreparedStatement schoolPs = conn.prepareStatement(schoolSql.toString());
+            int idx = 1;
+            if (districtName != null) schoolPs.setString(idx++, districtName);
+            if (divisionName != null) schoolPs.setString(idx++, divisionName);
             ResultSet schoolRs = schoolPs.executeQuery();
             
             List<String> udiseList = new ArrayList<>();

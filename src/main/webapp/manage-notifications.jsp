@@ -7,7 +7,7 @@
 <%@ page import="org.json.JSONObject" %>
 <%
     User user = (User) session.getAttribute("user");
-    if (user == null || !user.getUserType().equals(User.UserType.DIVISION)) {
+    if (user == null || (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
         response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }

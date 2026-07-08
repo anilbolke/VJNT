@@ -13,7 +13,7 @@
     }
     
     // Only School Coordinators can access this page
-    if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) {
+    if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
         response.sendRedirect(request.getContextPath() + "/dashboard.jsp");
         return;
     }

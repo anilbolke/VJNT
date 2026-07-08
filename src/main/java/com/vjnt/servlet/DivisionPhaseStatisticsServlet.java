@@ -41,8 +41,8 @@ public class DivisionPhaseStatisticsServlet extends HttpServlet {
         
         User user = (User) session.getAttribute("user");
         
-        // Only Division users can access this
-        if (!user.getUserType().equals(User.UserType.DIVISION)) {
+        // Only Division users (or Super Division Officer) can access this
+        if (!user.getUserType().equals(User.UserType.DIVISION) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             out.print("{\"success\": false, \"message\": \"Access denied. Only Division users can view this data.\"}");
             return;
         }

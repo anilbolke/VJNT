@@ -43,13 +43,21 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
         }
         
         User user = (User) session.getAttribute("user");
-        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR)) {
+        if (!user.getUserType().equals(User.UserType.DISTRICT_COORDINATOR) && !user.getUserType().equals(User.UserType.DISTRICT_2ND_COORDINATOR) &&    !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             response.getWriter().write("{\"success\":false,\"message\":\"Unauthorized access\"}");
             return;
         }
         
         String districtName = user.getDistrictName();
+        // Allow SDO to provide district as parameter to view other districts; if omitted, SDO sees all districts
+        if (user.getUserType() == User.UserType.SUPER_DIVISION_OFFICER) {
+            String requestedDistrict = request.getParameter("district");
+            if (requestedDistrict != null && !requestedDistrict.trim().isEmpty()) {
+                districtName = requestedDistrict;
+            } else {
+                districtName = null; // null indicates no district filter (SDO)
+            }
+        }
         String udiseFilter = request.getParameter("udise");
         String classFilter = request.getParameter("class");
         String sectionFilter = request.getParameter("section");
@@ -85,10 +93,10 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
             
             // First, get total count for pagination
             StringBuilder countSql = new StringBuilder();
-            countSql.append("SELECT COUNT(*) as total ");
-            countSql.append("FROM teacher_assignments ta ");
-            countSql.append("WHERE ta.district = ? AND ta.is_active = 1 ");
-            
+            countSql.append("SELECT COUNT(*) as total FROM teacher_assignments ta WHERE ta.is_active = 1 ");
+            if (districtName != null) {
+                countSql.append("AND ta.district = ? ");
+            }
             if (udiseFilter != null && !udiseFilter.trim().isEmpty()) {
                 countSql.append("AND ta.udise_code = ? ");
             }
@@ -98,11 +106,12 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
             if (sectionFilter != null && !sectionFilter.trim().isEmpty()) {
                 countSql.append("AND ta.section = ? ");
             }
-            
+
             countPstmt = conn.prepareStatement(countSql.toString());
             int countParamIndex = 1;
-            countPstmt.setString(countParamIndex++, districtName);
-            
+            if (districtName != null) {
+                countPstmt.setString(countParamIndex++, districtName);
+            }
             if (udiseFilter != null && !udiseFilter.trim().isEmpty()) {
                 countPstmt.setString(countParamIndex++, udiseFilter);
             }
@@ -112,12 +121,12 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
             if (sectionFilter != null && !sectionFilter.trim().isEmpty()) {
                 countPstmt.setString(countParamIndex++, sectionFilter);
             }
-            
+
             countRs = countPstmt.executeQuery();
             if (countRs.next()) {
                 totalCount = countRs.getInt("total");
             }
-            
+
             // Now get paginated data
             StringBuilder sql = new StringBuilder();
             sql.append("SELECT ta.assignment_id, ta.udise_code, ta.district, ta.division, ");
@@ -126,8 +135,10 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
             sql.append("s.school_name ");
             sql.append("FROM teacher_assignments ta ");
             sql.append("LEFT JOIN schools s ON ta.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci ");
-            sql.append("WHERE ta.district = ? AND ta.is_active = 1 ");
-            
+            sql.append("WHERE ta.is_active = 1 ");
+            if (districtName != null) {
+                sql.append("AND ta.district = ? ");
+            }
             if (udiseFilter != null && !udiseFilter.trim().isEmpty()) {
                 sql.append("AND ta.udise_code = ? ");
             }
@@ -137,14 +148,15 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
             if (sectionFilter != null && !sectionFilter.trim().isEmpty()) {
                 sql.append("AND ta.section = ? ");
             }
-            
+
             sql.append("ORDER BY s.school_name, ta.class, ta.section, ta.teacher_name ");
             sql.append("LIMIT ? OFFSET ?");
-            
+
             pstmt = conn.prepareStatement(sql.toString());
             int paramIndex = 1;
-            pstmt.setString(paramIndex++, districtName);
-            
+            if (districtName != null) {
+                pstmt.setString(paramIndex++, districtName);
+            }
             if (udiseFilter != null && !udiseFilter.trim().isEmpty()) {
                 pstmt.setString(paramIndex++, udiseFilter);
             }
@@ -154,10 +166,10 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
             if (sectionFilter != null && !sectionFilter.trim().isEmpty()) {
                 pstmt.setString(paramIndex++, sectionFilter);
             }
-            
+
             pstmt.setInt(paramIndex++, pageSize);
             pstmt.setInt(paramIndex++, offset);
-            
+
             rs = pstmt.executeQuery();
             
             while (rs.next()) {
@@ -209,3 +221,4 @@ public class GetDistrictTeacherAssignmentsServlet extends HttpServlet {
         }
     }
 }
+

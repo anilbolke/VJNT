@@ -1,4 +1,4 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="true"%>
 <%@ page import="com.vjnt.model.User" %>
 <%
     // Check if user is logged in
@@ -177,14 +177,16 @@
         }
         
         .upload-area {
-            border: 3px dashed #ccc;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
-        }
+		    border: 3px dashed #ccc;
+		    border-radius: 10px;
+		    padding: 40px;
+		    text-align: center;
+		    cursor: pointer;
+		    transition: all 0.3s;
+		    margin-bottom: 20px;
+		    position: relative;
+		    z-index: 100;
+		}
         
         .upload-area:hover {
             border-color: #667eea;
@@ -202,7 +204,12 @@
         }
         
         .file-input {
-            display: none;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            overflow: hidden;
+            pointer-events: none;
         }
         
         .btn-upload {
@@ -292,135 +299,10 @@
             font-family: monospace;
         }
         
-        /* Users Table Styles */
-        .users-section {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        
-        .users-section h2 {
-            color: #000;
-            margin-bottom: 20px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .search-filter {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .search-filter input,
-        .search-filter select {
-            padding: 10px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        .search-filter input:focus,
-        .search-filter select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .users-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            overflow-x: auto;
-            display: block;
-        }
-        
-        .users-table thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .users-table th,
-        .users-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .users-table th {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .users-table tbody tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .users-table td {
-            font-size: 13px;
-            color: #333;
-        }
-        
-        .badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        
-        .badge-admin {
-            background: #ff6b6b;
-            color: white;
-        }
-        
-        .badge-division {
-            background: #4ecdc4;
-            color: white;
-        }
-        
-        .badge-district {
-            background: #95e1d3;
-            color: #333;
-        }
-        
-        .badge-school {
-            background: #f38181;
-            color: white;
-        }
-        
-        .badge-coordinator {
-            background: #aa96da;
-            color: white;
-        }
-        
-        .badge-headmaster {
-            background: #fcbad3;
-            color: #333;
-        }
-        
-        .password-field {
-            font-family: monospace;
-            background: #f8f9fa;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
     </style>
 </head>
 <body>
+<jsp:include page="academic-year-bar.jsp" />
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -436,6 +318,7 @@
                 <!-- Admin Icon and Title Section - END -->
                 <p style="color: #666; margin-top: 5px;">Welcome, <%= user.getFullName() %></p>
             </div>
+            <a href="<%= request.getContextPath() %>/helpdesk.jsp" class="logout-btn" style="background:#667eea;margin-right:8px;">🙋 मदत केंद्र</a>
             <a href="<%= request.getContextPath() %>/logout" class="logout-btn">Logout</a>
         </div>
         
@@ -451,64 +334,93 @@
                 <div style="font-size: 18px; font-weight: 600;">Upload School Master</div>
                 <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">UDISE & School Names</div>
             </a>
-            <a href="<%= request.getContextPath() %>/manage-users.jsp" 
-               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
-                      color: white; text-decoration: none; border-radius: 10px; text-align: center; 
+            <a href="<%= request.getContextPath() %>/manage-users.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
                       transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
-               onmouseover="this.style.transform='translateY(-3px)'" 
+               onmouseover="this.style.transform='translateY(-3px)'"
                onmouseout="this.style.transform='translateY(0)'">
                 <div style="font-size: 36px; margin-bottom: 10px;">👥</div>
                 <div style="font-size: 18px; font-weight: 600;">Manage Users</div>
                 <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Create & Edit Users</div>
             </a>
+            <a href="<%= request.getContextPath() %>/all-users-credentials.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🔑</div>
+                <div style="font-size: 18px; font-weight: 600;">All Users Credentials</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">View Usernames & Passwords</div>
+            </a>
         </div>
-        
-        <!-- All Users Section -->
-        <div class="users-section">
-            <h2>
-                <span>👥</span>
-                <span>All Users - Usernames & Passwords</span>
-            </h2>
-            
-            <div class="search-filter">
-                <input type="text" id="userSearch" placeholder="🔍 Search by username, name, or UDISE..." oninput="filterUsers()">
-                <select id="userTypeFilter" onchange="filterUsers()">
-                    <option value="">All User Types</option>
-                    <option value="DATA_ADMIN">Data Admin</option>
-                    <option value="DIVISION">Division</option>
-                    <option value="DISTRICT">District</option>
-                    <option value="SCHOOL_COORDINATOR">School Coordinator</option>
-                    <option value="HEAD_MASTER">Head Master</option>
-                </select>
-            </div>
-            
-            <div style="overflow-x: auto;">
-                <table class="users-table" id="usersTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Username</th>
-                            <th>Password</th>
-                            <th>Full Name</th>
-                            <th>User Type</th>
-                            <th>Division</th>
-                            <th>District</th>
-                            <th>UDISE</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody">
-                        <tr>
-                            <td colspan="9" class="no-data">
-                                <div style="font-size: 48px; margin-bottom: 15px;">⏳</div>
-                                Loading users...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+
+        <!-- Year-End Actions -->
+        <div style="margin-bottom: 10px; font-size: 13px; font-weight: 700; color: #718096;
+                    text-transform: uppercase; letter-spacing: 1px;">Year-End Actions</div>
+        <div style="margin-bottom: 30px; display: flex; gap: 15px; flex-wrap: wrap;">
+            <a href="<%= request.getContextPath() %>/promote-classes.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #f6ad55 0%, #dd6b20 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🎓</div>
+                <div style="font-size: 18px; font-weight: 600;">Promote Classes</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Advance students to next class</div>
+                <div style="margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;
+                            padding: 3px 10px; font-size: 11px; font-weight: 700; display: inline-block;">
+                    ⚠ Year-End Action
+                </div>
+            </a>
+            <a href="<%= request.getContextPath() %>/promotion-audit.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #48bb78 0%, #276749 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">📋</div>
+                <div style="font-size: 18px; font-weight: 600;">Promotion Audit</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">View all past promotion events</div>
+            </a>
+            <a href="<%= request.getContextPath() %>/graduated-students.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #f6e05e 0%, #d69e2e 100%);
+                      color: #744210; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🏆</div>
+                <div style="font-size: 18px; font-weight: 600;">Graduated Students</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.8;">Permanent Class 9 graduate records</div>
+            </a>
+            <a href="<%= request.getContextPath() %>/student-phase-history.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      color: #fff; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">📋</div>
+                <div style="font-size: 18px; font-weight: 600;">विद्यार्थी टप्पा इतिहास</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.85;">PEN / नावाने मागील सर्व वर्षांचा FLN इतिहास</div>
+            </a>
+            <a href="<%= request.getContextPath() %>/student-activity.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+                      color: #fff; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🏅</div>
+                <div style="font-size: 18px; font-weight: 600;">विद्यार्थी उपक्रम</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">क्रीडा, सांस्कृतिक, शैक्षणिक कामगिरी</div>
+            </a>
         </div>
-        
+
         <!-- Upload Section -->
         <div class="upload-section">
             <h2>📤 Upload Student Data (Excel)</h2>
@@ -566,10 +478,12 @@
         const resultMessage = document.getElementById('resultMessage');
         
         // Click to select file
-        uploadArea.addEventListener('click', () => {
+        uploadArea.addEventListener('click', function(e) {
+            // Prevent recursion: fileInput.click() dispatches a synthetic click
+            // that bubbles back here because fileInput is a child of uploadArea.
+            if (e.target === fileInput) return;
             fileInput.click();
         });
-        
         // File selected
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
@@ -680,121 +594,6 @@
             resultBox.classList.add('show');
         }
         
-        // ===== USERS TABLE FUNCTIONALITY =====
-        let allUsers = [];
-        
-        // Load all users on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            loadAllUsers();
-        });
-        
-        // Fetch all users from server
-        function loadAllUsers() {
-            fetch('<%= request.getContextPath() %>/getAllUsers')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        allUsers = data.users;
-                        displayUsers(allUsers);
-                    } else {
-                        showUsersError('Failed to load users: ' + (data.error || data.message || 'Unknown error'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading users:', error);
-                    showUsersError('Error loading users. Please refresh the page.');
-                });
-        }
-        
-        // Display users in table
-        function displayUsers(users) {
-            const tbody = document.getElementById('usersTableBody');
-            
-            if (!users || users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data"><div style="font-size: 48px; margin-bottom: 15px;">📭</div>No users found</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            users.forEach((user, index) => {
-                const badgeClass = getBadgeClass(user.userType);
-                const statusBadge = user.isActive ? '<span class="badge" style="background: #4caf50; color: white;">Active</span>' : '<span class="badge" style="background: #f44336; color: white;">Locked</span>';
-                
-                html += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td><strong>${escapeHtml(user.username)}</strong></td>
-                        <td><span class="password-field">${escapeHtml(user.password || '******')}</span></td>
-                        <td>${escapeHtml(user.fullName || '-')}</td>
-                        <td><span class="badge ${badgeClass}">${formatUserType(user.userType)}</span></td>
-                        <td>${escapeHtml(user.divisionName || '-')}</td>
-                        <td>${escapeHtml(user.districtName || '-')}</td>
-                        <td>${escapeHtml(user.udiseNo || '-')}</td>
-                        <td>${statusBadge}</td>
-                    </tr>
-                `;
-            });
-            
-            tbody.innerHTML = html;
-        }
-        
-        // Filter users based on search and type
-        function filterUsers() {
-            const searchTerm = document.getElementById('userSearch').value.toLowerCase().trim();
-            const userType = document.getElementById('userTypeFilter').value;
-            
-            let filtered = allUsers;
-            
-            // Filter by user type
-            if (userType) {
-                filtered = filtered.filter(user => user.userType === userType);
-            }
-            
-            // Filter by search term
-            if (searchTerm) {
-                filtered = filtered.filter(user => {
-                    return (user.username && user.username.toLowerCase().includes(searchTerm)) ||
-                           (user.fullName && user.fullName.toLowerCase().includes(searchTerm)) ||
-                           (user.udiseNo && user.udiseNo.toLowerCase().includes(searchTerm)) ||
-                           (user.districtName && user.districtName.toLowerCase().includes(searchTerm)) ||
-                           (user.divisionName && user.divisionName.toLowerCase().includes(searchTerm));
-                });
-            }
-            
-            displayUsers(filtered);
-        }
-        
-        // Get badge class based on user type
-        function getBadgeClass(userType) {
-            const typeMap = {
-                'DATA_ADMIN': 'badge-admin',
-                'DIVISION': 'badge-division',
-                'DISTRICT': 'badge-district',
-                'SCHOOL_COORDINATOR': 'badge-coordinator',
-                'HEAD_MASTER': 'badge-headmaster'
-            };
-            return typeMap[userType] || 'badge-school';
-        }
-        
-        // Format user type for display
-        function formatUserType(userType) {
-            if (!userType) return '-';
-            return userType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        }
-        
-        // Show error in users table
-        function showUsersError(message) {
-            const tbody = document.getElementById('usersTableBody');
-            tbody.innerHTML = `<tr><td colspan="9" class="no-data"><div style="font-size: 48px; margin-bottom: 15px; color: #f44336;">❌</div>${escapeHtml(message)}</td></tr>`;
-        }
-        
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
     </script>
 </body>
 </html>

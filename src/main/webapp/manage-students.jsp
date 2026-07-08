@@ -8,7 +8,8 @@
 <%
     User user = (User) session.getAttribute("user");
     if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
-                         !user.getUserType().equals(User.UserType.HEAD_MASTER))) {
+                         !user.getUserType().equals(User.UserType.HEAD_MASTER) && 
+                         !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
         response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }
@@ -675,6 +676,37 @@
                     <tbody>
                         <%
                         for (com.vjnt.model.Student s : students) {
+                            // Pick level snapshot for the phase being viewed.
+                            // Why: phaseN_* columns are per-phase history; marathi/math/english_akshara_level
+                            // are the latest values, which get overwritten on every phase save.
+                            // Fallback to live value when the phase snapshot is still null (in-progress).
+                            int rowMarathi, rowMath, rowEnglish;
+                            switch (selectedPhase) {
+                                case 1:
+                                    rowMarathi = s.getPhase1Marathi() != null ? s.getPhase1Marathi() : s.getMarathiAksharaLevel();
+                                    rowMath    = s.getPhase1Math()    != null ? s.getPhase1Math()    : s.getMathAksharaLevel();
+                                    rowEnglish = s.getPhase1English() != null ? s.getPhase1English() : s.getEnglishAksharaLevel();
+                                    break;
+                                case 2:
+                                    rowMarathi = s.getPhase2Marathi() != null ? s.getPhase2Marathi() : s.getMarathiAksharaLevel();
+                                    rowMath    = s.getPhase2Math()    != null ? s.getPhase2Math()    : s.getMathAksharaLevel();
+                                    rowEnglish = s.getPhase2English() != null ? s.getPhase2English() : s.getEnglishAksharaLevel();
+                                    break;
+                                case 3:
+                                    rowMarathi = s.getPhase3Marathi() != null ? s.getPhase3Marathi() : s.getMarathiAksharaLevel();
+                                    rowMath    = s.getPhase3Math()    != null ? s.getPhase3Math()    : s.getMathAksharaLevel();
+                                    rowEnglish = s.getPhase3English() != null ? s.getPhase3English() : s.getEnglishAksharaLevel();
+                                    break;
+                                case 4:
+                                    rowMarathi = s.getPhase4Marathi() != null ? s.getPhase4Marathi() : s.getMarathiAksharaLevel();
+                                    rowMath    = s.getPhase4Math()    != null ? s.getPhase4Math()    : s.getMathAksharaLevel();
+                                    rowEnglish = s.getPhase4English() != null ? s.getPhase4English() : s.getEnglishAksharaLevel();
+                                    break;
+                                default:
+                                    rowMarathi = s.getMarathiAksharaLevel();
+                                    rowMath    = s.getMathAksharaLevel();
+                                    rowEnglish = s.getEnglishAksharaLevel();
+                            }
                         %>
                         <tr id="row-<%= s.getStudentId() %>">
                             <td><%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %></td>
@@ -684,39 +716,39 @@
                             <!-- Marathi Levels -->
                             <td>
                                 <select name="marathi_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getMarathiAksharaLevel() == 0 ? "selected" : "" %>>स्थर निश्चित केला नाही</option>
-                                    <option value="1" <%= s.getMarathiAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
-                                    <option value="2" <%= s.getMarathiAksharaLevel() == 2 ? "selected" : "" %>>अक्षर स्तर</option>
-                                    <option value="3" <%= s.getMarathiAksharaLevel() == 3 ? "selected" : "" %>>शब्द स्तर</option>
-                                    <option value="4" <%= s.getMarathiAksharaLevel() == 4 ? "selected" : "" %>>वाक्य स्तर</option>
-                                    <option value="5" <%= s.getMarathiAksharaLevel() == 5 ? "selected" : "" %>>समजपूर्वक उतारा वाचन स्तर</option>
-                                    <option value="6" <%= s.getMarathiAksharaLevel() == 6 ? "selected" : "" %>>मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>
+                                    <option value="0" <%= rowMarathi == 0 ? "selected" : "" %>>स्थर निश्चित केला नाही</option>
+                                    <option value="1" <%= rowMarathi == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
+                                    <option value="2" <%= rowMarathi == 2 ? "selected" : "" %>>अक्षर स्तर</option>
+                                    <option value="3" <%= rowMarathi == 3 ? "selected" : "" %>>शब्द स्तर</option>
+                                    <option value="4" <%= rowMarathi == 4 ? "selected" : "" %>>वाक्य स्तर</option>
+                                    <option value="5" <%= rowMarathi == 5 ? "selected" : "" %>>समजपूर्वक उतारा वाचन स्तर</option>
+                                    <option value="6" <%= rowMarathi == 6 ? "selected" : "" %>>मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>
                                 </select>
                             </td>
                             <!-- Math Levels -->
                             <td>
                                 <select name="math_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getMathAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
-                                    <option value="1" <%= s.getMathAksharaLevel() == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
-                                    <option value="2" <%= s.getMathAksharaLevel() == 2 ? "selected" : "" %>>अंक ज्ञान स्तर</option>
-                                    <option value="3" <%= s.getMathAksharaLevel() == 3 ? "selected" : "" %>>संख्याज्ञान स्तर</option>
-                                    <option value="4" <%= s.getMathAksharaLevel() == 4 ? "selected" : "" %>>बेरीज स्तर</option>
-                                    <option value="5" <%= s.getMathAksharaLevel() == 5 ? "selected" : "" %>>वजाबाकी स्तर</option>
-                                    <option value="6" <%= s.getMathAksharaLevel() == 6 ? "selected" : "" %>>गुणाकार स्तर</option>
-                                    <option value="7" <%= s.getMathAksharaLevel() == 7 ? "selected" : "" %>>भागाकार स्तर</option>
-                                    <option value="8" <%= s.getMathAksharaLevel() == 8 ? "selected" : "" %>>गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>
+                                    <option value="0" <%= rowMath == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
+                                    <option value="1" <%= rowMath == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
+                                    <option value="2" <%= rowMath == 2 ? "selected" : "" %>>अंक ज्ञान स्तर</option>
+                                    <option value="3" <%= rowMath == 3 ? "selected" : "" %>>संख्याज्ञान स्तर</option>
+                                    <option value="4" <%= rowMath == 4 ? "selected" : "" %>>बेरीज स्तर</option>
+                                    <option value="5" <%= rowMath == 5 ? "selected" : "" %>>वजाबाकी स्तर</option>
+                                    <option value="6" <%= rowMath == 6 ? "selected" : "" %>>गुणाकार स्तर</option>
+                                    <option value="7" <%= rowMath == 7 ? "selected" : "" %>>भागाकार स्तर</option>
+                                    <option value="8" <%= rowMath == 8 ? "selected" : "" %>>गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>
                                 </select>
                             </td>
                             <!-- English Levels -->
                             <td>
                                 <select name="english_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
-                                    <option value="0" <%= s.getEnglishAksharaLevel() == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
-                                    <option value="1" <%= s.getEnglishAksharaLevel() == 1 ? "selected" : "" %>>Beginner level</option>
-                                    <option value="2" <%= s.getEnglishAksharaLevel() == 2 ? "selected" : "" %>>Alphabet level</option>
-                                    <option value="3" <%= s.getEnglishAksharaLevel() == 3 ? "selected" : "" %>>Word level</option>
-                                    <option value="4" <%= s.getEnglishAksharaLevel() == 4 ? "selected" : "" %>>Sentence level</option>
-                                    <option value="5" <%= s.getEnglishAksharaLevel() == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
-                                    <option value="6" <%= s.getEnglishAksharaLevel() == 6 ? "selected" : "" %>>English reading and writing FLN level 100% complete</option>
+                                    <option value="0" <%= rowEnglish == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
+                                    <option value="1" <%= rowEnglish == 1 ? "selected" : "" %>>Beginner level</option>
+                                    <option value="2" <%= rowEnglish == 2 ? "selected" : "" %>>Alphabet level</option>
+                                    <option value="3" <%= rowEnglish == 3 ? "selected" : "" %>>Word level</option>
+                                    <option value="4" <%= rowEnglish == 4 ? "selected" : "" %>>Sentence level</option>
+                                    <option value="5" <%= rowEnglish == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
+                                    <option value="6" <%= rowEnglish == 6 ? "selected" : "" %>>English reading and writing FLN level 100% complete</option>
                                 </select>
                             </td>
                             <td style="text-align: center;">
@@ -871,9 +903,36 @@
         
         // Load all students data into JavaScript for filtering
         var allStudentsData = [
-            <% 
+            <%
             for (int i = 0; i < allStudents.size(); i++) {
                 com.vjnt.model.Student s = allStudents.get(i);
+                int fMarathi, fMath, fEnglish;
+                switch (selectedPhase) {
+                    case 1:
+                        fMarathi = s.getPhase1Marathi() != null ? s.getPhase1Marathi() : s.getMarathiAksharaLevel();
+                        fMath    = s.getPhase1Math()    != null ? s.getPhase1Math()    : s.getMathAksharaLevel();
+                        fEnglish = s.getPhase1English() != null ? s.getPhase1English() : s.getEnglishAksharaLevel();
+                        break;
+                    case 2:
+                        fMarathi = s.getPhase2Marathi() != null ? s.getPhase2Marathi() : s.getMarathiAksharaLevel();
+                        fMath    = s.getPhase2Math()    != null ? s.getPhase2Math()    : s.getMathAksharaLevel();
+                        fEnglish = s.getPhase2English() != null ? s.getPhase2English() : s.getEnglishAksharaLevel();
+                        break;
+                    case 3:
+                        fMarathi = s.getPhase3Marathi() != null ? s.getPhase3Marathi() : s.getMarathiAksharaLevel();
+                        fMath    = s.getPhase3Math()    != null ? s.getPhase3Math()    : s.getMathAksharaLevel();
+                        fEnglish = s.getPhase3English() != null ? s.getPhase3English() : s.getEnglishAksharaLevel();
+                        break;
+                    case 4:
+                        fMarathi = s.getPhase4Marathi() != null ? s.getPhase4Marathi() : s.getMarathiAksharaLevel();
+                        fMath    = s.getPhase4Math()    != null ? s.getPhase4Math()    : s.getMathAksharaLevel();
+                        fEnglish = s.getPhase4English() != null ? s.getPhase4English() : s.getEnglishAksharaLevel();
+                        break;
+                    default:
+                        fMarathi = s.getMarathiAksharaLevel();
+                        fMath    = s.getMathAksharaLevel();
+                        fEnglish = s.getEnglishAksharaLevel();
+                }
             %>
             {
                 id: <%= s.getStudentId() %>,
@@ -881,9 +940,9 @@
                 name: '<%= s.getStudentName().replace("'", "\\'") %>',
                 studentClass: '<%= s.getStudentClass() %>',
                 section: '<%= s.getSection() != null ? s.getSection() : "" %>',
-                marathiLevel: <%= s.getMarathiAksharaLevel() %>,
-                mathLevel: <%= s.getMathAksharaLevel() %>,
-                englishLevel: <%= s.getEnglishAksharaLevel() %>
+                marathiLevel: <%= fMarathi %>,
+                mathLevel: <%= fMath %>,
+                englishLevel: <%= fEnglish %>
             }<%= i < allStudents.size() - 1 ? "," : "" %>
             <% } %>
         ];

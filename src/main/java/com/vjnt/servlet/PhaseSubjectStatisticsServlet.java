@@ -40,8 +40,7 @@ public class PhaseSubjectStatisticsServlet extends HttpServlet {
         User user = (User) session.getAttribute("user");
         
         // Only School Coordinators and Head Masters can access this
-        if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && 
-            !user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.HEAD_MASTER) &&                    !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
             out.print("{\"success\": false, \"message\": \"Access denied. Only School Coordinators and Head Masters can view this data.\"}");
             return;
         }
@@ -72,3 +71,4 @@ public class PhaseSubjectStatisticsServlet extends HttpServlet {
         }
     }
 }
+

@@ -191,7 +191,7 @@ public class DivisionStudentLevelsPercentageServlet extends HttpServlet {
             sql.append("COUNT(CASE WHEN ").append(mathCol).append(" IS NOT NULL AND ").append(mathCol).append(" > 0 THEN 1 END) as math_student_count, ");
             sql.append("COUNT(CASE WHEN ").append(englishCol).append(" IS NOT NULL AND ").append(englishCol).append(" > 0 THEN 1 END) as english_student_count ");
             sql.append("FROM students s ");
-            sql.append("LEFT JOIN schools sch ON s.udise_no = sch.udise_no ");
+            sql.append("LEFT JOIN schools sch ON s.udise_no = sch.udise_no COLLATE utf8mb4_unicode_ci ");
             sql.append("WHERE s.division = ? AND s.district = ? AND s.is_active = 1 ");
             sql.append("GROUP BY s.udise_no, sch.school_name, s.district ");
             sql.append("ORDER BY sch.school_name");

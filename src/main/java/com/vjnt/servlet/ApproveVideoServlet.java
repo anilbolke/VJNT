@@ -50,7 +50,7 @@ public class ApproveVideoServlet extends HttpServlet {
             User user = (User) session.getAttribute("user");
             
             // Only headmasters can approve videos
-            if (user.getUserType() != User.UserType.HEAD_MASTER) {
+            if (user.getUserType() != User.UserType.HEAD_MASTER && user.getUserType() != User.UserType.SUPER_DIVISION_OFFICER) {
                 result.put("success", false);
                 result.put("message", "Access denied. Only headmasters can approve videos.");
                 out.print(gson.toJson(result));
@@ -204,3 +204,4 @@ public class ApproveVideoServlet extends HttpServlet {
         }
     }
 }
+

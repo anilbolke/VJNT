@@ -37,7 +37,7 @@ public class UpdateTeacherAssignmentServlet extends HttpServlet {
             }
             
             User user = (User) session.getAttribute("user");
-            if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) {
+            if (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER)) {
                 jsonResponse.append("{\"success\":false,\"message\":\"Unauthorized access.\"}");
                 out.print(jsonResponse.toString());
                 return;
