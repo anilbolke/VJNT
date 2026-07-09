@@ -10,16 +10,16 @@ import java.util.Date;
 /**
  * Bunny CDN Service - Upload, download, and delete videos from Bunny CDN Storage
  * 
- * Storage Zone: vjnt-student-videos
- * Pull Zone: https://vjnt-videos-cdn.b-cdn.net/
+ * Storage Zone: vjnt-student1-videos
+ * Pull Zone: https://vjnt-student1-videos.b-cdn.net/
  */
 public class BunnyCDNService {
     
-    // Bunny CDN Configuration
-    private static final String STORAGE_ZONE_NAME = "vjnt-student-videos";
-    private static final String API_KEY = "1806b190-51f1-4f09-8b27bb22aaa8-ec16-4c84";
-    private static final String PULL_ZONE_URL = "https://vjnt-videos-cdn.b-cdn.net";
-    private static final String STORAGE_API_URL = "https://sg.storage.bunnycdn.com"; // Singapore region
+    // Bunny CDN Configuration - loaded from bunnycdn.properties via BunnyCDNConfig
+    private static final String STORAGE_ZONE_NAME = BunnyCDNConfig.getStorageZoneName();
+    private static final String API_KEY = BunnyCDNConfig.getStoragePassword();
+    private static final String PULL_ZONE_URL = BunnyCDNConfig.getPullZoneUrl(); // Public CDN pull zone
+    private static final String STORAGE_API_URL = BunnyCDNConfig.getStorageApiUrl();
     
     // Video storage path pattern: /videos/{year}/{month}/{udise}/{filename}
     private static final String VIDEO_PATH_FORMAT = "videos/%s/%s/%s";

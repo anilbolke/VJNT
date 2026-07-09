@@ -86,7 +86,7 @@ public class GetPendingVideosServlet extends HttpServlet {
         List<Map<String, Object>> videos = new ArrayList<>();
         
         String sql = "SELECT sv.video_id, sv.student_id, s.student_name, s.student_pen, " +
-                     "sv.subject, sv.month, sv.has_progress, sv.file_path, sv.thumbnail_url, " +
+                     "sv.subject, sv.month, sv.phase_number, sv.has_progress, sv.file_path, sv.thumbnail_url, " +
                      "sv.original_file_name, sv.file_size, sv.uploaded_by, sv.uploaded_by_name, " +
                      "sv.upload_date, sv.approval_status " +
                      "FROM student_videos sv " +
@@ -112,6 +112,8 @@ public class GetPendingVideosServlet extends HttpServlet {
                 video.put("studentPen", rs.getString("student_pen"));
                 video.put("subject", rs.getString("subject"));
                 video.put("month", rs.getString("month"));
+                int phaseNumber = rs.getInt("phase_number");
+                video.put("phaseNumber", rs.wasNull() ? null : phaseNumber);
                 video.put("hasProgress", rs.getString("has_progress"));
                 video.put("filePath", rs.getString("file_path"));
                 video.put("thumbnailUrl", rs.getString("thumbnail_url"));

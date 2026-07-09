@@ -4,22 +4,24 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import com.vjnt.util.BunnyCDNConfig;
+
 /**
- * Quick test to verify Bunny CDN credentials
+ * Quick test to verify Bunny CDN credentials (reads from bunnycdn.properties via BunnyCDNConfig)
  */
 public class BunnyCDNTest {
-    
+
     public static void main(String[] args) {
-        String storageZone = "vjnt-student-videos";
-        String apiKey = "1806b190-51f1-4f09-8b27bb22aaa8-ec16-4c84";
-        
+        String storageZone = BunnyCDNConfig.getStorageZoneName();
+        String apiKey = BunnyCDNConfig.getStoragePassword();
+
         try {
             //System.out.println("=== Testing Bunny CDN Connection ===");
             //System.out.println("Storage Zone: " + storageZone);
             //System.out.println("API Key: " + apiKey.substring(0, 8) + "..." + apiKey.substring(apiKey.length() - 4));
-            
+
             // Test URL: upload a simple test file - USE SINGAPORE REGION
-            String testUrl = "https://sg.storage.bunnycdn.com/" + storageZone + "/test.txt";
+            String testUrl = BunnyCDNConfig.getStorageApiUrl() + "/" + storageZone + "/test.txt";
             //System.out.println("Test URL: " + testUrl);
             
             URL url = new URL(testUrl);
@@ -51,7 +53,7 @@ public class BunnyCDNTest {
                 //System.out.println("\n✓✓✓ SUCCESS! ✓✓✓");
                 //System.out.println("Credentials are working correctly!");
                 //System.out.println("\nYour test file is now available at:");
-                //System.out.println("https://vjnt-videos-cdn.b-cdn.net/test.txt");
+                //System.out.println(BunnyCDNConfig.getPullZoneUrl() + "/test.txt");
                 //System.out.println("\nThe video upload should work now.");
             } else {
                 System.err.println("\n✗✗✗ FAILED! ✗✗✗");

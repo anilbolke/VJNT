@@ -339,12 +339,11 @@
                                     <p class="text-muted">PEN: ${video.studentPen}</p>
                                     
                                     <div class="mb-3">
-                                        <span class="student-badge">
-                                            <i class="fas fa-book"></i> ${video.subject}
-                                        </span>
-                                        <span class="student-badge">
-                                            <i class="fas fa-calendar"></i> ${video.month}
-                                        </span>
+                                        ${video.phaseNumber ?
+                                            '<span class="student-badge"><i class="fas fa-flag-checkered"></i> Phase ' + video.phaseNumber + '</span>' :
+                                            '<span class="student-badge"><i class="fas fa-book"></i> ' + video.subject + '</span>' +
+                                            '<span class="student-badge"><i class="fas fa-calendar"></i> ' + video.month + '</span>'
+                                        }
                                         <span class="status-badge status-pending">
                                             <i class="fas fa-clock"></i> PENDING
                                         </span>
