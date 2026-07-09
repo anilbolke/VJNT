@@ -289,10 +289,8 @@
 
         // ---------- Phase Video Upload ----------
 
-        // TEMPORARY: lets teachers upload without the phase being approved by
-        // the Head Master first, so the upload button can be tested end-to-end.
-        // Set back to false to require phase approval before unlocking upload.
-        const TESTING_BYPASS_PHASE_LOCK = true;
+        // Upload stays locked until the Head Master approves the phase.
+        const TESTING_BYPASS_PHASE_LOCK = false;
 
         function phaseStateFor(studentId, phase) {
             const approvalStatus = phaseApprovals[String(phase)];

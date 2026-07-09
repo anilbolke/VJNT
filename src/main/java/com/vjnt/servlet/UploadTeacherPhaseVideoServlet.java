@@ -27,10 +27,9 @@ import com.vjnt.util.DatabaseConnection;
  * Lets a TEACHER upload exactly one video per Phase (1-4) for each student
  * mapped to them. Upload for a phase is only allowed once the Head Master
  * has approved that phase (phase_approvals.approval_status = 'APPROVED',
- * school-wide by udise_no). Teacher uploads normally land as PENDING and
- * require Head Master approval (same review queue used for coordinator
- * uploads: GetPendingVideosServlet / ApproveVideoServlet) - see
- * {@link #AUTO_APPROVE_FOR_TESTING} for the current temporary override.
+ * school-wide by udise_no). Teacher uploads land as PENDING and require
+ * Head Master approval (same review queue used for coordinator uploads:
+ * GetPendingVideosServlet / ApproveVideoServlet).
  *
  * A REJECTED video for a student+phase may be re-uploaded (replaces the
  * rejected row). A PENDING or APPROVED video for that student+phase blocks
@@ -46,14 +45,11 @@ public class UploadTeacherPhaseVideoServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
-    // TEMPORARY: skips Head Master review so uploads can be tested end-to-end.
-    // Flip back to false to require approval before videos become visible.
-    private static final boolean AUTO_APPROVE_FOR_TESTING = true;
+    // Head Master review is required before an uploaded video becomes visible.
+    private static final boolean AUTO_APPROVE_FOR_TESTING = false;
 
-    // TEMPORARY: skips the "phase must be approved by Head Master" upload gate
-    // so the upload button can be exercised without seeded phase_approvals data.
-    // Flip back to false to require phase approval before allowing upload.
-    private static final boolean SKIP_PHASE_LOCK_FOR_TESTING = true;
+    // Upload is locked until the Head Master has approved the phase.
+    private static final boolean SKIP_PHASE_LOCK_FOR_TESTING = false;
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
