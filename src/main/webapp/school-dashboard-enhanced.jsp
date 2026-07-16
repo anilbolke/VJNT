@@ -21,7 +21,19 @@
     
     StudentDAO studentDAO = new StudentDAO();
     SchoolDAO schoolDAO = new SchoolDAO();
-    
+
+    // Division-wise activity visibility (managed by Data Admin).
+    // Applies to School Coordinator Quick Actions only; empty set = show everything.
+    Set<String> hiddenActivities = new HashSet<>();
+    if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) {
+        try {
+            hiddenActivities = new com.vjnt.dao.ActivityVisibilityDAO()
+                    .getHiddenCodesForUdise(user.getUdiseNo());
+        } catch (Exception avEx) {
+            hiddenActivities = new HashSet<>(); // fail-open: never block the dashboard
+        }
+    }
+
     // Fetch active notifications for this school
     List<Map<String, Object>> notifications = new ArrayList<>();
     Connection conn = null;
@@ -3027,12 +3039,14 @@
             <div class="grid-3">
                 <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
                 <!-- 1. Manage Students - DISABLED -->
+                <% if (!hiddenActivities.contains("MANAGE_STUDENTS")) { %>
                  <a href="<%= request.getContextPath() %>/manage-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📚</div>
                     <div class="quick-action-title">Manage Students</div>
                     <div class="quick-action-subtitle">विद्यार्थी स्तर निश्चिती</div>
                     <div class="quick-action-desc">Complete student management with view, edit, delete options. Search, filter, and export student data.</div>
                 </a>
+                <% } %>
                 
                 <!-- 2. View All Student Data - ENABLED -->
               <%--   <a href="<%= request.getContextPath() %>/view-all-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -3043,59 +3057,73 @@
                 </a>
                  --%>
                 <!-- 3. Palak Melava - ENABLED -->
+                <% if (!hiddenActivities.contains("PALAK_MELAVA")) { %>
                 <a href="<%= request.getContextPath() %>/palak-melava.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👥</div>
                     <div class="quick-action-title">Parents Meeting</div>
                     <div class="quick-action-subtitle">पालक मेळावा</div>
                     <div class="quick-action-desc">Register parent meetings, upload photos, and manage approvals. Track all Palak Melava activities.</div>
-                </a> 
+                </a>
+                <% } %>
                 
                 <!-- 4. Add Student - DISABLED -->
+                <% if (!hiddenActivities.contains("ADD_STUDENT")) { %>
                  <a href="<%= request.getContextPath() %>/add-modify-student.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">➕</div>
                     <div class="quick-action-title">Add Student</div>
                     <div class="quick-action-subtitle">विद्यार्थी जोडा</div>
                     <div class="quick-action-desc">Add new student records with personal, academic details and language proficiency information.</div>
                 </a>
-                
+                <% } %>
+
                 <!-- 5. Add Teacher - ENABLED -->
+                <% if (!hiddenActivities.contains("ADD_TEACHER")) { %>
                 <a href="javascript:void(0);" onclick="openAddTeacherModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👨‍🏫</div>
                     <div class="quick-action-title">Add Teacher</div>
                     <div class="quick-action-subtitle">शिक्षक जोडा</div>
                     <div class="quick-action-desc">Add new teacher with name, contact details, subjects taught, and additional information.</div>
                 </a>
-                
+                <% } %>
+
                 <!-- 6. Edit Student - DISABLED -->
+                <% if (!hiddenActivities.contains("EDIT_STUDENT")) { %>
                <a href="<%= request.getContextPath() %>/select-student-to-edit.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">✏️</div>
                     <div class="quick-action-title">Edit Student</div>
                     <div class="quick-action-subtitle">विद्यार्थी संपादित करा</div>
                     <div class="quick-action-desc">Modify existing student information. Select a student from the list and update their details.</div>
                 </a>
-                
+                <% } %>
+
                 <!-- 7. Manage Teachers - ENABLED -->
+                <% if (!hiddenActivities.contains("MANAGE_TEACHERS")) { %>
                 <a href="<%= request.getContextPath() %>/manage-teachers.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">👨‍🏫</div>
                     <div class="quick-action-title">Manage Teachers</div>
                     <div class="quick-action-subtitle">शिक्षक व्यवस्थापन</div>
                     <div class="quick-action-desc">View, edit, and manage all teachers. Search by name, mobile, or subject. Update details and assignments.</div>
                 </a>
-                
+                <% } %>
+
                 <!-- 8. Assign Teacher to Class - ENABLED -->
+                <% if (!hiddenActivities.contains("ASSIGN_TEACHER")) { %>
                 <a href="<%= request.getContextPath() %>/assign-teacher.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📋</div>
                     <div class="quick-action-title">Class teacher / Subject teacher assignment</div>
                     <div class="quick-action-subtitle">(वर्ग शिक्षक / विषय शिक्षक निश्चिती)</div>
                     <div class="quick-action-desc">Assign teachers to specific classes, sections and subjects. Manage teacher assignments and schedules.</div>
                 </a>
-                
+                <% } %>
+
+                <% if (!hiddenActivities.contains("OTHER_SCHOOL_ACTIVITY")) { %>
                  <a href="<%= request.getContextPath() %>/other-school-activity.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🎯</div>
                     <div class="quick-action-title">Other School Activity</div>
                     <div class="quick-action-subtitle">इतर शालेय उपक्रम</div>
                     <div class="quick-action-desc">Record other school activities with date, subject, guests, description, photos and video link. Requires headmaster approval.</div>
                 </a>
+                <% } %>
                 
                   <!-- <a href="javascript:void(0);" onclick="openVideoUploadModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🎥</div>
@@ -3104,30 +3132,38 @@
                     <div class="quick-action-desc">Upload student progress videos. Select student, subject, month and track their development journey.</div>
                 </a>  -->
                 
+                <% if (!hiddenActivities.contains("VIEW_STUDENT_DATA")) { %>
                  <a href="<%= request.getContextPath() %>/view-student-data.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">View All Student Data</div>
                     <div class="quick-action-subtitle">सर्व विद्यार्थी डेटा</div>
                     <div class="quick-action-desc">Display all student information registered against this UDISE number with filtering and search capabilities.</div>
                 </a>
+                <% } %>
+                <% if (!hiddenActivities.contains("STUDENT_PHASE_HISTORY")) { %>
                 <a href="<%= request.getContextPath() %>/student-phase-history.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📋</div>
                     <div class="quick-action-title">विद्यार्थी टप्पा इतिहास</div>
                     <div class="quick-action-subtitle">मागील वर्षांचा FLN इतिहास</div>
                     <div class="quick-action-desc">पदोन्नतीनंतर विद्यार्थ्याचे सर्व मागील वर्षांचे टप्पा १–४ तपशील PEN क्रमांकाने शोधा.</div>
                 </a>
+                <% } %>
+                <% if (!hiddenActivities.contains("STUDENT_ACTIVITY")) { %>
                 <a href="<%= request.getContextPath() %>/student-activity.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🏅</div>
                     <div class="quick-action-title">विद्यार्थी उपक्रम</div>
                     <div class="quick-action-subtitle">Student Activities</div>
                     <div class="quick-action-desc">विद्यार्थ्यांचे क्रीडा, सांस्कृतिक, शैक्षणिक, विज्ञान उपक्रम व कामगिरी नोंदवा. फोटोसह.</div>
                 </a>
+                <% } %>
+                <% if (!hiddenActivities.contains("GRADUATED_STUDENTS")) { %>
                 <a href="<%= request.getContextPath() %>/graduated-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🎓</div>
                     <div class="quick-action-title">उत्तीर्ण विद्यार्थी</div>
                     <div class="quick-action-subtitle">Graduated Students</div>
                     <div class="quick-action-desc">इयत्ता IX पूर्ण करून उत्तीर्ण झालेल्या विद्यार्थ्यांची यादी पाहा.</div>
                 </a>
+                <% } %>
                 
                 <!-- 12. VIEW UPLOADED VIDEOS - ENABLED -->
                <!--  <a href="javascript:void(0);" onclick="openUploadedVideosModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -3136,20 +3172,24 @@
                     <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
                     <div class="quick-action-desc">View all uploaded student progress videos. Filter by subject, month, student and track learning progress with video playback.</div>
                 </a> -->
+                <% if (!hiddenActivities.contains("FLN_COMPLETED")) { %>
                  <a href="<%= request.getContextPath() %>/fln-completed-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🏆</div>
                     <div class="quick-action-title">FLN Completed Students</div>
                     <div class="quick-action-subtitle">FLN 100% पूर्ण विद्यार्थी</div>
                     <div class="quick-action-desc">View students who achieved 100% FLN in all subjects (Marathi=6, Math=8, English=6). These students are excluded from phase activities.</div>
                 </a>
+                <% } %>
                 <!-- 9. Student Comprehensive Report (School Coordinator) - ENABLED -->
                 <% if (user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR)) { %>
+                <% if (!hiddenActivities.contains("GENERATE_STUDENT_REPORT")) { %>
                   <a href="<%= request.getContextPath() %>/student-comprehensive-report-new.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">📊</div>
                     <div class="quick-action-title">Generate Student Report</div>
                     <div class="quick-action-subtitle">विद्यार्थी अहवाल तयार करा</div>
                     <div class="quick-action-desc">Request comprehensive student reports with academic data, activities, and progress tracking. Submit for headmaster approval.</div>
-                </a>  
+                </a>
+                <% } %>
                 
                 <!-- 10. Phase-wise Subject Statistics - ENABLED -->
                 <%-- <a href="<%= request.getContextPath() %>/phase-statistics.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -4597,5 +4637,6 @@
         });
     </script>
         
+<jsp:include page="chatbot-widget.jsp" />
 </body>
 </html>

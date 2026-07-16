@@ -331,5 +331,6 @@
             </div>
         </div>
     </div>
+<jsp:include page="chatbot-widget.jsp" />
 </body>
 </html>

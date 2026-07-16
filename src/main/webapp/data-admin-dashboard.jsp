@@ -354,6 +354,16 @@
                 <div style="font-size: 18px; font-weight: 600;">All Users Credentials</div>
                 <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">View Usernames & Passwords</div>
             </a>
+            <a href="<%= request.getContextPath() %>/manage-activity-visibility.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #38b2ac 0%, #234e52 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🗂️</div>
+                <div style="font-size: 18px; font-weight: 600;">Activity Visibility</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Division-wise School Coordinator activities</div>
+            </a>
         </div>
 
         <!-- Year-End Actions -->
@@ -595,5 +605,6 @@
         }
         
     </script>
+<jsp:include page="chatbot-widget.jsp" />
 </body>
 </html>

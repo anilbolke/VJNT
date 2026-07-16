@@ -2510,5 +2510,6 @@
             filterSubjectLevelTable();
         }
     </script>
+<jsp:include page="chatbot-widget.jsp" />
 </body>
 </html>

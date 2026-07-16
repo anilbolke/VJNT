@@ -3540,6 +3540,7 @@
             document.getElementById('teacherModalSearchInput').value = '';
         }
     </script>
+<jsp:include page="chatbot-widget.jsp" />
 </body>
 </html>
 
