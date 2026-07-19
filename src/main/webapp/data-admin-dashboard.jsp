@@ -429,6 +429,37 @@
                 <div style="font-size: 18px; font-weight: 600;">विद्यार्थी उपक्रम</div>
                 <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">क्रीडा, सांस्कृतिक, शैक्षणिक कामगिरी</div>
             </a>
+            <a href="<%= request.getContextPath() %>/admin-sql-console.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+                      color: #fff; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🛠️</div>
+                <div style="font-size: 18px; font-weight: 600;">SQL Console</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.85;">Run database scripts (Admin only)</div>
+            </a>
+        </div>
+
+        <!-- Application Settings -->
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+            <h2 style="color:#000; margin-bottom: 12px;">⚙️ Teacher Student Assignment Setting</h2>
+            <p style="color:#666; font-size: 13px; margin-bottom: 15px;">
+                प्रत्येक शिक्षकाला प्रति विषय वर्गातील किती टक्के विद्यार्थी नियुक्त करायचे ते ठरवा (फक्त स्तर १ ते ४ मधील विद्यार्थी नियुक्त होतात).<br>
+                Percentage of a class's students assigned to each teacher per subject. Only students at subject level 1&ndash;4 are assigned.
+            </p>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <label for="mapPercentInput" style="font-weight: 600; color:#333;">Students per class per subject:</label>
+                <input type="number" id="mapPercentInput" min="1" max="100" step="1" value="25"
+                       style="width: 90px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; text-align: center;">
+                <span style="font-weight:600; color:#333;">%</span>
+                <button type="button" id="mapPercentSaveBtn" onclick="saveMapPercent()"
+                        style="padding: 10px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    💾 Save
+                </button>
+                <span id="mapPercentMsg" style="font-size: 13px;"></span>
+            </div>
         </div>
 
         <!-- Upload Section -->
@@ -472,8 +503,64 @@
     </div>
     
     <script>
+        // ---------- Teacher student assignment percentage setting ----------
+        const settingsUrl = '<%= request.getContextPath() %>/admin-settings';
+
+        function loadMapPercent() {
+            fetch(settingsUrl)
+                .then(r => r.json())
+                .then(data => {
+                    if (typeof data.teacherStudentMapPercent === 'number') {
+                        document.getElementById('mapPercentInput').value = data.teacherStudentMapPercent;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function saveMapPercent() {
+            const input = document.getElementById('mapPercentInput');
+            const msg = document.getElementById('mapPercentMsg');
+            const btn = document.getElementById('mapPercentSaveBtn');
+            const percent = parseInt(input.value, 10);
+
+            if (isNaN(percent) || percent < 1 || percent > 100) {
+                msg.style.color = '#c62828';
+                msg.textContent = 'Enter a percentage between 1 and 100';
+                return;
+            }
+
+            btn.disabled = true;
+            msg.style.color = '#666';
+            msg.textContent = 'Saving...';
+
+            fetch(settingsUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ teacherStudentMapPercent: percent })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    msg.style.color = '#2e7d32';
+                    msg.textContent = '✔ Saved (' + data.teacherStudentMapPercent + '%)';
+                } else {
+                    msg.style.color = '#c62828';
+                    msg.textContent = data.error || 'Save failed';
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                msg.style.color = '#c62828';
+                msg.textContent = 'Save failed: ' + err;
+            });
+        }
+
+        loadMapPercent();
+
+        // ---------- Student data upload ----------
         let selectedFile = null;
-        
+
         // Get elements
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
