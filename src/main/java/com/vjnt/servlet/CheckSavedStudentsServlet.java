@@ -53,7 +53,11 @@ public class CheckSavedStudentsServlet extends HttpServlet {
         JSONArray savedStudents = new JSONArray();
         
         try (Connection conn = DatabaseConnection.getConnection()) {
-            // Query to get all students who have non-null values for the specified phase
+            // Query to get all students actually saved for the specified phase.
+            // phase{N}_date is the authoritative "a teacher saved this" marker:
+            // saveStudentPhaseData() always writes date = NOW(), while promotion
+            // seeds phase1 levels from the previous year with phase1_date = NULL.
+            // Keying off the level columns would flag every promoted student as saved.
             String sql = "SELECT student_id, " +
                         "phase" + phase + "_marathi, " +
                         "phase" + phase + "_math, " +
@@ -62,9 +66,7 @@ public class CheckSavedStudentsServlet extends HttpServlet {
                         "FROM students " +
                         "WHERE udise_no = ? " +
                         "AND is_active = 1 " +
-                        "AND (phase" + phase + "_marathi IS NOT NULL " +
-                        "     OR phase" + phase + "_math IS NOT NULL " +
-                        "     OR phase" + phase + "_english IS NOT NULL)";
+                        "AND phase" + phase + "_date IS NOT NULL";
             
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, udiseNo);
