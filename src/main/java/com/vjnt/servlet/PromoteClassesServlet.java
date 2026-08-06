@@ -2,6 +2,7 @@ package com.vjnt.servlet;
 
 import com.vjnt.model.User;
 import com.vjnt.util.DatabaseConnection;
+import com.vjnt.util.PromotionClassRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -18,40 +19,58 @@ import java.sql.*;
 @WebServlet("/promote-classes")
 public class PromoteClassesServlet extends HttpServlet {
 
-    // Classes are stored as Roman numerals (I, II, … IX).
-    // These CASE expressions handle both Roman and Arabic numerals defensively.
+    // Classes are stored as Roman numerals (I, II, … IX) but Arabic numerals also occur,
+    // so every rule below normalises both forms. See PromotionClassRules.
+    //
+    // The graduating class is NOT global. It used to be the constant ('IX','9'), which silently
+    // promoted the top class of every school that ends at V/VII/VIII into a class that does not
+    // exist there. It is now resolved per school from schools.max_class, falling back to the
+    // highest class that school actually has students in.
 
-    /** SQL CASE: maps current class → next class (for classes I–VIII / 1–8) */
-    private static final String CLASS_NEXT_CASE =
-        "CASE class " +
-        "WHEN 'I'    THEN 'II'   WHEN 'II'   THEN 'III'  WHEN 'III'  THEN 'IV' " +
-        "WHEN 'IV'   THEN 'V'    WHEN 'V'    THEN 'VI'   WHEN 'VI'   THEN 'VII' " +
-        "WHEN 'VII'  THEN 'VIII' WHEN 'VIII' THEN 'IX' " +
-        "WHEN '1' THEN '2' WHEN '2' THEN '3' WHEN '3' THEN '4' WHEN '4' THEN '5' " +
-        "WHEN '5' THEN '6' WHEN '6' THEN '7' WHEN '7' THEN '8' WHEN '8' THEN '9' " +
-        "ELSE class END";
+    /** SQL CASE: current class → next class. */
+    private static final String CLASS_NEXT_CASE = PromotionClassRules.nextClassCase("s.class");
 
-    /** SQL CASE: maps current class → class_after label (IX/9 → 'GRADUATED') */
+    /** SQL CASE: current class → class_after label, 'GRADUATED' at that school's terminal class. */
     private static final String CLASS_AFTER_CASE =
-        "CASE class " +
-        "WHEN 'I'    THEN 'II'        WHEN 'II'   THEN 'III'       WHEN 'III'  THEN 'IV' " +
-        "WHEN 'IV'   THEN 'V'         WHEN 'V'    THEN 'VI'        WHEN 'VI'   THEN 'VII' " +
-        "WHEN 'VII'  THEN 'VIII'      WHEN 'VIII' THEN 'IX'        WHEN 'IX'   THEN 'GRADUATED' " +
-        "WHEN '1' THEN '2' WHEN '2' THEN '3' WHEN '3' THEN '4' WHEN '4' THEN '5' " +
-        "WHEN '5' THEN '6' WHEN '6' THEN '7' WHEN '7' THEN '8' WHEN '8' THEN '9' " +
-        "WHEN '9' THEN 'GRADUATED' " +
-        "ELSE class END";
+        PromotionClassRules.classAfterCase("s.class", "t.terminal_rank");
 
-    /** IN list for classes that should be promoted (not the final class) */
-    private static final String PROMOTE_CLASS_IN =
-        "('I','II','III','IV','V','VI','VII','VIII','1','2','3','4','5','6','7','8')";
+    /** SQL predicate: sits at or above their school's terminal class. */
+    private static final String IS_GRADUATING =
+        PromotionClassRules.isGraduating("s.class", "t.terminal_rank");
 
-    /** IN list for the graduating (final) class */
-    private static final String GRAD_CLASS_IN = "('IX','9')";
+    /** SQL predicate: below their school's terminal class. */
+    private static final String IS_PROMOTING =
+        PromotionClassRules.isPromoting("s.class", "t.terminal_rank");
 
-    /** IN list for promoted result classes (used for count query after promotion) */
-    private static final String PROMOTED_RESULT_IN =
-        "('II','III','IV','V','VI','VII','VIII','IX','2','3','4','5','6','7','8','9')";
+    /**
+     * Snapshot of each school's terminal rank, taken once before any write.
+     *
+     * This MUST be materialised rather than joined as a live subquery. The derived fallback in
+     * TERMINAL reads MAX(rank) over ACTIVE students, and Step 4b deactivates exactly those
+     * top-class students — so a live subquery would see the terminal class drop one rung
+     * mid-transaction and Step 5 would then graduate the next class down as well, cascading.
+     */
+    private static final String TERMINAL_TMP = "tmp_promotion_terminal";
+
+    /** Materialise the per-school terminal rank into a connection-scoped temporary table. */
+    private static void snapshotTerminals(Connection conn) throws SQLException {
+        String terminal = PromotionClassRules.terminalSubquery(
+                              PromotionClassRules.hasMaxClassColumn(conn));
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate("DROP TEMPORARY TABLE IF EXISTS " + TERMINAL_TMP);
+            // udise_no collation must match students.udise_no or the join raises
+            // "Illegal mix of collations".
+            st.executeUpdate(
+                "CREATE TEMPORARY TABLE " + TERMINAL_TMP + " (" +
+                "  udise_no VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, " +
+                "  terminal_rank INT NOT NULL, " +
+                "  PRIMARY KEY (udise_no)) ENGINE=InnoDB");
+            int n = st.executeUpdate(
+                "INSERT INTO " + TERMINAL_TMP + " (udise_no, terminal_rank) " +
+                "SELECT t.udise_no, t.terminal_rank FROM (" + terminal + ") t");
+            System.out.println("PromoteClasses: terminal class snapshot taken for " + n + " schools");
+        }
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // GET — preview
@@ -70,21 +89,42 @@ public class PromoteClassesServlet extends HttpServlet {
             return;
         }
 
-        String sql = "SELECT class, COUNT(*) AS cnt FROM students " +
-                     "WHERE is_active = 1 GROUP BY class ORDER BY " +
-                     "FIELD(class,'I','II','III','IV','V','VI','VII','VIII','IX'," +
-                           "'1','2','3','4','5','6','7','8','9')";
-
-        // Count students where Phase 4 is not yet complete (incomplete schools)
-        String sqlIncomplete =
-            "SELECT COUNT(*) AS cnt, " +
-            "       COUNT(DISTINCT udise_no) AS school_cnt " +
-            "FROM students " +
-            "WHERE is_active=1 " +
-            "AND class NOT IN ('IX','9') " +
-            "AND (phase4_marathi IS NULL OR phase4_math IS NULL OR phase4_english IS NULL OR phase4_date IS NULL)";
-
         try (Connection conn = DatabaseConnection.getConnection()) {
+
+            // Built per request: the terminal subquery shape depends on whether schools.max_class
+            // exists yet (see PromotionClassRules.hasMaxClassColumn).
+            String terminal = PromotionClassRules.terminalSubquery(
+                                  PromotionClassRules.hasMaxClassColumn(conn));
+
+            // Grouped by class AND by whether that class is terminal for the student's own school,
+            // so the same class can legitimately appear twice: "Class VII → VIII" for schools that
+            // continue, and "Class VII → GRADUATE" for schools that end there.
+            String sql =
+                "SELECT s.class AS class, " +
+                "       CASE WHEN " + IS_GRADUATING + " THEN 1 ELSE 0 END AS is_grad, " +
+                "       COUNT(*) AS cnt, " +
+                "       COUNT(DISTINCT s.udise_no) AS school_cnt " +
+                "FROM students s " +
+                "JOIN (" + terminal + ") t ON t.udise_no = s.udise_no " +
+                "WHERE s.is_active = 1 " +
+                "GROUP BY s.class, is_grad " +
+                "ORDER BY " + PromotionClassRules.rank("s.class") + ", is_grad";
+
+            // How many schools terminate at each class — an at-a-glance check that max_class is sane.
+            String sqlTerminals =
+                "SELECT t.terminal_rank AS terminal_rank, COUNT(*) AS school_cnt " +
+                "FROM (" + terminal + ") t GROUP BY t.terminal_rank ORDER BY t.terminal_rank";
+
+            // Count students where Phase 4 is not yet complete (incomplete schools)
+            String sqlIncomplete =
+                "SELECT COUNT(*) AS cnt, " +
+                "       COUNT(DISTINCT s.udise_no) AS school_cnt " +
+                "FROM students s " +
+                "JOIN (" + terminal + ") t ON t.udise_no = s.udise_no " +
+                "WHERE s.is_active=1 " +
+                "AND NOT (" + IS_GRADUATING + ") " +
+                "AND (s.phase4_marathi IS NULL OR s.phase4_math IS NULL " +
+                "     OR s.phase4_english IS NULL OR s.phase4_date IS NULL)";
 
             // Class breakdown
             JSONArray preview        = new JSONArray();
@@ -96,17 +136,38 @@ public class PromoteClassesServlet extends HttpServlet {
                 while (rs.next()) {
                     String classVal = rs.getString("class");
                     int    count    = rs.getInt("cnt");
-                    boolean isGrad  = isGraduatingClass(classVal);
-                    String  action  = isGrad ? "→ GRADUATE" : "→ " + nextClass(classVal);
+                    boolean isGrad  = rs.getInt("is_grad") == 1;
+                    String  action  = isGrad
+                        ? "→ GRADUATE"
+                        : "→ " + PromotionClassRules.nextClass(classVal);
 
                     JSONObject row = new JSONObject();
-                    row.put("class",  classVal);
-                    row.put("count",  count);
-                    row.put("action", action);
+                    row.put("class",     classVal);
+                    row.put("count",     count);
+                    row.put("action",    action);
+                    row.put("isTerminal", isGrad);
+                    row.put("schools",   rs.getInt("school_cnt"));
                     preview.put(row);
 
                     totalStudents += count;
                     if (isGrad) totalGraduating += count;
+                }
+            }
+
+            // Terminal-class distribution across schools
+            JSONArray terminals = new JSONArray();
+            int schoolsBelowIX = 0;
+            try (PreparedStatement ps = conn.prepareStatement(sqlTerminals);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int r = rs.getInt("terminal_rank");
+                    int c = rs.getInt("school_cnt");
+                    JSONObject row = new JSONObject();
+                    row.put("terminalRank",  r);
+                    row.put("terminalClass", PromotionClassRules.roman(r));
+                    row.put("schools",       c);
+                    terminals.put(row);
+                    if (r > 0 && r < PromotionClassRules.MAX_RANK) schoolsBelowIX += c;
                 }
             }
 
@@ -128,6 +189,8 @@ public class PromoteClassesServlet extends HttpServlet {
             result.put("totalGraduating",     totalGraduating);
             result.put("incompleteStudents",  incompleteStudents);
             result.put("incompleteSchools",   incompleteSchools);
+            result.put("terminals",           terminals);
+            result.put("schoolsBelowIX",      schoolsBelowIX);
             out.print(result.toString());
 
         } catch (SQLException e) {
@@ -170,6 +233,9 @@ public class PromoteClassesServlet extends HttpServlet {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
+            // ── Step 0: Freeze each school's terminal class BEFORE any write ──
+            snapshotTerminals(conn);
+
             // ── Step 1: Promotion log entry ──────────────────────────────────
             long promotionId;
             String sqlLog = "INSERT INTO class_promotion_log " +
@@ -194,13 +260,15 @@ public class PromoteClassesServlet extends HttpServlet {
                 "   phase2_marathi,phase2_math,phase2_english,phase2_date," +
                 "   phase3_marathi,phase3_math,phase3_english,phase3_date," +
                 "   phase4_marathi,phase4_math,phase4_english,phase4_date,archived_at) " +
-                "SELECT ?,student_id,student_name,student_pen,udise_no,division,district," +
-                "   class, " + CLASS_AFTER_CASE + ", " +
-                "   phase1_marathi,phase1_math,phase1_english,phase1_date," +
-                "   phase2_marathi,phase2_math,phase2_english,phase2_date," +
-                "   phase3_marathi,phase3_math,phase3_english,phase3_date," +
-                "   phase4_marathi,phase4_math,phase4_english,phase4_date,NOW() " +
-                "FROM students WHERE is_active=1";
+                "SELECT ?,s.student_id,s.student_name,s.student_pen,s.udise_no,s.division,s.district," +
+                "   s.class, " + CLASS_AFTER_CASE + ", " +
+                "   s.phase1_marathi,s.phase1_math,s.phase1_english,s.phase1_date," +
+                "   s.phase2_marathi,s.phase2_math,s.phase2_english,s.phase2_date," +
+                "   s.phase3_marathi,s.phase3_math,s.phase3_english,s.phase3_date," +
+                "   s.phase4_marathi,s.phase4_math,s.phase4_english,s.phase4_date,NOW() " +
+                "FROM students s " +
+                "JOIN " + TERMINAL_TMP + " t ON t.udise_no = s.udise_no " +
+                "WHERE s.is_active=1";
             try (PreparedStatement ps = conn.prepareStatement(sqlArchive)) {
                 ps.setLong(1, promotionId);
                 int rows = ps.executeUpdate();
@@ -234,14 +302,17 @@ public class PromoteClassesServlet extends HttpServlet {
                 "   phase2_marathi,phase2_math,phase2_english," +
                 "   phase3_marathi,phase3_math,phase3_english," +
                 "   phase4_marathi,phase4_math,phase4_english,graduated_at) " +
-                "SELECT ?,student_id,student_name,student_pen,gender,udise_no," +
-                "   division,district,section,class,?," +
-                "   phase4_marathi,phase4_math,phase4_english,fln_completed," +
-                "   phase1_marathi,phase1_math,phase1_english," +
-                "   phase2_marathi,phase2_math,phase2_english," +
-                "   phase3_marathi,phase3_math,phase3_english," +
-                "   phase4_marathi,phase4_math,phase4_english,NOW() " +
-                "FROM students WHERE class IN " + GRAD_CLASS_IN + " AND is_active=1";
+                // graduated_from_class = s.class, so a terminal-VII school truthfully records 'VII'
+                "SELECT ?,s.student_id,s.student_name,s.student_pen,s.gender,s.udise_no," +
+                "   s.division,s.district,s.section,s.class,?," +
+                "   s.phase4_marathi,s.phase4_math,s.phase4_english,s.fln_completed," +
+                "   s.phase1_marathi,s.phase1_math,s.phase1_english," +
+                "   s.phase2_marathi,s.phase2_math,s.phase2_english," +
+                "   s.phase3_marathi,s.phase3_math,s.phase3_english," +
+                "   s.phase4_marathi,s.phase4_math,s.phase4_english,NOW() " +
+                "FROM students s " +
+                "JOIN " + TERMINAL_TMP + " t ON t.udise_no = s.udise_no " +
+                "WHERE s.is_active=1 AND " + IS_GRADUATING;
             int graduatedCount;
             try (PreparedStatement ps = conn.prepareStatement(sqlGraduate)) {
                 ps.setLong(1, promotionId);
@@ -252,8 +323,10 @@ public class PromoteClassesServlet extends HttpServlet {
 
             // ── Step 4b: Mark Class IX students inactive ──────────────────────
             String sqlDeactivate =
-                "UPDATE students SET is_active=0, updated_by=?, updated_date=NOW() " +
-                "WHERE class IN " + GRAD_CLASS_IN + " AND is_active=1";
+                "UPDATE students s " +
+                "JOIN " + TERMINAL_TMP + " t ON t.udise_no = s.udise_no " +
+                "SET s.is_active=0, s.updated_by=?, s.updated_date=NOW() " +
+                "WHERE s.is_active=1 AND " + IS_GRADUATING;
             try (PreparedStatement ps = conn.prepareStatement(sqlDeactivate)) {
                 ps.setString(1, username);
                 ps.executeUpdate();
@@ -264,17 +337,19 @@ public class PromoteClassesServlet extends HttpServlet {
             //   phase4 → phase3 → phase2 → phase1 → NULL (never had data)
             // This handles schools that did not finish all 4 phases.
             String sqlPromote =
-                "UPDATE students SET " +
-                "  class          = " + CLASS_NEXT_CASE + ", " +
-                "  phase1_marathi = COALESCE(phase4_marathi, phase3_marathi, phase2_marathi, phase1_marathi), " +
-                "  phase1_math    = COALESCE(phase4_math,    phase3_math,    phase2_math,    phase1_math), " +
-                "  phase1_english = COALESCE(phase4_english, phase3_english, phase2_english, phase1_english), " +
-                "  phase1_date    = NULL, " +
-                "  phase2_marathi=NULL, phase2_math=NULL, phase2_english=NULL, phase2_date=NULL, " +
-                "  phase3_marathi=NULL, phase3_math=NULL, phase3_english=NULL, phase3_date=NULL, " +
-                "  phase4_marathi=NULL, phase4_math=NULL, phase4_english=NULL, phase4_date=NULL, " +
-                "  updated_by=?, updated_date=NOW() " +
-                "WHERE is_active=1 AND class IN " + PROMOTE_CLASS_IN;
+                "UPDATE students s " +
+                "JOIN " + TERMINAL_TMP + " t ON t.udise_no = s.udise_no " +
+                "SET " +
+                "  s.class          = " + CLASS_NEXT_CASE + ", " +
+                "  s.phase1_marathi = COALESCE(s.phase4_marathi, s.phase3_marathi, s.phase2_marathi, s.phase1_marathi), " +
+                "  s.phase1_math    = COALESCE(s.phase4_math,    s.phase3_math,    s.phase2_math,    s.phase1_math), " +
+                "  s.phase1_english = COALESCE(s.phase4_english, s.phase3_english, s.phase2_english, s.phase1_english), " +
+                "  s.phase1_date    = NULL, " +
+                "  s.phase2_marathi=NULL, s.phase2_math=NULL, s.phase2_english=NULL, s.phase2_date=NULL, " +
+                "  s.phase3_marathi=NULL, s.phase3_math=NULL, s.phase3_english=NULL, s.phase3_date=NULL, " +
+                "  s.phase4_marathi=NULL, s.phase4_math=NULL, s.phase4_english=NULL, s.phase4_date=NULL, " +
+                "  s.updated_by=?, s.updated_date=NOW() " +
+                "WHERE s.is_active=1 AND " + IS_PROMOTING;
             int promotedCount;
             try (PreparedStatement ps = conn.prepareStatement(sqlPromote)) {
                 ps.setString(1, username);
@@ -283,15 +358,17 @@ public class PromoteClassesServlet extends HttpServlet {
             }
 
             // ── Step 6: Update log counts ─────────────────────────────────────
+            // Record what this run actually did. The old query counted every active student in
+            // classes II-IX, which is the size of the roster, not the number promoted.
             String sqlUpdateLog =
                 "UPDATE class_promotion_log SET " +
-                "  students_promoted  = (SELECT COUNT(*) FROM students " +
-                "                        WHERE is_active=1 AND class IN " + PROMOTED_RESULT_IN + "), " +
-                "  students_graduated = (SELECT COUNT(*) FROM graduated_students WHERE promotion_id=?) " +
+                "  students_promoted  = ?, " +
+                "  students_graduated = ? " +
                 "WHERE promotion_id=?";
             try (PreparedStatement ps = conn.prepareStatement(sqlUpdateLog)) {
-                ps.setLong(1, promotionId);
-                ps.setLong(2, promotionId);
+                ps.setInt(1, promotedCount);
+                ps.setInt(2, graduatedCount);
+                ps.setLong(3, promotionId);
                 ps.executeUpdate();
             }
 
@@ -334,30 +411,6 @@ public class PromoteClassesServlet extends HttpServlet {
         return user != null && User.UserType.DATA_ADMIN.equals(user.getUserType());
     }
 
-    private boolean isGraduatingClass(String cls) {
-        return cls != null && (cls.trim().equals("IX") || cls.trim().equals("9"));
-    }
-
-    private String nextClass(String cls) {
-        if (cls == null) return "?";
-        switch (cls.trim()) {
-            case "I":    return "II";
-            case "II":   return "III";
-            case "III":  return "IV";
-            case "IV":   return "V";
-            case "V":    return "VI";
-            case "VI":   return "VII";
-            case "VII":  return "VIII";
-            case "VIII": return "IX";
-            case "1":    return "2";
-            case "2":    return "3";
-            case "3":    return "4";
-            case "4":    return "5";
-            case "5":    return "6";
-            case "6":    return "7";
-            case "7":    return "8";
-            case "8":    return "9";
-            default:     return cls;
-        }
-    }
+    // isGraduatingClass() and nextClass() were removed: "graduating" is no longer a property of
+    // the class label alone, it depends on the school. See PromotionClassRules.
 }

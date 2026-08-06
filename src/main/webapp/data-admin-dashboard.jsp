@@ -396,6 +396,21 @@
                 <div style="font-size: 18px; font-weight: 600;">Promotion Audit</div>
                 <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">View all past promotion events</div>
             </a>
+            <a href="<%= request.getContextPath() %>/school-max-class.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #4fd1c5 0%, #319795 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🏫</div>
+                <div style="font-size: 18px; font-weight: 600;">School Terminal Class</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Set the last class each school runs to</div>
+                <div style="margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;
+                            padding: 3px 10px; font-size: 11px; font-weight: 700; display: inline-block;">
+                    ⚙ Set Before Promoting
+                </div>
+            </a>
             <a href="<%= request.getContextPath() %>/promotion-correction.jsp"
                style="flex: 1; min-width: 200px; padding: 20px;
                       background: linear-gradient(135deg, #fc8181 0%, #c53030 100%);

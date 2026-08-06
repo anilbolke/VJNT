@@ -2,6 +2,7 @@ package com.vjnt.servlet;
 
 import com.vjnt.model.User;
 import com.vjnt.util.DatabaseConnection;
+import com.vjnt.util.PromotionClassRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -18,29 +19,29 @@ import java.sql.*;
 @WebServlet("/test-promote")
 public class TestPromoteServlet extends HttpServlet {
 
-    private static final String CLASS_NEXT_CASE =
-        "CASE class " +
-        "WHEN 'I'    THEN 'II'   WHEN 'II'   THEN 'III'  WHEN 'III'  THEN 'IV' " +
-        "WHEN 'IV'   THEN 'V'    WHEN 'V'    THEN 'VI'   WHEN 'VI'   THEN 'VII' " +
-        "WHEN 'VII'  THEN 'VIII' WHEN 'VIII' THEN 'IX' " +
-        "WHEN '1' THEN '2' WHEN '2' THEN '3' WHEN '3' THEN '4' WHEN '4' THEN '5' " +
-        "WHEN '5' THEN '6' WHEN '6' THEN '7' WHEN '7' THEN '8' WHEN '8' THEN '9' " +
-        "ELSE class END";
+    // The graduating class is per school, not the old global ('IX','9'). See PromotionClassRules.
+    // Here the school is fixed, so its terminal rank is resolved once as an int and bound as a
+    // parameter — no snapshot table is needed as it is read before any write.
 
+    private static final String CLASS_NEXT_CASE = PromotionClassRules.nextClassCase("class");
+
+    /** class_after label; ? is the school's terminal rank. */
     private static final String CLASS_AFTER_CASE =
-        "CASE class " +
-        "WHEN 'I'    THEN 'II'        WHEN 'II'   THEN 'III'       WHEN 'III'  THEN 'IV' " +
-        "WHEN 'IV'   THEN 'V'         WHEN 'V'    THEN 'VI'        WHEN 'VI'   THEN 'VII' " +
-        "WHEN 'VII'  THEN 'VIII'      WHEN 'VIII' THEN 'IX'        WHEN 'IX'   THEN 'GRADUATED' " +
-        "WHEN '1' THEN '2' WHEN '2' THEN '3' WHEN '3' THEN '4' WHEN '4' THEN '5' " +
-        "WHEN '5' THEN '6' WHEN '6' THEN '7' WHEN '7' THEN '8' WHEN '8' THEN '9' " +
-        "WHEN '9' THEN 'GRADUATED' " +
-        "ELSE class END";
+        PromotionClassRules.classAfterCase("class", "?");
 
-    private static final String PROMOTE_CLASS_IN =
-        "('I','II','III','IV','V','VI','VII','VIII','1','2','3','4','5','6','7','8')";
+    /** Sits at or above the school's terminal class; ? is the terminal rank. */
+    private static final String IS_GRADUATING = PromotionClassRules.isGraduating("class", "?");
 
-    private static final String GRAD_CLASS_IN = "('IX','9')";
+    /** Below the school's terminal class; ? is the terminal rank. */
+    private static final String IS_PROMOTING = PromotionClassRules.isPromoting("class", "?");
+
+    /**
+     * Terminal class rank for one school: schools.max_class when set, else the highest class
+     * that school currently has active students in.
+     */
+    private int terminalRankFor(Connection conn, String udise) throws SQLException {
+        return PromotionClassRules.terminalRankFor(conn, udise);
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // GET — preview for one school
@@ -81,7 +82,7 @@ public class TestPromoteServlet extends HttpServlet {
 
         String sqlIncomplete =
             "SELECT COUNT(*) AS cnt FROM students " +
-            "WHERE is_active=1 AND udise_no=? AND class NOT IN ('IX','9') " +
+            "WHERE is_active=1 AND udise_no=? AND NOT (" + IS_GRADUATING + ") " +
             "AND (phase4_marathi IS NULL OR phase4_math IS NULL OR phase4_english IS NULL OR phase4_date IS NULL)";
 
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -105,6 +106,9 @@ public class TestPromoteServlet extends HttpServlet {
             }
             if (schoolName == null) schoolName = "UDISE: " + udise;
 
+            // This school's terminal class — what actually decides who graduates
+            int terminalRank = terminalRankFor(conn, udise);
+
             // Class breakdown
             JSONArray preview       = new JSONArray();
             int totalStudents       = 0;
@@ -115,12 +119,16 @@ public class TestPromoteServlet extends HttpServlet {
                     while (rs.next()) {
                         String classVal = rs.getString("class");
                         int    count    = rs.getInt("cnt");
-                        boolean isGrad  = isGraduatingClass(classVal);
-                        String  action  = isGrad ? "→ GRADUATE" : "→ " + nextClass(classVal);
+                        int    r        = PromotionClassRules.rankOf(classVal);
+                        boolean isGrad  = r > 0 && r >= terminalRank;
+                        String  action  = isGrad
+                            ? "→ GRADUATE"
+                            : "→ " + PromotionClassRules.nextClass(classVal);
                         JSONObject row  = new JSONObject();
-                        row.put("class",  classVal);
-                        row.put("count",  count);
-                        row.put("action", action);
+                        row.put("class",      classVal);
+                        row.put("count",      count);
+                        row.put("action",     action);
+                        row.put("isTerminal", isGrad);
                         preview.put(row);
                         totalStudents += count;
                         if (isGrad) totalGraduating += count;
@@ -132,6 +140,7 @@ public class TestPromoteServlet extends HttpServlet {
             int incompleteStudents = 0;
             try (PreparedStatement ps = conn.prepareStatement(sqlIncomplete)) {
                 ps.setString(1, udise);
+                ps.setInt(2, terminalRank);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) incompleteStudents = rs.getInt("cnt");
                 }
@@ -147,6 +156,8 @@ public class TestPromoteServlet extends HttpServlet {
             result.put("totalStudents",      totalStudents);
             result.put("totalGraduating",    totalGraduating);
             result.put("incompleteStudents", incompleteStudents);
+            result.put("terminalRank",       terminalRank);
+            result.put("terminalClass",      PromotionClassRules.roman(terminalRank));
             out.print(result.toString());
 
         } catch (SQLException e) {
@@ -199,6 +210,14 @@ public class TestPromoteServlet extends HttpServlet {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
+            // Step 0: resolve this school's terminal class BEFORE any write. Read afterwards it
+            // would shift, because Step 4b deactivates exactly the top-class students the
+            // derived fallback is computed from.
+            int terminalRank = terminalRankFor(conn, udise);
+            if (terminalRank == 0) throw new SQLException("No active students for UDISE " + udise);
+            System.out.println("TestPromote: terminal class for " + udise + " = " +
+                               PromotionClassRules.roman(terminalRank));
+
             // Step 1: Promotion log
             long promotionId;
             String sqlLog = "INSERT INTO class_promotion_log " +
@@ -231,7 +250,8 @@ public class TestPromoteServlet extends HttpServlet {
                 "FROM students WHERE is_active=1 AND udise_no=?";
             try (PreparedStatement ps = conn.prepareStatement(sqlArchive)) {
                 ps.setLong(1, promotionId);
-                ps.setString(2, udise);
+                ps.setInt(2, terminalRank);   // inside CLASS_AFTER_CASE
+                ps.setString(3, udise);
                 int rows = ps.executeUpdate();
                 System.out.println("TestPromote: archived " + rows + " phase history rows for " + udise);
             }
@@ -256,7 +276,7 @@ public class TestPromoteServlet extends HttpServlet {
                 ps.executeUpdate();
             }
 
-            // Step 4a: Graduate Class IX students from this school
+            // Step 4a: Graduate this school's terminal-class students
             String sqlGraduate =
                 "INSERT INTO graduated_students " +
                 "  (promotion_id,student_id,student_name,student_pen,gender,udise_no," +
@@ -273,26 +293,30 @@ public class TestPromoteServlet extends HttpServlet {
                 "   phase2_marathi,phase2_math,phase2_english," +
                 "   phase3_marathi,phase3_math,phase3_english," +
                 "   phase4_marathi,phase4_math,phase4_english,NOW() " +
-                "FROM students WHERE class IN " + GRAD_CLASS_IN + " AND is_active=1 AND udise_no=?";
+                // graduated_from_class = class, so a terminal-VII school records 'VII', not '9'
+                "FROM students WHERE " + IS_GRADUATING + " AND is_active=1 AND udise_no=?";
             int graduatedCount;
             try (PreparedStatement ps = conn.prepareStatement(sqlGraduate)) {
                 ps.setLong(1, promotionId);
                 ps.setString(2, academicYear);
-                ps.setString(3, udise);
+                ps.setInt(3, terminalRank);
+                ps.setString(4, udise);
                 graduatedCount = ps.executeUpdate();
-                System.out.println("TestPromote: graduated " + graduatedCount + " Class IX students for " + udise);
+                System.out.println("TestPromote: graduated " + graduatedCount + " Class " +
+                                   PromotionClassRules.roman(terminalRank) + " students for " + udise);
             }
 
-            // Step 4b: Mark Class IX inactive for this school
+            // Step 4b: Mark this school's terminal-class students inactive
             try (PreparedStatement ps = conn.prepareStatement(
                     "UPDATE students SET is_active=0, updated_by=?, updated_date=NOW() " +
-                    "WHERE class IN " + GRAD_CLASS_IN + " AND is_active=1 AND udise_no=?")) {
+                    "WHERE " + IS_GRADUATING + " AND is_active=1 AND udise_no=?")) {
                 ps.setString(1, username);
-                ps.setString(2, udise);
+                ps.setInt(2, terminalRank);
+                ps.setString(3, udise);
                 ps.executeUpdate();
             }
 
-            // Step 5: Promote Classes I–VIII for this school (COALESCE seeding)
+            // Step 5: Promote everyone below the terminal class (COALESCE seeding)
             String sqlPromote =
                 "UPDATE students SET " +
                 "  class          = " + CLASS_NEXT_CASE + ", " +
@@ -304,11 +328,12 @@ public class TestPromoteServlet extends HttpServlet {
                 "  phase3_marathi=NULL, phase3_math=NULL, phase3_english=NULL, phase3_date=NULL, " +
                 "  phase4_marathi=NULL, phase4_math=NULL, phase4_english=NULL, phase4_date=NULL, " +
                 "  updated_by=?, updated_date=NOW() " +
-                "WHERE is_active=1 AND class IN " + PROMOTE_CLASS_IN + " AND udise_no=?";
+                "WHERE is_active=1 AND " + IS_PROMOTING + " AND udise_no=?";
             int promotedCount;
             try (PreparedStatement ps = conn.prepareStatement(sqlPromote)) {
                 ps.setString(1, username);
-                ps.setString(2, udise);
+                ps.setInt(2, terminalRank);
+                ps.setString(3, udise);
                 promotedCount = ps.executeUpdate();
                 System.out.println("TestPromote: promoted " + promotedCount + " students for " + udise);
             }
@@ -358,30 +383,6 @@ public class TestPromoteServlet extends HttpServlet {
         return user != null && User.UserType.DATA_ADMIN.equals(user.getUserType());
     }
 
-    private boolean isGraduatingClass(String cls) {
-        return cls != null && (cls.trim().equals("IX") || cls.trim().equals("9"));
-    }
-
-    private String nextClass(String cls) {
-        if (cls == null) return "?";
-        switch (cls.trim()) {
-            case "I":    return "II";
-            case "II":   return "III";
-            case "III":  return "IV";
-            case "IV":   return "V";
-            case "V":    return "VI";
-            case "VI":   return "VII";
-            case "VII":  return "VIII";
-            case "VIII": return "IX";
-            case "1":    return "2";
-            case "2":    return "3";
-            case "3":    return "4";
-            case "4":    return "5";
-            case "5":    return "6";
-            case "6":    return "7";
-            case "7":    return "8";
-            case "8":    return "9";
-            default:     return cls;
-        }
-    }
+    // isGraduatingClass() and nextClass() were removed: "graduating" depends on the school's
+    // terminal class, not on the class label alone. See PromotionClassRules.
 }
