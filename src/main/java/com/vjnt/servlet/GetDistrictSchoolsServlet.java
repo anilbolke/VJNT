@@ -72,7 +72,12 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
                       "    COUNT(DISTINCT CASE WHEN st.phase4_date IS NOT NULL THEN st.student_id END) as phase4_count, " +
                       "    (SELECT COUNT(*) FROM teachers t WHERE t.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci AND t.is_active = 1) as teacher_count " +
                       "FROM schools s " +
+                      // In the JOIN condition, not the WHERE: a WHERE filter would turn this
+                      // LEFT JOIN into an INNER JOIN and hide schools with no active students.
+                      // Without it, deactivated students -- chiefly last year's graduates, whose
+                      // phase dates promotion leaves populated -- were still counted.
                       "LEFT JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
+                      "     AND st.is_active = 1 " +
                       "GROUP BY s.udise_no, s.school_name, s.district_name " +
                       "ORDER BY s.district_name, s.school_name";
 
@@ -93,6 +98,7 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
                       "    (SELECT COUNT(*) FROM teachers t WHERE t.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci AND t.is_active = 1) as teacher_count " +
                       "FROM schools s " +
                       "INNER JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
+                      "     AND st.is_active = 1 " +
                       "WHERE st.district COLLATE utf8mb4_unicode_ci = ? " +
                       "GROUP BY s.udise_no, s.school_name, s.district_name " +
                       "ORDER BY s.school_name";
