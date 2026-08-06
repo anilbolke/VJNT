@@ -97,7 +97,13 @@ public class DivisionPhaseStatusServlet extends HttpServlet {
         sql.append("COUNT(CASE WHEN phase2_date IS NOT NULL THEN 1 END) AS p2_done, ");
         sql.append("COUNT(CASE WHEN phase3_date IS NOT NULL THEN 1 END) AS p3_done, ");
         sql.append("COUNT(CASE WHEN phase4_date IS NOT NULL THEN 1 END) AS p4_done ");
-        sql.append("FROM students GROUP BY udise_no) stu ");
+        // is_active = 1 keeps last year's graduates out of both the roster size and the phase
+        // completion counts. Promotion sets is_active = 0 on the graduating class but never
+        // clears their phase columns, so their phase1_date..phase4_date stay populated and the
+        // division dashboard reported phases as already done for the new academic year.
+        // Filtering inside this derived table (not outside it) preserves the LEFT JOIN, so
+        // schools with no active students still appear with zero counts.
+        sql.append("FROM students WHERE is_active = 1 GROUP BY udise_no) stu ");
         sql.append("ON s.udise_no COLLATE utf8mb4_unicode_ci = stu.udise_no COLLATE utf8mb4_unicode_ci ");
         sql.append("LEFT JOIN phase_approvals pa ");
         sql.append("ON s.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci ");

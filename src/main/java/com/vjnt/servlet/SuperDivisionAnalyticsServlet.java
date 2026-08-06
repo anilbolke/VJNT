@@ -442,8 +442,11 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
 
             sql.append("FROM students st ");
             sql.append("LEFT JOIN phase_approvals pa ON st.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci AND pa.phase_number = ? ");
-            // Schools that have started this phase (phase is a validated int 1-4, safe to inline)
-            sql.append("LEFT JOIN (SELECT DISTINCT udise_no FROM students WHERE phase").append(phase).append("_date IS NOT NULL) started ON st.udise_no = started.udise_no ");
+            // Schools that have started this phase (phase is a validated int 1-4, safe to inline).
+            // is_active = 1 belongs inside this derived table as well as in the outer WHERE:
+            // without it a school reads as "started" on last year's graduates alone, since
+            // promotion deactivates them but leaves their phase dates in place.
+            sql.append("LEFT JOIN (SELECT DISTINCT udise_no FROM students WHERE is_active = 1 AND phase").append(phase).append("_date IS NOT NULL) started ON st.udise_no = started.udise_no ");
             sql.append("WHERE st.is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND st.division = ? ");

@@ -467,15 +467,18 @@ public class DivisionAnalyticsServlet extends HttpServlet {
             sql.append("COUNT(DISTINCT st.udise_no) as total_schools, ");
             sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'APPROVED' THEN st.udise_no END) as completed_schools, ");
             
-            // Count incomplete schools based on phase
+            // Count incomplete schools based on phase.
+            // The st2 subquery needs its own is_active = 1: the outer query filters active
+            // students, but without it here a school counts as "started" purely on last year's
+            // graduates, whose phase dates promotion leaves populated.
             if (phase == 1) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase1_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase1_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
             } else if (phase == 2) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase2_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase2_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
             } else if (phase == 3) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase3_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase3_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
             } else if (phase == 4) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.phase4_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
+                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase4_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
             }
             
             // Count students directly - this matches the Overview Stats logic
