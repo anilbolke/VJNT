@@ -41,17 +41,33 @@
         }
     }
     
+    // Bulk deactivation is School Coordinator only. This page is also reachable by
+    // SUPER_DIVISION_OFFICER, so the capability is gated on the role, not on page access.
+    boolean canBulkDeactivate = user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR);
+
+    // status = active | inactive | all  (default: active, since that is what schools work with)
+    String statusFilter = request.getParameter("status");
+    if (statusFilter == null || statusFilter.isEmpty()) statusFilter = "active";
+
     List<Student> filteredStudents = new ArrayList<>();
-    
+
+    int activeCount = 0, inactiveCount = 0;
+    for (Student student : students) {
+        if (student.isActive()) activeCount++; else inactiveCount++;
+    }
+
     for (Student student : students) {
         boolean matchClass = (classFilter == null || classFilter.isEmpty() || student.getStudentClass().equals(classFilter));
         boolean matchSection = (sectionFilter == null || sectionFilter.isEmpty() || student.getSection().equals(sectionFilter));
         boolean matchClassCategory = (classCategoryFilter == null || classCategoryFilter.isEmpty() || student.getClassCategory().equals(classCategoryFilter));
-        boolean matchSearch = (searchFilter == null || searchFilter.isEmpty() || 
+        boolean matchSearch = (searchFilter == null || searchFilter.isEmpty() ||
                              student.getStudentName().toLowerCase().contains(searchFilter.toLowerCase()) ||
                              (student.getStudentPen() != null && student.getStudentPen().contains(searchFilter)));
-        
-        if (matchClass && matchSection && matchClassCategory && matchSearch) {
+        boolean matchStatus = "all".equals(statusFilter)
+                              || ("inactive".equals(statusFilter) && !student.isActive())
+                              || ("active".equals(statusFilter) && student.isActive());
+
+        if (matchClass && matchSection && matchClassCategory && matchSearch && matchStatus) {
             filteredStudents.add(student);
         }
     }
@@ -488,8 +504,17 @@
                         
                         <div class="filter-group">
                             <label for="search">Search (Name/PEN)</label>
-                            <input type="text" name="search" id="search" placeholder="Enter name or PEN" 
+                            <input type="text" name="search" id="search" placeholder="Enter name or PEN"
                                    value="<%= (searchFilter != null) ? searchFilter : "" %>">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="status">Status</label>
+                            <select name="status" id="status">
+                                <option value="active"   <%= "active".equals(statusFilter)   ? "selected" : "" %>>Active only</option>
+                                <option value="inactive" <%= "inactive".equals(statusFilter) ? "selected" : "" %>>Inactive only</option>
+                                <option value="all"      <%= "all".equals(statusFilter)      ? "selected" : "" %>>All</option>
+                            </select>
                         </div>
                     </div>
                     
@@ -504,7 +529,38 @@
             <div class="stats">
                 <span class="stat-text">📊 Found: <span class="stat-number"><%= filteredStudents.size() %></span> students</span>
                 <span style="margin-left: 30px;">📚 Total: <span class="stat-number"><%= students.size() %></span> students</span>
+                <span style="margin-left: 30px;">✅ Active: <span class="stat-number"><%= activeCount %></span></span>
+                <span style="margin-left: 30px;">🚫 Inactive: <span class="stat-number"><%= inactiveCount %></span></span>
             </div>
+
+            <% if (canBulkDeactivate) { %>
+            <!-- Bulk deactivate action bar -->
+            <div id="bulkBar" style="display:none; background:#fff5f5; border:2px solid #feb2b2;
+                        border-radius:10px; padding:14px 18px; margin-bottom:18px;
+                        align-items:center; gap:14px; flex-wrap:wrap;">
+                <strong style="color:#c53030; font-size:15px;">
+                    <span id="selCount">0</span> student(s) selected
+                </strong>
+                <input type="text" id="bulkReason" placeholder="Reason (optional) — e.g. transferred out"
+                       maxlength="255"
+                       style="flex:1; min-width:220px; border:1px solid #e2e8f0; border-radius:8px;
+                              padding:8px 12px; font-size:14px; font-family:inherit;">
+                <button type="button" id="bulkBtn" onclick="bulkDeactivate()"
+                        style="background:#e53e3e; color:#fff; border:none; border-radius:8px;
+                               padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer;">
+                    🚫 Mark Selected Inactive
+                </button>
+                <button type="button" onclick="clearSelection()"
+                        style="background:#e2e8f0; color:#4a5568; border:none; border-radius:8px;
+                               padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer;">
+                    Clear
+                </button>
+                <div style="flex-basis:100%; font-size:12px; color:#742a2a;">
+                    Inactive students are excluded from phase completion, promotion and reports.
+                    There is no bulk undo — reversing this is one student at a time via Edit.
+                </div>
+            </div>
+            <% } %>
             
             <!-- Students List -->
             <div class="students-section">
@@ -516,12 +572,29 @@
                         <p>No students found matching your criteria.</p>
                     </div>
                 <% } else { %>
+                    <% if (canBulkDeactivate) { %>
+                    <div style="padding:10px 4px 14px; border-bottom:1px solid #e2e8f0; margin-bottom:10px;">
+                        <label style="display:inline-flex; align-items:center; gap:8px; font-size:14px;
+                                      color:#4a5568; cursor:pointer; font-weight:600;">
+                            <input type="checkbox" id="selectAll" onclick="toggleAll(this)"
+                                   style="width:17px; height:17px; cursor:pointer;">
+                            Select all active students on this page
+                        </label>
+                    </div>
+                    <% } %>
                     <ul class="students-list">
-                        <% 
+                        <%
                         int rowNum = startIndex + 1;
-                        for (Student student : paginatedStudents) { 
+                        for (Student student : paginatedStudents) {
+                            boolean active = student.isActive();
                         %>
-                        <li class="student-item">
+                        <li class="student-item" style="<%= !active ? "opacity:0.72;" : "" %>">
+                            <% if (canBulkDeactivate) { %>
+                            <input type="checkbox" class="stu-check" value="<%= student.getStudentId() %>"
+                                   onclick="updateSelection()" <%= !active ? "disabled" : "" %>
+                                   title="<%= !active ? "Already inactive" : "Select for bulk deactivation" %>"
+                                   style="width:17px; height:17px; margin-right:14px; cursor:<%= active ? "pointer" : "not-allowed" %>;">
+                            <% } %>
                             <div class="student-info">
                                 <div class="student-name"><%= rowNum %>. <%= student.getStudentName() %></div>
                                 <div class="student-details">
@@ -531,6 +604,11 @@
                                     <span class="badge">Class <%= student.getStudentClass() %></span>
                                     <span class="badge badge-section">Section <%= student.getSection() %></span>
                                     <span class="student-detail-item">👥 <%= student.getGender() %></span>
+                                    <% if (active) { %>
+                                        <span class="badge" style="background:#c6f6d5; color:#22543d;">✅ Active</span>
+                                    <% } else { %>
+                                        <span class="badge" style="background:#fed7d7; color:#822727;">🚫 Inactive</span>
+                                    <% } %>
                                 </div>
                             </div>
                             <a href="<%= request.getContextPath() %>/add-modify-student.jsp?studentId=<%= student.getStudentId() %>" class="btn-edit">
@@ -544,21 +622,21 @@
                     <% if (totalPages > 1) { %>
                     <div class="pagination">
                         <% if (currentPage > 1) { %>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&page=1">First</a>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&page=<%= currentPage - 1 %>">← Previous</a>
+                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=1">First</a>
+                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= currentPage - 1 %>">← Previous</a>
                         <% } %>
                         
                         <% for (int i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) { %>
                             <% if (i == currentPage) { %>
                                 <span class="active"><%= i %></span>
                             <% } else { %>
-                                <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&page=<%= i %>"><%= i %></a>
+                                <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= i %>"><%= i %></a>
                             <% } %>
                         <% } %>
                         
                         <% if (currentPage < totalPages) { %>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&page=<%= currentPage + 1 %>">Next →</a>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&page=<%= totalPages %>">Last</a>
+                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= currentPage + 1 %>">Next →</a>
+                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= totalPages %>">Last</a>
                         <% } %>
                     </div>
                     <% } %>
@@ -566,5 +644,108 @@
             </div>
         </div>
     </div>
+
+<% if (canBulkDeactivate) { %>
+<script>
+    var CTX = '<%= request.getContextPath() %>';
+
+    function checkboxes() {
+        return Array.prototype.slice.call(document.querySelectorAll('.stu-check'));
+    }
+
+    function selectedIds() {
+        return checkboxes().filter(function (c) { return c.checked && !c.disabled; })
+                           .map(function (c) { return c.value; });
+    }
+
+    function toggleAll(master) {
+        checkboxes().forEach(function (c) {
+            // Inactive rows are disabled; leave them alone.
+            if (!c.disabled) c.checked = master.checked;
+        });
+        updateSelection();
+    }
+
+    function updateSelection() {
+        var n = selectedIds().length;
+        document.getElementById('selCount').textContent = n;
+        document.getElementById('bulkBar').style.display = n > 0 ? 'flex' : 'none';
+
+        var master = document.getElementById('selectAll');
+        if (master) {
+            var selectable = checkboxes().filter(function (c) { return !c.disabled; });
+            master.checked = selectable.length > 0 && n === selectable.length;
+        }
+    }
+
+    function clearSelection() {
+        checkboxes().forEach(function (c) { c.checked = false; });
+        var master = document.getElementById('selectAll');
+        if (master) master.checked = false;
+        updateSelection();
+    }
+
+    function bulkDeactivate() {
+        var ids = selectedIds();
+        if (ids.length === 0) { alert('No students selected.'); return; }
+
+        // No bulk undo exists, so the count is spelled out and the names of the first few are
+        // shown — a mis-click on "select all" is otherwise invisible until it is too late.
+        var names = checkboxes()
+            .filter(function (c) { return c.checked && !c.disabled; })
+            .slice(0, 5)
+            .map(function (c) {
+                var item = c.closest('.student-item');
+                var el = item ? item.querySelector('.student-name') : null;
+                return el ? '  • ' + el.textContent.trim() : '';
+            })
+            .filter(function (s) { return s; })
+            .join('\n');
+
+        var msg = 'Mark ' + ids.length + ' student(s) INACTIVE?\n\n' + names +
+                  (ids.length > 5 ? '\n  … and ' + (ids.length - 5) + ' more' : '') +
+                  '\n\nInactive students are excluded from phase completion, promotion and reports.' +
+                  '\nThere is no bulk undo — each one must be reactivated individually via Edit.';
+        if (!confirm(msg)) return;
+
+        var btn = document.getElementById('bulkBtn');
+        btn.disabled = true;
+        btn.textContent = 'Working…';
+
+        var params = new URLSearchParams();
+        params.append('studentIds', ids.join(','));
+        params.append('reason', document.getElementById('bulkReason').value.trim());
+
+        fetch(CTX + '/bulk-deactivate-students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data.success) {
+                alert('Error: ' + (data.message || 'Could not deactivate.'));
+                btn.disabled = false;
+                btn.textContent = '🚫 Mark Selected Inactive';
+                return;
+            }
+            var msg = data.deactivated + ' student(s) marked inactive.';
+            if (data.skipped > 0) {
+                msg += '\n' + data.skipped + ' skipped (already inactive, or not in this school).';
+            }
+            if (data.message) msg += '\n' + data.message;
+            alert(msg);
+            window.location.reload();
+        })
+        .catch(function (e) {
+            alert('Network error: ' + e.message);
+            btn.disabled = false;
+            btn.textContent = '🚫 Mark Selected Inactive';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', updateSelection);
+</script>
+<% } %>
 </body>
 </html>
