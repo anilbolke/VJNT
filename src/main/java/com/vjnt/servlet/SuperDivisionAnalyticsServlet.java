@@ -186,7 +186,9 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
             sql.append("COUNT(*) as unique_activities ");
             sql.append("FROM student_weekly_activities swa ");
             sql.append("INNER JOIN students s ON swa.student_id = s.student_id ");
-            sql.append("WHERE 1=1 ");
+            // Current cohort only: without this, activity records belonging to last year's
+            // graduates keep counting toward this year's participation figures.
+            sql.append("WHERE s.is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND s.division = ? ");
             }
@@ -258,7 +260,8 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
             sql.append("SUM(CASE WHEN english_level IS NOT NULL THEN 1 ELSE 0 END) as english_count, ");
             sql.append("marathi_level, math_level, english_level ");
             sql.append("FROM students ");
-            sql.append("WHERE 1=1 ");
+            // Current cohort only: graduates left active here would inflate the level counts.
+            sql.append("WHERE is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND division = ? ");
             }
@@ -334,7 +337,9 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
             sql.append("AVG(COALESCE(st.math_samajpurvak_level, 0)) as avg_math_samaj, ");
             sql.append("COUNT(*) as student_count ");
             sql.append("FROM students st ");
-            sql.append("WHERE 1=1 ");
+            // Current cohort only: graduates finished at high levels and would drag the
+            // averages upward, masking a genuine drop in the new intake.
+            sql.append("WHERE st.is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND st.division = ? ");
             }

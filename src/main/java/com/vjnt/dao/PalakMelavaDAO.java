@@ -304,7 +304,12 @@ public class PalakMelavaDAO {
                      "FROM schools s " +
                      "LEFT JOIN school_contacts sc_hm ON s.udise_no = sc_hm.udise_no AND sc_hm.contact_type = 'Head Master' " +
                      "LEFT JOIN palak_melava pm ON s.udise_no = pm.udise_no " +
+                     // In the JOIN condition, not the WHERE: this is a LEFT JOIN, and a WHERE
+                     // filter would turn it into an INNER JOIN and hide schools that have no
+                     // active students but do have Palak Melava meetings recorded.
+                     // Without the filter, total_students counted last year's graduates.
                      "LEFT JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no " +
+                     "     AND st.is_active = 1 " +
                      "WHERE s.district_name = ? " +
                      "GROUP BY s.udise_no, s.school_name, sc_hm.full_name, sc_hm.mobile, sc_hm.whatsapp_number " +
                      "ORDER BY s.school_name";
