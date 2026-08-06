@@ -129,19 +129,30 @@
         }
         
         Map<String, Map<String, Integer>> phaseMap = schoolPhaseSubjectCounts.get(udise);
-        
+
+        // "Action taken" must be judged on phase{N}_date, not on the level columns.
+        // Promotion seeds phase1_marathi/math/english from last year via COALESCE while setting
+        // phase1_date = NULL, so every promoted student has non-zero Phase 1 levels the moment
+        // promotion finishes. Counting the levels alone reported the entire district as having
+        // completed Phase 1 before a single assessment was entered.
+        // A date is written only by updatePhaseLanguageLevels(), i.e. only by a real save.
+        boolean phase1Saved = student.getPhase1Date() != null;
+        boolean phase2Saved = student.getPhase2Date() != null;
+        boolean phase3Saved = student.getPhase3Date() != null;
+        boolean phase4Saved = student.getPhase4Date() != null;
+
         // Count Phase 1
         Integer phase1Marathi = student.getPhase1Marathi();
         Integer phase1Math = student.getPhase1Math();
         Integer phase1English = student.getPhase1English();
-        
-        if (phase1Marathi != null && phase1Marathi > 0) {
+
+        if (phase1Saved && phase1Marathi != null && phase1Marathi > 0) {
             phaseMap.get("phase1").put("marathi", phaseMap.get("phase1").get("marathi") + 1);
         }
-        if (phase1Math != null && phase1Math > 0) {
+        if (phase1Saved && phase1Math != null && phase1Math > 0) {
             phaseMap.get("phase1").put("math", phaseMap.get("phase1").get("math") + 1);
         }
-        if (phase1English != null && phase1English > 0) {
+        if (phase1Saved && phase1English != null && phase1English > 0) {
             phaseMap.get("phase1").put("english", phaseMap.get("phase1").get("english") + 1);
         }
         
@@ -150,13 +161,13 @@
         Integer phase2Math = student.getPhase2Math();
         Integer phase2English = student.getPhase2English();
         
-        if (phase2Marathi != null && phase2Marathi > 0) {
+        if (phase2Saved && phase2Marathi != null && phase2Marathi > 0) {
             phaseMap.get("phase2").put("marathi", phaseMap.get("phase2").get("marathi") + 1);
         }
-        if (phase2Math != null && phase2Math > 0) {
+        if (phase2Saved && phase2Math != null && phase2Math > 0) {
             phaseMap.get("phase2").put("math", phaseMap.get("phase2").get("math") + 1);
         }
-        if (phase2English != null && phase2English > 0) {
+        if (phase2Saved && phase2English != null && phase2English > 0) {
             phaseMap.get("phase2").put("english", phaseMap.get("phase2").get("english") + 1);
         }
         
@@ -165,13 +176,13 @@
         Integer phase3Math = student.getPhase3Math();
         Integer phase3English = student.getPhase3English();
         
-        if (phase3Marathi != null && phase3Marathi > 0) {
+        if (phase3Saved && phase3Marathi != null && phase3Marathi > 0) {
             phaseMap.get("phase3").put("marathi", phaseMap.get("phase3").get("marathi") + 1);
         }
-        if (phase3Math != null && phase3Math > 0) {
+        if (phase3Saved && phase3Math != null && phase3Math > 0) {
             phaseMap.get("phase3").put("math", phaseMap.get("phase3").get("math") + 1);
         }
-        if (phase3English != null && phase3English > 0) {
+        if (phase3Saved && phase3English != null && phase3English > 0) {
             phaseMap.get("phase3").put("english", phaseMap.get("phase3").get("english") + 1);
         }
         
@@ -180,13 +191,13 @@
         Integer phase4Math = student.getPhase4Math();
         Integer phase4English = student.getPhase4English();
         
-        if (phase4Marathi != null && phase4Marathi > 0) {
+        if (phase4Saved && phase4Marathi != null && phase4Marathi > 0) {
             phaseMap.get("phase4").put("marathi", phaseMap.get("phase4").get("marathi") + 1);
         }
-        if (phase4Math != null && phase4Math > 0) {
+        if (phase4Saved && phase4Math != null && phase4Math > 0) {
             phaseMap.get("phase4").put("math", phaseMap.get("phase4").get("math") + 1);
         }
-        if (phase4English != null && phase4English > 0) {
+        if (phase4Saved && phase4English != null && phase4English > 0) {
             phaseMap.get("phase4").put("english", phaseMap.get("phase4").get("english") + 1);
         }
     }
@@ -818,6 +829,19 @@
                                 </a>
                             </div>
                             
+                            <!-- Support Tickets Section -->
+                            <div class="dropdown-section">
+                                <div class="section-title">Support Tickets</div>
+                                <a href="<%= request.getContextPath() %>/district-tickets.jsp" class="dropdown-item" title="View and act on support tickets escalated to district level">
+                                    <span>🎫</span>
+                                    <span>Ticket Management</span>
+                                </a>
+                                <a href="<%= request.getContextPath() %>/raise-ticket.jsp" class="dropdown-item" title="Raise a support ticket to the Division office">
+                                    <span>➕</span>
+                                    <span>Raise Ticket</span>
+                                </a>
+                            </div>
+
                             <!-- Account Management Section -->
                             <div class="dropdown-section">
                                 <div class="section-title">Account Management</div>
