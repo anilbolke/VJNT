@@ -55,7 +55,7 @@ public class CheckSavedStudentsServlet extends HttpServlet {
         try (Connection conn = DatabaseConnection.getConnection()) {
             // Query to get all students actually saved for the specified phase.
             // phase{N}_date is the authoritative "a teacher saved this" marker:
-            // saveStudentPhaseData() always writes date = NOW(), while promotion
+            // updatePhaseLanguageLevels() always writes date = NOW(), while promotion
             // seeds phase1 levels from the previous year with phase1_date = NULL.
             // Keying off the level columns would flag every promoted student as saved.
             String sql = "SELECT student_id, " +

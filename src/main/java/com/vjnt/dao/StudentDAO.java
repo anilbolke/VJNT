@@ -15,7 +15,26 @@ import java.util.Map;
  * Handles all database operations for Student entity
  */
 public class StudentDAO {
-    
+
+    /** Marathi level that counts as 100% FLN. */
+    public static final int FLN_MARATHI_LEVEL = 6;
+    /** Math level that counts as 100% FLN. */
+    public static final int FLN_MATH_LEVEL    = 8;
+    /** English level that counts as 100% FLN. */
+    public static final int FLN_ENGLISH_LEVEL = 6;
+
+    /**
+     * SQL predicate for "this student's levels actually meet 100% FLN".
+     *
+     * Kept in one place so the FLN-completed list and the fln_completed flag cannot drift apart.
+     * COALESCE is deliberate: a NULL level must read as "not met", and a bare
+     * {@code NOT (a=6 AND ...)} would evaluate to NULL and silently pass such rows through.
+     */
+    public static final String FLN_LEVELS_MET =
+        "(COALESCE(marathi_akshara_level,-1) = " + FLN_MARATHI_LEVEL +
+        " AND COALESCE(math_akshara_level,-1) = " + FLN_MATH_LEVEL +
+        " AND COALESCE(english_akshara_level,-1) = " + FLN_ENGLISH_LEVEL + ")";
+
     /**
      * Create a new student
      */
@@ -432,7 +451,12 @@ public class StudentDAO {
      */
     public List<Student> getFlnCompletedStudentsByUdise(String udiseNo) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND fln_completed = 1 AND is_active = 1  ORDER BY class, section, student_name";
+        // The stored flag alone is not trusted here: historic rows were flagged by the old
+        // write-once code path and can no longer be cleared by re-assessment. Requiring the
+        // levels as well means a stale flag cannot show up as an achievement.
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND fln_completed = 1 " +
+                     "AND is_active = 1 AND " + FLN_LEVELS_MET +
+                     " ORDER BY class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -780,11 +804,14 @@ public class StudentDAO {
                 // Check FLN completion after ANY phase (1, 2, 3, or 4)
                 // If student achieves Marathi=6, Math=8, English=6 in ANY phase, mark as FLN completed
                 boolean flnComplete = checkFlnCompletion(studentId);
-                
-                if (flnComplete) {
-                    // ✓ Student achieved 100% FLN - mark as completed immediately
-                    updateFlnCompletionStatus(studentId, true);
-                }
+
+                // Write the flag BOTH ways. This used to be "if (flnComplete) set true" with no
+                // else, which made fln_completed a write-once latch: a teacher who picked 6/8/6 by
+                // mistake could never undo it, and because the manage-students queries exclude
+                // fln_completed=1 the student then vanished from the list and became uneditable.
+                // Passing the boolean means lowering a level clears the flag and the student
+                // reappears for correction.
+                updateFlnCompletionStatus(studentId, flnComplete);
                 // NOTE: Removed automatic phase restart on save
                 // Phase restart should only happen after admin approval, not on every save!
                 // The restart logic causes Phase 4 data to be cleared prematurely.
@@ -1312,7 +1339,9 @@ public class StudentDAO {
                 int mathLevel = rs.getInt("math_akshara_level");
                 int englishLevel = rs.getInt("english_akshara_level");
                 
-                return marathiLevel == 6 && mathLevel == 8 && englishLevel == 6;
+                return marathiLevel == FLN_MARATHI_LEVEL
+                    && mathLevel    == FLN_MATH_LEVEL
+                    && englishLevel == FLN_ENGLISH_LEVEL;
             }
             
         } catch (SQLException e) {
