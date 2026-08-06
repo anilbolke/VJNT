@@ -16,6 +16,11 @@ import java.util.Map;
  */
 public class StudentDAO {
 
+    /** Prefix for placeholder PENs, used until the real government PEN is known. */
+    private static final String PEN_PREFIX   = "TEMP";
+    /** Row key in pen_sequence that hands out placeholder PEN numbers. */
+    private static final String PEN_SEQ_NAME = "TEMP";
+
     /** Marathi level that counts as 100% FLN. */
     public static final int FLN_MARATHI_LEVEL = 6;
     /** Math level that counts as 100% FLN. */
@@ -1214,58 +1219,84 @@ public class StudentDAO {
      */
     public String generateNextPenNumber() {
         int maxRetries = 10;
-        
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            String candidatePen = generateCandidatePenNumber();
-            
-            // Check if this PEN already exists
-            if (!isPenNumberExists(candidatePen)) {
-                return candidatePen;
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+
+            for (int attempt = 0; attempt < maxRetries; attempt++) {
+                String candidatePen;
+                try {
+                    candidatePen = String.format(PEN_PREFIX + "%05d", allocatePenNumber(conn));
+                } catch (SQLException seqError) {
+                    // pen_sequence missing or unseeded (ADD_PEN_SEQUENCE_2026-08-06.sql not run yet).
+                    // Degrade to a scan rather than fail the whole add-student page.
+                    System.err.println("PEN sequence unavailable (" + seqError.getMessage() +
+                                       "), falling back to scan. Run ADD_PEN_SEQUENCE_2026-08-06.sql.");
+                    return scanForNextPenNumber(conn);
+                }
+
+                // The counter can still land on a PEN that predates it (e.g. one typed in by hand
+                // or imported from Excel), so the existence check stays. No sleep: the sequence
+                // hands every caller a distinct number, so retrying is immediate.
+                if (!isPenNumberExists(candidatePen)) {
+                    return candidatePen;
+                }
             }
-            
-            
-            // Small delay to avoid rapid collision in concurrent scenarios
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+
+        } catch (SQLException e) {
+            System.err.println("Error generating PEN number: " + e.getMessage());
         }
-        
-        // Fallback: use timestamp-based PEN if we couldn't generate unique one after retries
-        String fallbackPen = "TEMP" + String.format("%05d", (int)(System.currentTimeMillis() % 100000));
+
+        // Last resort. Not sequential and not collision-proof — the caller must still verify.
+        String fallbackPen = PEN_PREFIX + String.format("%05d", System.currentTimeMillis() % 100000);
         System.err.println("⚠ Using fallback PEN after " + maxRetries + " attempts: " + fallbackPen);
         return fallbackPen;
     }
-    
+
     /**
-     * Generate a candidate PEN number based on the last used PEN
-     * @return Candidate PEN number
+     * Atomically take the next number from pen_sequence.
+     *
+     * UPDATE ... LAST_INSERT_ID(next_value) + 1 is the standard MySQL sequence idiom: the row is
+     * locked for the duration of the statement and LAST_INSERT_ID() is per-connection, so two
+     * concurrent callers can never receive the same number. Both statements must run on the SAME
+     * connection, which is why the connection is passed in.
+     *
+     * @return the number allocated to this caller, now owned by it
      */
-    private String generateCandidatePenNumber() {
-        String sql = "SELECT student_pen FROM students WHERE student_pen LIKE 'TEMP%' ORDER BY student_pen DESC LIMIT 1";
-        
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            
-            if (rs.next()) {
-                String lastPen = rs.getString("student_pen");
-                // Extract the numeric part (e.g., TEMP00123 -> 123)
-                String numericPart = lastPen.substring(4); // Remove "TEMP"
-                int nextNumber = Integer.parseInt(numericPart) + 1;
-                // Format with leading zeros (5 digits)
-                return String.format("TEMP%05d", nextNumber);
-            } else {
-                // No existing TEMP PEN numbers, start from TEMP00001
-                return "TEMP00001";
+    private long allocatePenNumber(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            int rows = st.executeUpdate(
+                "UPDATE pen_sequence SET next_value = LAST_INSERT_ID(next_value) + 1, " +
+                "updated_at = NOW() WHERE seq_name = '" + PEN_SEQ_NAME + "'");
+            if (rows == 0) {
+                throw new SQLException("pen_sequence has no '" + PEN_SEQ_NAME + "' row");
             }
-            
-        } catch (SQLException | NumberFormatException e) {
-            System.err.println("Error generating candidate PEN number: " + e.getMessage());
-            // Fallback: use timestamp-based PEN
-            return "TEMP" + String.format("%05d", (int)(System.currentTimeMillis() % 100000));
+            try (ResultSet rs = st.executeQuery("SELECT LAST_INSERT_ID()")) {
+                if (rs.next()) return rs.getLong(1);
+            }
         }
+        throw new SQLException("Could not read the allocated PEN sequence value");
+    }
+
+    /**
+     * Degraded generator used only when pen_sequence is unavailable.
+     *
+     * Sorts numerically, unlike the original which used ORDER BY student_pen DESC — a lexical
+     * sort that ranks 'TEMP99999' above 'TEMP100000' and so stalls above 99999. It still resets
+     * if every TEMP PEN has been renamed to a real one, which is precisely why pen_sequence
+     * exists; this is a stopgap, not a substitute.
+     */
+    private String scanForNextPenNumber(Connection conn) {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING(student_pen, 5) AS UNSIGNED)), 0) + 1 AS next_num " +
+                     "FROM students WHERE student_pen REGEXP '^" + PEN_PREFIX + "[0-9]+$'";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            if (rs.next()) {
+                return String.format(PEN_PREFIX + "%05d", rs.getLong("next_num"));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error scanning for next PEN number: " + e.getMessage());
+        }
+        return PEN_PREFIX + String.format("%05d", System.currentTimeMillis() % 100000);
     }
     
     /**
