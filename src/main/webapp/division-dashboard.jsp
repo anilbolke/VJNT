@@ -1478,6 +1478,11 @@
                            style="flex: 1; min-width: 250px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" 
                            onkeyup="filterContacts()">
                     
+                    <input type="text" id="contactUdiseFilter" placeholder="UDISE Number..."
+                           inputmode="numeric" autocomplete="off"
+                           style="min-width: 180px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                           onkeyup="filterContacts()">
+
                     <select id="contactTypeFilter" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="filterContacts()">
                         <option value="">All Contact Types</option>
                         <option value="School Coordinator">School Coordinator</option>
@@ -3247,9 +3252,10 @@
         // Filter contacts
         function filterContacts() {
             const searchTerm = document.getElementById('contactSearchBox').value.toLowerCase();
+            const udiseFilter = document.getElementById('contactUdiseFilter').value.toLowerCase().trim();
             const contactTypeFilter = document.getElementById('contactTypeFilter').value;
             const districtFilter = document.getElementById('districtFilter').value;
-            
+
             filteredContactsList = allContactsList.filter(contact => {
                 // Search filter
                 const matchesSearch = !searchTerm || 
@@ -3259,13 +3265,17 @@
                     (contact.udiseNo && contact.udiseNo.toLowerCase().includes(searchTerm)) ||
                     (contact.districtName && contact.districtName.toLowerCase().includes(searchTerm));
                 
+                // UDISE number filter - matches UDISE only
+                const matchesUdise = !udiseFilter ||
+                    (contact.udiseNo && contact.udiseNo.toLowerCase().includes(udiseFilter));
+
                 // Contact type filter
                 const matchesType = !contactTypeFilter || contact.contactType === contactTypeFilter;
-                
+
                 // District filter
                 const matchesDistrict = !districtFilter || contact.districtName === districtFilter;
-                
-                return matchesSearch && matchesType && matchesDistrict;
+
+                return matchesSearch && matchesUdise && matchesType && matchesDistrict;
             });
             
             currentContactsPage = 1;
