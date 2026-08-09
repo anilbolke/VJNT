@@ -769,43 +769,66 @@ public class StudentDAO {
     }
     
     /**
-     * Update language levels for a specific phase
+     * Update language levels for a specific phase.
+     *
+     * A null level means "the teacher did not assess this subject" and leaves that subject's
+     * columns untouched. Writing all three unconditionally used to wipe the other two subjects
+     * every time a teacher saved a single-subject assessment.
+     *
+     * @return false if no subject was supplied, or if the update matched no row
      */
-    public boolean updatePhaseLanguageLevels(int studentId, int phase, 
-                                            int marathiLevel, int mathLevel, int englishLevel,
+    public boolean updatePhaseLanguageLevels(int studentId, int phase,
+                                            Integer marathiLevel, Integer mathLevel, Integer englishLevel,
                                             String updatedBy) {
+        if (marathiLevel == null && mathLevel == null && englishLevel == null) {
+            return false;
+        }
+
         // Update both phase-specific columns AND the main akshara_level columns
         String columnPrefix = "phase" + phase + "_";
-        String sql = "UPDATE students SET " +
-                     columnPrefix + "marathi = ?, " +
-                     columnPrefix + "math = ?, " +
-                     columnPrefix + "english = ?, " +
-                     columnPrefix + "date = NOW(), " +
-                     "marathi_akshara_level = ?, " +
-                     "math_akshara_level = ?, " +
-                     "english_akshara_level = ?, " +
-                     "updated_date = NOW(), " +
-                     "updated_by = ? " +
-                     "WHERE student_id = ?";
-        
+        StringBuilder sql = new StringBuilder("UPDATE students SET ");
+        List<Integer> levelParams = new ArrayList<>();
+
+        if (marathiLevel != null) {
+            sql.append(columnPrefix).append("marathi = ?, marathi_akshara_level = ?, ");
+            levelParams.add(marathiLevel);
+            levelParams.add(marathiLevel);
+        }
+        if (mathLevel != null) {
+            sql.append(columnPrefix).append("math = ?, math_akshara_level = ?, ");
+            levelParams.add(mathLevel);
+            levelParams.add(mathLevel);
+        }
+        if (englishLevel != null) {
+            sql.append(columnPrefix).append("english = ?, english_akshara_level = ?, ");
+            levelParams.add(englishLevel);
+            levelParams.add(englishLevel);
+        }
+
+        sql.append(columnPrefix).append("date = NOW(), ")
+           .append("updated_date = NOW(), ")
+           .append("updated_by = ? ")
+           .append("WHERE student_id = ?");
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, marathiLevel);
-            pstmt.setInt(2, mathLevel);
-            pstmt.setInt(3, englishLevel);
-            pstmt.setInt(4, marathiLevel);  // Also update main columns
-            pstmt.setInt(5, mathLevel);
-            pstmt.setInt(6, englishLevel);
-            pstmt.setString(7, updatedBy);
-            pstmt.setInt(8, studentId);
-            
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+
+            int idx = 1;
+            for (Integer level : levelParams) {
+                pstmt.setInt(idx++, level);
+            }
+            pstmt.setString(idx++, updatedBy);
+            pstmt.setInt(idx, studentId);
+
             int rows = pstmt.executeUpdate();
-            
+
             // Create audit entry
             if (rows > 0) {
-                auditPhaseChange(studentId, phase, marathiLevel, mathLevel, englishLevel, updatedBy);
-                
+                // Audit the resulting state, not just the subjects sent in this request —
+                // otherwise a single-subject save would record the other two as 0.
+                int[] effective = readPhaseLevels(conn, studentId, phase);
+                auditPhaseChange(studentId, phase, effective[0], effective[1], effective[2], updatedBy);
+
                 // Check FLN completion after ANY phase (1, 2, 3, or 4)
                 // If student achieves Marathi=6, Math=8, English=6 in ANY phase, mark as FLN completed
                 boolean flnComplete = checkFlnCompletion(studentId);
@@ -832,9 +855,31 @@ public class StudentDAO {
     }
     
     /**
+     * Read the stored marathi/math/english levels for a phase, treating SQL NULL as 0.
+     * Shares the caller's connection so it sees the update that just ran.
+     */
+    private int[] readPhaseLevels(Connection conn, int studentId, int phase) throws SQLException {
+        String columnPrefix = "phase" + phase + "_";
+        String sql = "SELECT " + columnPrefix + "marathi, " +
+                                 columnPrefix + "math, " +
+                                 columnPrefix + "english " +
+                     "FROM students WHERE student_id = ?";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new int[] { rs.getInt(1), rs.getInt(2), rs.getInt(3) };
+                }
+            }
+        }
+        return new int[] { 0, 0, 0 };
+    }
+
+    /**
      * Create audit entry for phase changes
      */
-    private void auditPhaseChange(int studentId, int phase, int marathiLevel, 
+    private void auditPhaseChange(int studentId, int phase, int marathiLevel,
                                  int mathLevel, int englishLevel, String changedBy) {
         String sql = "INSERT INTO student_phase_audit (student_id, phase, marathi_level, " +
                      "math_level, english_level, changed_by, action_type) " +

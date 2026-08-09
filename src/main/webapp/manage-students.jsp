@@ -149,8 +149,9 @@
         .btn-save {
             background: #28a745;
             color: white;
-            padding: 6px 12px;
-            font-size: 12px;
+            padding: 5px 8px;
+            font-size: 11px;
+            white-space: nowrap;
         }
         
         .btn-save:hover {
@@ -171,10 +172,13 @@
         
         .table th,
         .table td {
-            padding: 6px 8px;
+            padding: 5px 6px;
             text-align: left;
             border-bottom: 1px solid #dee2e6;
             font-size: 12px;
+            /* Fixed layout clips rather than widens, so long names must wrap in place. */
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
         
         .table th {
@@ -182,14 +186,17 @@
             font-weight: 600;
         }
         
-        .table th:nth-child(1), .table td:nth-child(1) { width: 8%; } /* PEN */
-        .table th:nth-child(2), .table td:nth-child(2) { width: 15%; } /* Name */
-        .table th:nth-child(3), .table td:nth-child(3) { width: 6%; } /* Class */
-        .table th:nth-child(4), .table td:nth-child(4) { width: 6%; } /* Section */
-        .table th:nth-child(5), .table td:nth-child(5) { width: 21%; } /* Marathi */
-        .table th:nth-child(6), .table td:nth-child(6) { width: 21%; } /* Math */
-        .table th:nth-child(7), .table td:nth-child(7) { width: 16%; } /* English */
-        .table th:nth-child(8), .table td:nth-child(8) { width: 12%; text-align: center; } /* Action */
+        /* 9 columns, widths must total 100% — table-layout is fixed, so anything over
+           100% pushes the Action column (and its Save button) off screen. */
+        .table th:nth-child(1), .table td:nth-child(1) { width: 8%; }  /* PEN */
+        .table th:nth-child(2), .table td:nth-child(2) { width: 14%; } /* Name */
+        .table th:nth-child(3), .table td:nth-child(3) { width: 5%; }  /* Class */
+        .table th:nth-child(4), .table td:nth-child(4) { width: 5%; }  /* Section */
+        .table th:nth-child(5), .table td:nth-child(5) { width: 17%; } /* Marathi */
+        .table th:nth-child(6), .table td:nth-child(6) { width: 17%; } /* Math */
+        .table th:nth-child(7), .table td:nth-child(7) { width: 14%; } /* English */
+        .table th:nth-child(8), .table td:nth-child(8) { width: 10%; text-align: center; } /* स्तर स्थिती */
+        .table th:nth-child(9), .table td:nth-child(9) { width: 10%; text-align: center; } /* Action */
         
         .table tbody tr:hover {
             background: #f8f9fa;
@@ -197,17 +204,57 @@
         
         .level-select {
             width: 100%;
-            padding: 5px 8px;
+            /* min-width:0 stops the longest <option> from setting the intrinsic width and
+               blowing the column out past its declared share of the table. */
+            min-width: 0;
+            max-width: 100%;
+            padding: 4px 4px;
             border: 2px solid #ddd;
             border-radius: 5px;
-            font-size: 12px;
+            font-size: 11px;
         }
         
         .level-select:focus {
             outline: none;
             border-color: #43e97b;
         }
-        
+
+        /* Row-level "level determined" status badge.
+           Why: the level dropdowns never reveal the stored level, so this badge is the
+           only signal that a level has already been fixed for the student. */
+        .level-status {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.3;
+            /* Must wrap: the column is only 10% wide and the Marathi text is long. */
+            white-space: normal;
+        }
+
+        .level-status.set {
+            background: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #0f5132;
+        }
+
+        /* Phase-complete rows keep their dropdowns enabled (they are just not saveable),
+           so this note is what tells the teacher why there is no Save button. */
+        .readonly-note {
+            display: inline-block;
+            color: #0f5132;
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .level-status.unset {
+            background: #f1f3f5;
+            color: #6c757d;
+            border: 1px solid #ced4da;
+        }
+
         .pagination {
             display: flex;
             justify-content: center;
@@ -368,12 +415,12 @@
         .save-indicator {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
+            gap: 3px;
+            padding: 3px 6px;
             background: #0d6efd;
             color: white;
-            border-radius: 12px;
-            font-size: 11px;
+            border-radius: 10px;
+            font-size: 10px;
             font-weight: 600;
             animation: fadeIn 0.3s;
             white-space: nowrap;
@@ -670,6 +717,7 @@
                             <th style="text-align: center; background: #5e3f0e;">मराठी भाषा स्तर</th>
                             <th style="text-align: center; background: #005695;">गणित स्तर</th>
                             <th style="text-align: center; background: #a901c1;">इंग्रजी स्तर</th>
+                            <th style="text-align: center; vertical-align: middle;">स्तर स्थिती</th>
                             <th style="vertical-align: middle;">Action</th>
                         </tr>
                     </thead>
@@ -707,58 +755,80 @@
                                     rowMath    = s.getMathAksharaLevel();
                                     rowEnglish = s.getEnglishAksharaLevel();
                             }
+                            // "Level determined" is a row-level fact: any one of the three subjects is enough.
+                            boolean rowLevelSet = rowMarathi > 0 || rowMath > 0 || rowEnglish > 0;
                         %>
-                        <tr id="row-<%= s.getStudentId() %>">
+                        <tr id="row-<%= s.getStudentId() %>" data-level-set="<%= rowLevelSet %>">
                             <td><%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %></td>
                             <td><strong><%= s.getStudentName() %></strong></td>
                             <td><%= s.getStudentClass() %></td>
                             <td><%= s.getSection() %></td>
                             <!-- Marathi Levels -->
                             <td>
-                                <select name="marathi_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
-                                    <option value="0" <%= rowMarathi == 0 ? "selected" : "" %>>स्थर निश्चित केला नाही</option>
-                                    <option value="1" <%= rowMarathi == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
-                                    <option value="2" <%= rowMarathi == 2 ? "selected" : "" %>>अक्षर स्तर</option>
-                                    <option value="3" <%= rowMarathi == 3 ? "selected" : "" %>>शब्द स्तर</option>
-                                    <option value="4" <%= rowMarathi == 4 ? "selected" : "" %>>वाक्य स्तर</option>
-                                    <option value="5" <%= rowMarathi == 5 ? "selected" : "" %>>समजपूर्वक उतारा वाचन स्तर</option>
-                                    <option value="6" <%= rowMarathi == 6 ? "selected" : "" %>>मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>
+                                <select name="marathi_akshara" class="level-select" onchange="updateLevelStatus(<%= s.getStudentId() %>)">
+                                    <%-- value="" means "already determined, not re-assessing":
+                                         it is omitted on save so the stored level survives. --%>
+                                    <% if (rowMarathi > 0) { %>
+                                    <option value="" selected>स्तर निश्चित केला</option>
+                                    <% } %>
+                                    <option value="0" <%= rowMarathi > 0 ? "" : "selected" %>>स्तर निश्चित केला नाही</option>
+                                    <option value="1">प्रारंभिक स्तर</option>
+                                    <option value="2">अक्षर स्तर</option>
+                                    <option value="3">शब्द स्तर</option>
+                                    <option value="4">वाक्य स्तर</option>
+                                    <option value="5">समजपूर्वक उतारा वाचन स्तर</option>
+                                    <option value="6">मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>
                                 </select>
                             </td>
                             <!-- Math Levels -->
                             <td>
-                                <select name="math_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
-                                    <option value="0" <%= rowMath == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
-                                    <option value="1" <%= rowMath == 1 ? "selected" : "" %>>प्रारंभिक स्तर</option>
-                                    <option value="2" <%= rowMath == 2 ? "selected" : "" %>>अंक ज्ञान स्तर</option>
-                                    <option value="3" <%= rowMath == 3 ? "selected" : "" %>>संख्याज्ञान स्तर</option>
-                                    <option value="4" <%= rowMath == 4 ? "selected" : "" %>>बेरीज स्तर</option>
-                                    <option value="5" <%= rowMath == 5 ? "selected" : "" %>>वजाबाकी स्तर</option>
-                                    <option value="6" <%= rowMath == 6 ? "selected" : "" %>>गुणाकार स्तर</option>
-                                    <option value="7" <%= rowMath == 7 ? "selected" : "" %>>भागाकार स्तर</option>
-                                    <option value="8" <%= rowMath == 8 ? "selected" : "" %>>गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>
+                                <select name="math_akshara" class="level-select" onchange="updateLevelStatus(<%= s.getStudentId() %>)">
+                                    <%-- value="" means "already determined, not re-assessing":
+                                         it is omitted on save so the stored level survives. --%>
+                                    <% if (rowMath > 0) { %>
+                                    <option value="" selected>स्तर निश्चित केला</option>
+                                    <% } %>
+                                    <option value="0" <%= rowMath > 0 ? "" : "selected" %>>स्तर निश्चित केला नाही</option>
+                                    <option value="1">प्रारंभिक स्तर</option>
+                                    <option value="2">अंक ज्ञान स्तर</option>
+                                    <option value="3">संख्याज्ञान स्तर</option>
+                                    <option value="4">बेरीज स्तर</option>
+                                    <option value="5">वजाबाकी स्तर</option>
+                                    <option value="6">गुणाकार स्तर</option>
+                                    <option value="7">भागाकार स्तर</option>
+                                    <option value="8">गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>
                                 </select>
                             </td>
                             <!-- English Levels -->
                             <td>
-                                <select name="english_akshara" class="level-select" <%= isReadOnly ? "disabled" : "" %>>
-                                    <option value="0" <%= rowEnglish == 0 ? "selected" : "" %>>स्तर निश्चित केला नाही</option>
-                                    <option value="1" <%= rowEnglish == 1 ? "selected" : "" %>>Beginner level</option>
-                                    <option value="2" <%= rowEnglish == 2 ? "selected" : "" %>>Alphabet level</option>
-                                    <option value="3" <%= rowEnglish == 3 ? "selected" : "" %>>Word level</option>
-                                    <option value="4" <%= rowEnglish == 4 ? "selected" : "" %>>Sentence level</option>
-                                    <option value="5" <%= rowEnglish == 5 ? "selected" : "" %>>Paragraph Reading with Understanding</option>
-                                    <option value="6" <%= rowEnglish == 6 ? "selected" : "" %>>English reading and writing FLN level 100% complete</option>
+                                <select name="english_akshara" class="level-select" onchange="updateLevelStatus(<%= s.getStudentId() %>)">
+                                    <%-- value="" means "already determined, not re-assessing":
+                                         it is omitted on save so the stored level survives. --%>
+                                    <% if (rowEnglish > 0) { %>
+                                    <option value="" selected>स्तर निश्चित केला</option>
+                                    <% } %>
+                                    <option value="0" <%= rowEnglish > 0 ? "" : "selected" %>>स्तर निश्चित केला नाही</option>
+                                    <option value="1">Beginner level</option>
+                                    <option value="2">Alphabet level</option>
+                                    <option value="3">Word level</option>
+                                    <option value="4">Sentence level</option>
+                                    <option value="5">Paragraph Reading with Understanding</option>
+                                    <option value="6">English reading and writing FLN level 100% complete</option>
                                 </select>
+                            </td>
+                            <!-- Row-level status. The dropdowns above never reveal the stored value,
+                                 so this badge is the only signal that a level already exists. -->
+                            <td style="text-align: center;">
+                                <span id="levelStatus-<%= s.getStudentId() %>" class="level-status <%= rowLevelSet ? "set" : "unset" %>"><%= rowLevelSet ? "✓ स्तर निश्चित केला" : "स्तर निश्चित केला नाही" %></span>
                             </td>
                             <td style="text-align: center;">
                                 <% if (!isReadOnly) { %>
-                                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px;">
                                     <button class="btn btn-save" onclick="saveStudent(<%= s.getStudentId() %>)">💾 Save</button>
                                     <div id="msg-<%= s.getStudentId() %>" style="font-size: 11px; font-weight: 600; display: inline-block;"></div>
                                 </div>
                                 <% } else { %>
-                                <span style="color: #28a745;">✓ Complete</span>
+                                <span class="readonly-note">✓ टप्पा पूर्ण<br>बदल जतन होणार नाहीत</span>
                                 <% } %>
                             </td>
                         </tr>
@@ -995,51 +1065,66 @@
             filteredStudents.forEach(function(student) {
                 var row = document.createElement('tr');
                 row.id = 'row-' + student.id;
-                
+                row.setAttribute('data-level-set', levelIsSet(student) ? 'true' : 'false');
+
                 row.innerHTML = 
                     '<td>' + student.pen + '</td>' +
                     '<td><strong>' + student.name + '</strong></td>' +
                     '<td>' + student.studentClass + '</td>' +
                     '<td>' + student.section + '</td>' +
                     '<td>' +
-                        '<select name="marathi_akshara" class="level-select" ' + (isReadOnly ? 'disabled' : '') + '>' +
-                            '<option value="0" ' + (student.marathiLevel == 0 ? 'selected' : '') + '>स्थर निश्चित केला नाही</option>' +
-                            '<option value="1" ' + (student.marathiLevel == 1 ? 'selected' : '') + '>प्रारंभिक स्तर</option>' +
-                            '<option value="2" ' + (student.marathiLevel == 2 ? 'selected' : '') + '>अक्षर स्तर</option>' +
-                            '<option value="3" ' + (student.marathiLevel == 3 ? 'selected' : '') + '>शब्द स्तर</option>' +
-                            '<option value="4" ' + (student.marathiLevel == 4 ? 'selected' : '') + '>वाक्य स्तर</option>' +
-                            '<option value="5" ' + (student.marathiLevel == 5 ? 'selected' : '') + '>समजपूर्वक उतारा वाचन स्तर</option>' +
-                            '<option value="6" ' + (student.marathiLevel == 6 ? 'selected' : '') + '>मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>' +
+                        '<select name="marathi_akshara" class="level-select" onchange="updateLevelStatus(' + student.id + ')">' +
+                            (student.marathiLevel > 0 ? '<option value="" selected>स्तर निश्चित केला</option>' : '') +
+                            '<option value="0" ' + (student.marathiLevel > 0 ? '' : 'selected') + '>स्तर निश्चित केला नाही</option>' +
+                            '<option value="1">प्रारंभिक स्तर</option>' +
+                            '<option value="2">अक्षर स्तर</option>' +
+                            '<option value="3">शब्द स्तर</option>' +
+                            '<option value="4">वाक्य स्तर</option>' +
+                            '<option value="5">समजपूर्वक उतारा वाचन स्तर</option>' +
+                            '<option value="6">मराठी वाचन व लेखन FLN स्तर 100% पूर्ण</option>' +
                         '</select>' +
                     '</td>' +
                     '<td>' +
-                        '<select name="math_akshara" class="level-select" ' + (isReadOnly ? 'disabled' : '') + '>' +
-                            '<option value="0" ' + (student.mathLevel == 0 ? 'selected' : '') + '>स्तर निश्चित केला नाही</option>' +
-                            '<option value="1" ' + (student.mathLevel == 1 ? 'selected' : '') + '>प्रारंभिक स्तर</option>' +
-                            '<option value="2" ' + (student.mathLevel == 2 ? 'selected' : '') + '>अंक ज्ञान स्तर</option>' +
-                            '<option value="3" ' + (student.mathLevel == 3 ? 'selected' : '') + '>संख्याज्ञान स्तर</option>' +
-                            '<option value="4" ' + (student.mathLevel == 4 ? 'selected' : '') + '>बेरीज स्तर</option>' +
-                            '<option value="5" ' + (student.mathLevel == 5 ? 'selected' : '') + '>वजाबाकी स्तर</option>' +
-                            '<option value="6" ' + (student.mathLevel == 6 ? 'selected' : '') + '>गुणाकार स्तर</option>' +
-                            '<option value="7" ' + (student.mathLevel == 7 ? 'selected' : '') + '>भागाकार स्तर</option>' +
-                            '<option value="8" ' + (student.mathLevel == 8 ? 'selected' : '') + '>गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>' +
+                        '<select name="math_akshara" class="level-select" onchange="updateLevelStatus(' + student.id + ')">' +
+                            (student.mathLevel > 0 ? '<option value="" selected>स्तर निश्चित केला</option>' : '') +
+                            '<option value="0" ' + (student.mathLevel > 0 ? '' : 'selected') + '>स्तर निश्चित केला नाही</option>' +
+                            '<option value="1">प्रारंभिक स्तर</option>' +
+                            '<option value="2">अंक ज्ञान स्तर</option>' +
+                            '<option value="3">संख्याज्ञान स्तर</option>' +
+                            '<option value="4">बेरीज स्तर</option>' +
+                            '<option value="5">वजाबाकी स्तर</option>' +
+                            '<option value="6">गुणाकार स्तर</option>' +
+                            '<option value="7">भागाकार स्तर</option>' +
+                            '<option value="8">गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण</option>' +
                         '</select>' +
                     '</td>' +
                     '<td>' +
-                        '<select name="english_akshara" class="level-select" ' + (isReadOnly ? 'disabled' : '') + '>' +
-                            '<option value="0" ' + (student.englishLevel == 0 ? 'selected' : '') + '>स्तर निश्चित केला नाही</option>' +
-                            '<option value="1" ' + (student.englishLevel == 1 ? 'selected' : '') + '>Beginner level</option>' +
-                            '<option value="2" ' + (student.englishLevel == 2 ? 'selected' : '') + '>Alphabet level</option>' +
-                            '<option value="3" ' + (student.englishLevel == 3 ? 'selected' : '') + '>Word level</option>' +
-                            '<option value="4" ' + (student.englishLevel == 4 ? 'selected' : '') + '>Sentence level</option>' +
-                            '<option value="5" ' + (student.englishLevel == 5 ? 'selected' : '') + '>Paragraph Reading with Understanding</option>' +
+                        '<select name="english_akshara" class="level-select" onchange="updateLevelStatus(' + student.id + ')">' +
+                            (student.englishLevel > 0 ? '<option value="" selected>स्तर निश्चित केला</option>' : '') +
+                            '<option value="0" ' + (student.englishLevel > 0 ? '' : 'selected') + '>स्तर निश्चित केला नाही</option>' +
+                            '<option value="1">Beginner level</option>' +
+                            '<option value="2">Alphabet level</option>' +
+                            '<option value="3">Word level</option>' +
+                            '<option value="4">Sentence level</option>' +
+                            '<option value="5">Paragraph Reading with Understanding</option>' +
+                            '<option value="6">English reading and writing FLN level 100% complete</option>' +
                         '</select>' +
+                    '</td>' +
+                    // Row-level status cell: mirrors the JSP-rendered table.
+                    '<td style="text-align: center;">' +
+                        '<span id="levelStatus-' + student.id + '" class="level-status ' +
+                            (levelIsSet(student) ? 'set' : 'unset') + '">' +
+                            (levelIsSet(student) ? '✓ स्तर निश्चित केला'
+                                                 : 'स्तर निश्चित केला नाही') +
+                        '</span>' +
                     '</td>' +
                     '<td style="text-align: center;">' +
-                        (!isReadOnly ? 
-                            '<button class="btn btn-save" onclick="saveStudent(' + student.id + ')">💾 Save</button>' +
-                            '<div id="msg-' + student.id + '" style="font-size: 11px; margin-top: 4px; font-weight: 600;"></div>' :
-                            '<span style="color: #28a745;">✓ Complete</span>'
+                        (!isReadOnly ?
+                            '<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px;">' +
+                                '<button class="btn btn-save" onclick="saveStudent(' + student.id + ')">💾 Save</button>' +
+                                '<div id="msg-' + student.id + '" style="font-size: 11px; font-weight: 600; display: inline-block;"></div>' +
+                            '</div>' :
+                            '<span class="readonly-note">✓ टप्पा पूर्ण<br>बदल जतन होणार नाहीत</span>'
                         ) +
                     '</td>';
                 
@@ -1060,8 +1145,70 @@
                 'Showing ' + filteredStudents.length + ' student' + (filteredStudents.length !== 1 ? 's' : '') + ' (filtered from <%= totalStudents %> total)';
         }
         
+        var LEVEL_SET_TEXT   = '✓ स्तर निश्चित केला';  // badge
+        var LEVEL_UNSET_TEXT = 'स्तर निश्चित केला नाही';
+        var OPTION_SET_TEXT  = 'स्तर निश्चित केला';    // the value="" placeholder option
+
+        // Bring one dropdown in line with the subject's stored state: a stored level collapses to
+        // the value="" placeholder (which never reveals the level and is skipped on save), and a
+        // cleared subject drops the placeholder and falls back to "स्तर निश्चित केला नाही".
+        function applyStoredState(select, hasLevel) {
+            if (!select) return;
+            var placeholder = select.querySelector('option[value=""]');
+
+            if (hasLevel) {
+                if (!placeholder) {
+                    placeholder = new Option(OPTION_SET_TEXT, '');
+                    select.insertBefore(placeholder, select.firstChild);
+                }
+                select.value = '';
+            } else {
+                if (placeholder) {
+                    select.removeChild(placeholder);
+                }
+                select.value = '0';
+            }
+        }
+
+        // A student counts as "level determined" if ANY one of the three subjects has a level.
+        function levelIsSet(student) {
+            return student.marathiLevel > 0 || student.mathLevel > 0 || student.englishLevel > 0;
+        }
+
+        // Recompute the row badge after a dropdown change.
+        // The stored (database) state is kept on the row itself, because the dropdowns always
+        // start at 0 and therefore cannot tell us whether a level was already determined earlier.
+        function updateLevelStatus(studentId) {
+            var row = document.getElementById('row-' + studentId);
+            if (!row) return;
+
+            var badge = document.getElementById('levelStatus-' + studentId);
+            if (!badge) return;
+
+            var storedSet = row.getAttribute('data-level-set') === 'true';
+            var selectedSet = ['marathi_akshara', 'math_akshara', 'english_akshara'].some(function(name) {
+                var el = row.querySelector('[name="' + name + '"]');
+                return el && parseInt(el.value, 10) > 0;
+            });
+
+            var isSet = storedSet || selectedSet;
+            badge.className = 'level-status ' + (isSet ? 'set' : 'unset');
+            badge.textContent = isSet ? LEVEL_SET_TEXT : LEVEL_UNSET_TEXT;
+        }
+
+        // Inline validation message. Used before the request is fired, so unlike the fetch
+        // error handlers it must not touch the Save button state.
+        function showRowError(msgDiv, row, message) {
+            msgDiv.innerHTML = '<div style="color: #dc3545; font-size: 11px; font-weight: 600;">✗ ' + message + '</div>';
+            row.style.background = '#f8d7da';
+            setTimeout(function() {
+                row.style.background = '';
+                msgDiv.innerHTML = '';
+            }, 3000);
+        }
+
         function getMarathiLevelText(level) {
-            var levels = ['स्थर निश्चित केला नाही', 'प्रारंभिक स्तर', 'अक्षर स्तर', 'शब्द स्तर', 'वाक्य स्तर', 'समजपूर्वक उतारा वाचन स्तर', 'मराठी वाचन व लेखन FLN स्तर 100% पूर्ण'];
+            var levels = ['स्तर निश्चित केला नाही', 'प्रारंभिक स्तर', 'अक्षर स्तर', 'शब्द स्तर', 'वाक्य स्तर', 'समजपूर्वक उतारा वाचन स्तर', 'मराठी वाचन व लेखन FLN स्तर 100% पूर्ण'];
             return levels[level] || levels[0];
         }
         
@@ -1085,15 +1232,76 @@
             window.location.href = '?phase=<%= selectedPhase %>';
         }
         
+        var SUBJECTS = [
+            { param: 'marathi_akshara', label: 'मराठी' },
+            { param: 'math_akshara',    label: 'गणित' },
+            { param: 'english_akshara', label: 'इंग्रजी' }
+        ];
+
+        // The "स्तर निश्चित केला" placeholder is rendered only for subjects that already have a
+        // stored level, so its presence tells us the subject's stored state without a round trip.
+        function subjectHasStoredLevel(select) {
+            return select.querySelector('option[value=""]') !== null;
+        }
+
         function saveStudent(studentId) {
             var row = document.getElementById('row-' + studentId);
-            var marathiLevel = row.querySelector('[name="marathi_akshara"]').value;
-            var mathLevel = row.querySelector('[name="math_akshara"]').value;
-            var englishLevel = row.querySelector('[name="english_akshara"]').value;
             var phase = document.getElementById('phaseSelector').value;
             var saveBtn = event.target;
             var msgDiv = document.getElementById('msg-' + studentId);
-            
+
+            // Decide, per subject, whether this save should touch it at all:
+            //   ""            → "स्तर निश्चित केला": keep the stored level, send nothing.
+            //   "0" + stored  → the teacher deliberately reset it, send 0 to clear it.
+            //   "0" + nothing → nothing to change; sending 0 would turn a NULL into 0 and make
+            //                   isPhaseComplete() count the subject as assessed.
+            //   > 0           → a real assessment, send it.
+            var body = 'studentId=' + studentId + '&phase=' + phase;
+            var sentCount = 0;
+            var clearing = [];
+            var hasLevelAfterSave = {};
+
+            SUBJECTS.forEach(function(subject) {
+                var select = row.querySelector('[name="' + subject.param + '"]');
+                var raw = select.value;
+                var stored = subjectHasStoredLevel(select);
+
+                if (raw === '') {
+                    hasLevelAfterSave[subject.param] = stored;
+                    return;
+                }
+
+                var level = parseInt(raw, 10);
+                if (level === 0 && !stored) {
+                    hasLevelAfterSave[subject.param] = false;
+                    return;
+                }
+
+                if (level === 0) {
+                    clearing.push(subject.label);
+                }
+                hasLevelAfterSave[subject.param] = level > 0;
+
+                body += '&' + subject.param + '=' + level;
+                sentCount++;
+            });
+
+            if (sentCount === 0) {
+                showRowError(msgDiv, row, 'किमान एक विषय निवडा');
+                return;
+            }
+
+            if (clearing.length > 0) {
+                var proceed = confirm(
+                    clearing.join(', ') + ' या विषयांसाठी "स्तर निश्चित केला नाही" निवडलेले आहे.\n\n' +
+                    'जतन केल्यास या विषयांचा पूर्वीचा स्तर मिटवला जाईल.\n\n' +
+                    'तरीही जतन करायचे आहे का?'
+                );
+                if (!proceed) {
+                    return;
+                }
+            }
+
             // Show saving state
             saveBtn.disabled = true;
             saveBtn.style.background = '#6c757d';
@@ -1105,15 +1313,24 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'studentId=' + studentId + 
-                      '&phase=' + phase +
-                      '&marathi_akshara=' + marathiLevel + 
-                      '&math_akshara=' + mathLevel + 
-                      '&english_akshara=' + englishLevel
+                body: body
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Put the row back into the state a fresh page load would produce: every
+                    // subject that now holds a level collapses to the "स्तर निश्चित केला"
+                    // placeholder, so the saved level stays hidden and a second Save is a no-op.
+                    var anyLevel = false;
+                    SUBJECTS.forEach(function(subject) {
+                        var hasLevel = hasLevelAfterSave[subject.param];
+                        anyLevel = anyLevel || hasLevel;
+                        applyStoredState(row.querySelector('[name="' + subject.param + '"]'), hasLevel);
+                    });
+
+                    row.setAttribute('data-level-set', anyLevel ? 'true' : 'false');
+                    updateLevelStatus(studentId);
+
                     // Get current timestamp
                     var now = new Date();
                     var timeString = now.toLocaleTimeString('en-IN', { 

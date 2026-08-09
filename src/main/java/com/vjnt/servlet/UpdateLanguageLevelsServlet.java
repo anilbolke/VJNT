@@ -51,24 +51,28 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
             String mathStr = request.getParameter("math_akshara");
             String englishStr = request.getParameter("english_akshara");
             
-            // Validate parameters are not null
-            if (studentIdStr == null || phaseStr == null || marathiStr == null || mathStr == null || englishStr == null) {
+            // Validate parameters are not null.
+            // The three subject levels are optional: the client sends only the subjects the
+            // teacher actually assessed, so an absent one means "leave that subject alone".
+            if (studentIdStr == null || phaseStr == null) {
                 String missing = "";
                 if (studentIdStr == null) missing += "studentId ";
                 if (phaseStr == null) missing += "phase ";
-                if (marathiStr == null) missing += "marathi_akshara ";
-                if (mathStr == null) missing += "math_akshara ";
-                if (englishStr == null) missing += "english_akshara ";
                 out.print("{\"success\": false, \"message\": \"Missing parameters: " + missing + "\"}");
                 return;
             }
-            
+
             int studentId = Integer.parseInt(studentIdStr);
             int phase = Integer.parseInt(phaseStr);
-            int marathiLevel = Integer.parseInt(marathiStr);
-            int mathLevel = Integer.parseInt(mathStr);
-            int englishLevel = Integer.parseInt(englishStr);
-            
+            Integer marathiLevel = parseOptionalLevel(marathiStr);
+            Integer mathLevel = parseOptionalLevel(mathStr);
+            Integer englishLevel = parseOptionalLevel(englishStr);
+
+            if (marathiLevel == null && mathLevel == null && englishLevel == null) {
+                out.print("{\"success\": false, \"message\": \"No subject selected\"}");
+                return;
+            }
+
             
             // Update database with phase-specific method
             StudentDAO studentDAO = new StudentDAO();
@@ -103,6 +107,17 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
             e.printStackTrace();
             out.print("{\"success\": false, \"message\": \"Error: " + e.getMessage() + "\"}");
         }
+    }
+
+    /**
+     * A subject the teacher did not assess is simply absent from the request (or blank),
+     * which maps to null = "do not touch this subject's columns".
+     */
+    private static Integer parseOptionalLevel(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return Integer.valueOf(value.trim());
     }
 }
 
