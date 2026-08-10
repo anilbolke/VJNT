@@ -249,6 +249,16 @@
             line-height: 1.3;
         }
 
+        /* Saved, but no level came out of it — the anomaly worth chasing, so it is the only state
+           painted red. Same family as the "🚫 Inactive" badge used elsewhere. */
+        .level-status.saved-nolevel {
+            background: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c2c7;
+        }
+
+        /* Not saved yet. Deliberately neutral: the teacher simply has not reached this student,
+           which is normal and must not compete for attention with the red state above. */
         .level-status.unset {
             background: #f1f3f5;
             color: #6c757d;
@@ -768,6 +778,15 @@
                                 default: rowPhaseDate = null;
                             }
                             boolean rowSaved = rowPhaseDate != null;
+
+                            // The badge answers "has a level actually been determined?", so it
+                            // needs BOTH: Save clicked for this phase (phase{N}_date) AND at
+                            // least one subject holding a real level. Saving with every subject
+                            // left on "स्तर निश्चित केला नाही" is allowed, and such a row must keep
+                            // reading "स्तर निश्चित केला नाही" instead of claiming a level was set.
+                            // Same test the three dropdowns below use, so the row agrees with itself.
+                            boolean rowHasLevel = rowSaved &&
+                                (rowMarathi > 0 || rowMath > 0 || rowEnglish > 0);
                         %>
                         <tr id="row-<%= s.getStudentId() %>" data-saved="<%= rowSaved %>">
                             <td><%= s.getStudentPen() != null ? s.getStudentPen() : "N/A" %></td>
@@ -827,10 +846,13 @@
                                     <option value="6">English reading and writing FLN level 100% complete</option>
                                 </select>
                             </td>
-                            <!-- Row-level status: "स्तर निश्चित केला" once Save has been clicked for this
-                                 phase, otherwise "स्तर निश्चित केला नाही". -->
+                            <!-- Row-level status. The ✓ marks that this phase was saved; the wording
+                                 says whether a level came out of it. So a row saved with nothing
+                                 selected reads "✓ स्तर निश्चित केला नाही" rather than contradicting
+                                 the "✓ Saved" shown in the Action column. Mirrored in
+                                 levelStatusText() for rows rebuilt by the filter. -->
                             <td style="text-align: center;">
-                                <span id="levelStatus-<%= s.getStudentId() %>" class="level-status <%= rowSaved ? "set" : "unset" %>"><%= rowSaved ? "✓ स्तर निश्चित केला" : "स्तर निश्चित केला नाही" %></span>
+                                <span id="levelStatus-<%= s.getStudentId() %>" class="level-status <%= rowHasLevel ? "set" : (rowSaved ? "saved-nolevel" : "unset") %>"><%= (rowSaved ? "✓ " : "") + (rowHasLevel ? "स्तर निश्चित केला" : "स्तर निश्चित केला नाही") %></span>
                             </td>
                             <td style="text-align: center;">
                                 <% if (!isReadOnly) { %>
@@ -1086,7 +1108,12 @@
                 row.id = 'row-' + student.id;
                 row.setAttribute('data-saved', student.saved ? 'true' : 'false');
 
-                row.innerHTML = 
+                // Same rule as the JSP-rendered table: a level counts as determined only when
+                // this phase was saved AND some subject actually holds one.
+                var studentHasLevel = student.saved &&
+                    (student.marathiLevel > 0 || student.mathLevel > 0 || student.englishLevel > 0);
+
+                row.innerHTML =
                     '<td>' + student.pen + '</td>' +
                     '<td><strong>' + student.name + '</strong></td>' +
                     '<td>' + student.studentClass + '</td>' +
@@ -1132,8 +1159,8 @@
                     // Row-level status cell: mirrors the JSP-rendered table.
                     '<td style="text-align: center;">' +
                         '<span id="levelStatus-' + student.id + '" class="level-status ' +
-                            (student.saved ? 'set' : 'unset') + '">' +
-                            (student.saved ? LEVEL_SET_TEXT : LEVEL_UNSET_TEXT) +
+                            levelStatusClass(student.saved, studentHasLevel) + '">' +
+                            levelStatusText(student.saved, studentHasLevel) +
                         '</span>' +
                     '</td>' +
                     '<td style="text-align: center;">' +
@@ -1163,9 +1190,26 @@
                 'Showing ' + filteredStudents.length + ' student' + (filteredStudents.length !== 1 ? 's' : '') + ' (filtered from <%= totalStudents %> total)';
         }
         
-        var LEVEL_SET_TEXT   = '✓ स्तर निश्चित केला';  // badge
+        var LEVEL_SET_TEXT   = 'स्तर निश्चित केला';     // badge
         var LEVEL_UNSET_TEXT = 'स्तर निश्चित केला नाही';
         var OPTION_SET_TEXT  = 'स्तर निश्चित केला';    // the value="" placeholder option
+
+        // The badge carries two independent facts, so the ✓ and the wording are separate:
+        //   ✓        → this phase was saved for the student (same fact as the "✓ Saved" action)
+        //   the text → whether a level actually came out of that save
+        // A row saved with every subject left blank therefore reads "✓ स्तर निश्चित केला नाही",
+        // which is honest about both instead of the two columns contradicting each other.
+        function levelStatusText(isSaved, hasLevel) {
+            return (isSaved ? '✓ ' : '') + (hasLevel ? LEVEL_SET_TEXT : LEVEL_UNSET_TEXT);
+        }
+
+        // Three states, not two: only a row that WAS saved yet holds no level is red. An
+        // unsaved row is merely not reached yet and stays neutral, so red always means
+        // "this one needs looking at".
+        function levelStatusClass(isSaved, hasLevel) {
+            if (hasLevel) return 'set';
+            return isSaved ? 'saved-nolevel' : 'unset';
+        }
 
         // Bring one dropdown in line with the subject's stored state: a stored level collapses to
         // the value="" placeholder (which never reveals the level and is skipped on save), and a
@@ -1188,9 +1232,11 @@
             }
         }
 
-        // Repaint the row badge from data-saved. Only a successful Save moves that flag, so
-        // merely picking a level in a dropdown does NOT flip the badge — the badge answers
-        // "was Save clicked for this phase?", nothing else.
+        // Repaint the row badge. It answers "has a level actually been determined?", which takes
+        // both a Save for this phase (data-saved) and at least one subject holding a level.
+        // Merely picking a level in a dropdown does NOT flip it — the stored state does, which is
+        // why the subjects are read via subjectHasStoredLevel() rather than from select.value.
+        // Call this AFTER applyStoredState(), or the dropdowns still describe the pre-save row.
         function updateLevelStatus(studentId) {
             var row = document.getElementById('row-' + studentId);
             if (!row) return;
@@ -1199,8 +1245,12 @@
             if (!badge) return;
 
             var isSaved = row.getAttribute('data-saved') === 'true';
-            badge.className = 'level-status ' + (isSaved ? 'set' : 'unset');
-            badge.textContent = isSaved ? LEVEL_SET_TEXT : LEVEL_UNSET_TEXT;
+            var hasLevel = isSaved && SUBJECTS.some(function(subject) {
+                return subjectHasStoredLevel(row.querySelector('[name="' + subject.param + '"]'));
+            });
+
+            badge.className = 'level-status ' + levelStatusClass(isSaved, hasLevel);
+            badge.textContent = levelStatusText(isSaved, hasLevel);
         }
 
         // Inline validation message. Used before the request is fired, so unlike the fetch
@@ -1248,7 +1298,7 @@
         // The "स्तर निश्चित केला" placeholder is rendered only for subjects that already have a
         // stored level, so its presence tells us the subject's stored state without a round trip.
         function subjectHasStoredLevel(select) {
-            return select.querySelector('option[value=""]') !== null;
+            return !!select && select.querySelector('option[value=""]') !== null;
         }
 
         function saveStudent(studentId) {
@@ -1264,7 +1314,6 @@
             //                   isPhaseComplete() count the subject as assessed.
             //   > 0           → a real assessment, send it.
             var body = 'studentId=' + studentId + '&phase=' + phase;
-            var sentCount = 0;
             var clearing = [];
             var hasLevelAfterSave = {};
 
@@ -1290,13 +1339,10 @@
                 hasLevelAfterSave[subject.param] = level > 0;
 
                 body += '&' + subject.param + '=' + level;
-                sentCount++;
             });
 
-            if (sentCount === 0) {
-                showRowError(msgDiv, row, 'किमान एक विषय निवडा');
-                return;
-            }
+            // Selecting a subject is not mandatory. A save with nothing selected is allowed and
+            // still stamps phase{N}_date, which is what marks the row as saved for this phase.
 
             if (clearing.length > 0) {
                 var proceed = confirm(
@@ -1325,10 +1371,9 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Save has now been clicked for this phase, which is exactly what the badge
-                    // reports. The server stamps phase{N}_date, so a reload agrees with this.
+                    // Save has now been clicked for this phase. The server stamps phase{N}_date,
+                    // so a reload agrees with this.
                     row.setAttribute('data-saved', 'true');
-                    updateLevelStatus(studentId);
 
                     // Put the row back into the state a fresh page load would produce: every
                     // subject that now holds a level collapses to the "स्तर निश्चित केला"
@@ -1337,6 +1382,10 @@
                         applyStoredState(row.querySelector('[name="' + subject.param + '"]'),
                                          hasLevelAfterSave[subject.param]);
                     });
+
+                    // After the dropdowns, never before: the badge is derived from them, so a
+                    // save that set no level at all correctly stays on "स्तर निश्चित केला नाही".
+                    updateLevelStatus(studentId);
 
                     // Get current timestamp
                     var now = new Date();

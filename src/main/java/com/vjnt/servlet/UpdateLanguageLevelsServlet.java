@@ -68,12 +68,11 @@ public class UpdateLanguageLevelsServlet extends HttpServlet {
             Integer mathLevel = parseOptionalLevel(mathStr);
             Integer englishLevel = parseOptionalLevel(englishStr);
 
-            if (marathiLevel == null && mathLevel == null && englishLevel == null) {
-                out.print("{\"success\": false, \"message\": \"No subject selected\"}");
-                return;
-            }
+            // All three absent is a valid save, not an error: selecting a subject is not
+            // mandatory. The update still stamps phase{N}_date, recording that this student was
+            // dealt with in this phase, and leaves every subject's stored level untouched.
 
-            
+
             // Update database with phase-specific method
             StudentDAO studentDAO = new StudentDAO();
             String username = user.getUsername();

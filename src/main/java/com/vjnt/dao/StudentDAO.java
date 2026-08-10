@@ -780,9 +780,9 @@ public class StudentDAO {
     public boolean updatePhaseLanguageLevels(int studentId, int phase,
                                             Integer marathiLevel, Integer mathLevel, Integer englishLevel,
                                             String updatedBy) {
-        if (marathiLevel == null && mathLevel == null && englishLevel == null) {
-            return false;
-        }
+        // All three levels may be null — selecting a subject is not mandatory. The statement then
+        // sets only the date columns below, which still records that the phase was saved for this
+        // student without inventing levels for subjects nobody assessed.
 
         // Update both phase-specific columns AND the main akshara_level columns
         String columnPrefix = "phase" + phase + "_";
