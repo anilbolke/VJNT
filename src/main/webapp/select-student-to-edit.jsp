@@ -5,6 +5,38 @@
 <%@ page import="com.vjnt.dao.SchoolDAO" %>
 <%@ page import="com.vjnt.model.School" %>
 <%@ page import="java.util.*" %>
+<%!
+    /** Offered in the "Show" dropdown. */
+    private static final int[] PAGE_SIZES = { 10, 20, 30, 50, 100 };
+
+    /**
+     * Whitelist the page size instead of trusting the parameter: this page holds the whole
+     * filtered roster in memory and renders every row, so an arbitrary ?pageSize=999999 would
+     * happily build a page with every student in the school on it.
+     */
+    private static int resolvePageSize(String raw) {
+        if (raw != null && !raw.trim().isEmpty()) {
+            try {
+                int n = Integer.parseInt(raw.trim());
+                for (int allowed : PAGE_SIZES) {
+                    if (allowed == n) return n;
+                }
+            } catch (NumberFormatException ignored) {
+                // fall through to the default
+            }
+        }
+        return PAGE_SIZES[0];
+    }
+
+    /** URL-encode a filter value for the pagination links. */
+    private static String enc(String v) {
+        try {
+            return java.net.URLEncoder.encode(v != null ? v : "", "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            return "";   // UTF-8 is always present
+        }
+    }
+%>
 <%
     User user = (User) session.getAttribute("user");
     if (user == null || (!user.getUserType().equals(User.UserType.SCHOOL_COORDINATOR) && !user.getUserType().equals(User.UserType.SUPER_DIVISION_OFFICER))) {
@@ -29,7 +61,7 @@
     String searchFilter = request.getParameter("search");
     
     // Pagination
-    int pageSize = 10;
+    int pageSize = resolvePageSize(request.getParameter("pageSize"));
     int currentPage = 1;
     String pageParam = request.getParameter("page");
     if (pageParam != null && !pageParam.isEmpty()) {
@@ -48,6 +80,17 @@
     // status = active | inactive | all  (default: active, since that is what schools work with)
     String statusFilter = request.getParameter("status");
     if (statusFilter == null || statusFilter.isEmpty()) statusFilter = "active";
+
+    // Every pagination link carries the full filter set. Built once, because the links used to be
+    // assembled inline and had drifted: classCategory was missing from all of them (paging away
+    // silently dropped that filter) and search was interpolated raw, so a name with a space or
+    // an "&" produced a broken link.
+    String linkQuery = "class="         + enc(classFilter)
+                     + "&section="      + enc(sectionFilter)
+                     + "&classCategory=" + enc(classCategoryFilter)
+                     + "&search="       + enc(searchFilter)
+                     + "&status="       + enc(statusFilter)
+                     + "&pageSize="     + pageSize;
 
     List<Student> filteredStudents = new ArrayList<>();
 
@@ -85,6 +128,13 @@
     List<Student> paginatedStudents = new ArrayList<>();
     if (startIndex < totalStudents) {
         paginatedStudents = filteredStudents.subList(startIndex, endIndex);
+    }
+
+    // "Select all" only reaches the rows actually rendered, so the label states the count up
+    // front rather than leaving the user to infer it from the page size.
+    int activeOnPage = 0;
+    for (Student s2 : paginatedStudents) {
+        if (s2.isActive()) activeOnPage++;
     }
     
     // Get unique classes and sections for filters
@@ -516,11 +566,32 @@
                                 <option value="all"      <%= "all".equals(statusFilter)      ? "selected" : "" %>>All</option>
                             </select>
                         </div>
+
+                        <div class="filter-group">
+                            <label for="pageSize">Students per page</label>
+                            <%-- Selecting more per page is what makes bulk deactivation practical:
+                                 "Select all" only ever reaches the rows actually rendered. Submits
+                                 on change and drops back to page 1, since the old page number is
+                                 meaningless once the page size moves. --%>
+                            <select name="pageSize" id="pageSize"
+                                    onchange="this.form.page.value = 1; this.form.submit();">
+                                <% for (int size : PAGE_SIZES) { %>
+                                <option value="<%= size %>" <%= pageSize == size ? "selected" : "" %>>
+                                    Show <%= size %>
+                                </option>
+                                <% } %>
+                            </select>
+                        </div>
                     </div>
+
+                    <%-- Filtering always restarts at page 1; the pagination links set this. --%>
+                    <input type="hidden" name="page" value="1">
                     
                     <div class="filter-buttons">
                         <button type="submit" class="btn-filter">🔍 Filter</button>
-                        <a href="?" class="btn-clear">Clear Filters</a>
+                        <%-- Clearing the filters keeps the chosen page size; it is a view
+                             preference, not a filter. --%>
+                        <a href="?pageSize=<%= pageSize %>" class="btn-clear">Clear Filters</a>
                     </div>
                 </form>
             </div>
@@ -531,6 +602,12 @@
                 <span style="margin-left: 30px;">📚 Total: <span class="stat-number"><%= students.size() %></span> students</span>
                 <span style="margin-left: 30px;">✅ Active: <span class="stat-number"><%= activeCount %></span></span>
                 <span style="margin-left: 30px;">🚫 Inactive: <span class="stat-number"><%= inactiveCount %></span></span>
+                <% if (totalStudents > 0) { %>
+                <span style="margin-left: 30px;">👁️ Showing
+                    <span class="stat-number"><%= startIndex + 1 %>–<%= endIndex %></span>
+                    of <span class="stat-number"><%= totalStudents %></span>
+                </span>
+                <% } %>
             </div>
 
             <% if (canBulkDeactivate) { %>
@@ -578,7 +655,7 @@
                                       color:#4a5568; cursor:pointer; font-weight:600;">
                             <input type="checkbox" id="selectAll" onclick="toggleAll(this)"
                                    style="width:17px; height:17px; cursor:pointer;">
-                            Select all active students on this page
+                            Select all <%= activeOnPage %> active student(s) on this page
                         </label>
                     </div>
                     <% } %>
@@ -622,21 +699,21 @@
                     <% if (totalPages > 1) { %>
                     <div class="pagination">
                         <% if (currentPage > 1) { %>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=1">First</a>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= currentPage - 1 %>">← Previous</a>
+                            <a href="?<%= linkQuery %>&page=1">First</a>
+                            <a href="?<%= linkQuery %>&page=<%= currentPage - 1 %>">← Previous</a>
                         <% } %>
-                        
+
                         <% for (int i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) { %>
                             <% if (i == currentPage) { %>
                                 <span class="active"><%= i %></span>
                             <% } else { %>
-                                <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= i %>"><%= i %></a>
+                                <a href="?<%= linkQuery %>&page=<%= i %>"><%= i %></a>
                             <% } %>
                         <% } %>
-                        
+
                         <% if (currentPage < totalPages) { %>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= currentPage + 1 %>">Next →</a>
-                            <a href="?class=<%= classFilter != null ? classFilter : "" %>&section=<%= sectionFilter != null ? sectionFilter : "" %>&search=<%= searchFilter != null ? searchFilter : "" %>&status=<%= statusFilter %>&page=<%= totalPages %>">Last</a>
+                            <a href="?<%= linkQuery %>&page=<%= currentPage + 1 %>">Next →</a>
+                            <a href="?<%= linkQuery %>&page=<%= totalPages %>">Last</a>
                         <% } %>
                     </div>
                     <% } %>
