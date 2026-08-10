@@ -54,15 +54,17 @@ public class PromoteClassesServlet extends HttpServlet {
 
     /** Materialise the per-school terminal rank into a connection-scoped temporary table. */
     private static void snapshotTerminals(Connection conn) throws SQLException {
-        String terminal = PromotionClassRules.terminalSubquery(
-                              PromotionClassRules.hasMaxClassColumn(conn));
+        String terminal = PromotionClassRules.terminalSubquery(conn);
         try (Statement st = conn.createStatement()) {
             st.executeUpdate("DROP TEMPORARY TABLE IF EXISTS " + TERMINAL_TMP);
-            // udise_no collation must match students.udise_no or the join raises
-            // "Illegal mix of collations".
+            // udise_no is declared as whatever students.udise_no actually is — type, character set
+            // and collation. Both sides of the join below are IMPLICIT, and MySQL rejects an
+            // IMPLICIT-vs-IMPLICIT collation mismatch outright, so nothing here may be hardcoded:
+            // the databases this runs against disagree (utf8mb4_0900_ai_ci on live and UAT,
+            // utf8mb4_unicode_ci elsewhere). See PromotionClassRules.udiseType.
             st.executeUpdate(
                 "CREATE TEMPORARY TABLE " + TERMINAL_TMP + " (" +
-                "  udise_no VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, " +
+                "  udise_no " + PromotionClassRules.udiseType(conn).scratchColumnDdl() + " NOT NULL, " +
                 "  terminal_rank INT NOT NULL, " +
                 "  PRIMARY KEY (udise_no)) ENGINE=InnoDB");
             int n = st.executeUpdate(
@@ -93,8 +95,7 @@ public class PromoteClassesServlet extends HttpServlet {
 
             // Built per request: the terminal subquery shape depends on whether schools.max_class
             // exists yet (see PromotionClassRules.hasMaxClassColumn).
-            String terminal = PromotionClassRules.terminalSubquery(
-                                  PromotionClassRules.hasMaxClassColumn(conn));
+            String terminal = PromotionClassRules.terminalSubquery(conn);
 
             // Grouped by class AND by whether that class is terminal for the student's own school,
             // so the same class can legitimately appear twice: "Class VII → VIII" for schools that

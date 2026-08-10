@@ -54,8 +54,109 @@ public final class PromotionClassRules {
                "ELSE " + col + " END";
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Schema probes
+    //
+    // Nothing below hardcodes a collation. The deployments of this application were built from
+    // different dumps and do not agree on how udise_no is declared: it is utf8mb4_0900_ai_ci on
+    // the live and UAT databases and utf8mb4_unicode_ci on others, and utf8mb4_0900_ai_ci does
+    // not exist at all before MySQL 8.0. Anything that has to compare against students.udise_no
+    // asks the schema rather than assuming.
+    // ─────────────────────────────────────────────────────────────────────────
+
     /** Cached result of the schools.max_class probe; null until first checked. */
     private static volatile Boolean maxClassColumnPresent;
+
+    /** Cached declared type of students.udise_no; null until first probed. */
+    private static volatile UdiseType udiseType;
+
+    /** How {@code students.udise_no} is actually declared in the database this JVM talks to. */
+    public static final class UdiseType {
+
+        /** Declared type, e.g. {@code varchar(50)}; null when the probe failed. */
+        public final String columnType;
+        /** Character set, e.g. {@code utf8mb4}; null when the probe failed. */
+        public final String charset;
+        /** Collation, e.g. {@code utf8mb4_0900_ai_ci}; null when the probe failed. */
+        public final String collation;
+
+        private UdiseType(String columnType, String charset, String collation) {
+            this.columnType = columnType;
+            this.charset    = charset;
+            this.collation  = collation;
+        }
+
+        private boolean known() { return charset != null && collation != null; }
+
+        /**
+         * Column definition for a scratch table keyed by udise_no.
+         *
+         * A scratch table's column collation is IMPLICIT, and so is students.udise_no. MySQL
+         * refuses an IMPLICIT-vs-IMPLICIT mismatch outright ("Illegal mix of collations"),
+         * unlike a join carrying an explicit COLLATE where the explicit side simply wins — so
+         * the scratch column has to be declared as whatever students.udise_no actually is.
+         */
+        public String scratchColumnDdl() {
+            String type = columnType != null ? columnType : "VARCHAR(50)";
+            return known() ? type + " CHARACTER SET " + charset + " COLLATE " + collation : type;
+        }
+
+        /**
+         * Coerce another table's udise_no so it compares cleanly against students.udise_no.
+         * CONVERT rather than a bare COLLATE, because a bare COLLATE is rejected when the other
+         * column is declared in a different character set.
+         */
+        public String coerce(String expr) {
+            return known() ? "CONVERT(" + expr + " USING " + charset + ") COLLATE " + collation
+                           : expr;
+        }
+    }
+
+    /** Plain identifiers only — these come from information_schema, but nothing odd reaches SQL. */
+    private static boolean isPlainIdentifier(String s) {
+        return s != null && s.matches("[A-Za-z0-9_]+");
+    }
+
+    /**
+     * Read the declared type of students.udise_no. Cached for the life of the JVM — restart after
+     * changing the column. Falls back to the server default when the probe fails, which is only
+     * correct if the server default already matches.
+     */
+    public static UdiseType udiseType(Connection conn) {
+        UdiseType cached = udiseType;
+        if (cached != null) return cached;
+
+        String type = null, charset = null, collation = null;
+        String sql = "SELECT column_type, character_set_name, collation_name " +
+                     "FROM information_schema.columns " +
+                     "WHERE table_schema = DATABASE() AND table_name = 'students' " +
+                     "  AND column_name = 'udise_no'";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                String t  = rs.getString(1);   // carries a length, e.g. "varchar(50)"
+                String cs = rs.getString(2);
+                String co = rs.getString(3);
+                if (t != null && t.matches("[A-Za-z0-9_]+(\\(\\d+\\))?")) type = t;
+                if (isPlainIdentifier(cs) && isPlainIdentifier(co)) { charset = cs; collation = co; }
+            }
+        } catch (SQLException e) {
+            System.err.println("PromotionClassRules: could not read the declared type of " +
+                               "students.udise_no: " + e.getMessage());
+        }
+
+        if (charset == null) {
+            System.out.println("PromotionClassRules: students.udise_no charset/collation unknown — " +
+                               "scratch tables fall back to the server default, which may not match.");
+        } else {
+            System.out.println("PromotionClassRules: students.udise_no is " +
+                               type + " " + charset + "/" + collation);
+        }
+
+        UdiseType resolved = new UdiseType(type, charset, collation);
+        udiseType = resolved;
+        return resolved;
+    }
 
     /**
      * Whether schools.max_class exists yet.
@@ -87,21 +188,26 @@ public final class PromotionClassRules {
      * Derived table: one row per school with its terminal class rank.
      * Alias it as {@code t} and join on {@code t.udise_no}.
      *
-     * schools.udise_no is utf8mb4_0900_ai_ci while students.udise_no is utf8mb4_unicode_ci,
-     * so the join carries an explicit COLLATE or MySQL raises "Illegal mix of collations".
+     * schools.udise_no and students.udise_no do not necessarily share a collation, so the join
+     * coerces the schools side (see {@link UdiseType#coerce}) or MySQL raises "Illegal mix of
+     * collations".
+     *
+     * students.udise_no is nullable, and rows with no udise_no are excluded: they can never match
+     * the join, and a NULL group would break the primary key of the caller's snapshot table.
      */
-    public static String terminalSubquery(boolean hasMaxClass) {
-        if (!hasMaxClass) {
+    public static String terminalSubquery(Connection conn) {
+        String live = "s.is_active = 1 AND s.udise_no IS NOT NULL";
+        if (!hasMaxClassColumn(conn)) {
             return "SELECT s.udise_no AS udise_no, " +
                    "       MAX(" + rank("s.class") + ") AS terminal_rank " +
-                   "FROM students s WHERE s.is_active = 1 GROUP BY s.udise_no";
+                   "FROM students s WHERE " + live + " GROUP BY s.udise_no";
         }
         return "SELECT s.udise_no AS udise_no, " +
                "       COALESCE(NULLIF(MAX(" + rank("sc.max_class") + "),0), " +
                "                MAX(" + rank("s.class") + ")) AS terminal_rank " +
                "FROM students s " +
-               "LEFT JOIN schools sc ON sc.udise_no COLLATE utf8mb4_unicode_ci = s.udise_no " +
-               "WHERE s.is_active = 1 " +
+               "LEFT JOIN schools sc ON " + udiseType(conn).coerce("sc.udise_no") + " = s.udise_no " +
+               "WHERE " + live + " " +
                "GROUP BY s.udise_no";
     }
 
@@ -112,7 +218,7 @@ public final class PromotionClassRules {
             ? "SELECT COALESCE(NULLIF(MAX(" + rank("sc.max_class") + "),0), " +
               "                MAX(" + rank("s.class") + ")) AS tr " +
               "FROM students s " +
-              "LEFT JOIN schools sc ON sc.udise_no COLLATE utf8mb4_unicode_ci = s.udise_no " +
+              "LEFT JOIN schools sc ON " + udiseType(conn).coerce("sc.udise_no") + " = s.udise_no " +
               "WHERE s.is_active=1 AND s.udise_no=?"
             : "SELECT MAX(" + rank("s.class") + ") AS tr " +
               "FROM students s WHERE s.is_active=1 AND s.udise_no=?";
