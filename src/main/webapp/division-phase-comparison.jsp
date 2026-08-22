@@ -435,6 +435,15 @@
             gap: 10px;
         }
         
+        .level-bar-container.level-not-recorded .level-label-text {
+            color: #868e96;
+            font-style: italic;
+        }
+        
+        .level-bar-container.level-not-recorded .level-bar-fill {
+            background: #adb5bd;
+        }
+        
         .level-legend {
             background: #f8f9fa;
             padding: 20px;
@@ -666,6 +675,7 @@
         // Level descriptions
         const levelDescriptions = {
             marathi: {
+                '-1': 'स्तर नोंद झालेला नाही (Not recorded)',
                 0: 'स्थर निश्चित केला नाही',
                 1: 'प्रारंभिक स्तर',
                 2: 'अक्षर स्तर',
@@ -675,6 +685,7 @@
                 6: 'मराठी वाचन व लेखन FLN स्तर 100% पूर्ण'
             },
             math: {
+                '-1': 'स्तर नोंद झालेला नाही (Not recorded)',
                 0: 'स्थर निश्चित केला नाही',
                 1: 'प्रारंभिक स्तर',
                 2: 'अंक ज्ञान स्तर',
@@ -686,6 +697,7 @@
                 8: 'गणितीय संख्या व मूलभूत क्रिया FLN स्तर 100% पूर्ण'
             },
             english: {
+                '-1': 'स्तर नोंद झालेला नाही (Not recorded)',
                 0: 'स्थर निश्चित केला नाही',
                 1: 'Beginner level',
                 2: 'Letter level',
@@ -1064,7 +1076,9 @@
             html += '<div class="legend-content">';
             const levels = levelDescriptions[subject];
             for (let level in levels) {
-                html += '<div class="legend-item"><strong>Level ' + level + ':</strong> ' + levels[level] + '</div>';
+                // -1 is the not-recorded bucket, not a level, so it is not numbered
+                const legendName = (level === '-1') ? 'Not recorded' : ('Level ' + level);
+                html += '<div class="legend-item"><strong>' + legendName + ':</strong> ' + levels[level] + '</div>';
             }
             html += '</div></div>';
             
@@ -1126,10 +1140,12 @@
             const count = levelData.count;
             const percentage = levelData.percentage;
             const desc = levelDescriptions[subject][level];
+            // The not-recorded bucket is not a level, so it gets no "L" prefix
+            const labelText = (level === -1) ? desc : ('L' + level + ': ' + desc);
             
-            let html = '<div class="level-bar-container">';
+            let html = '<div class="level-bar-container' + (level === -1 ? ' level-not-recorded' : '') + '">';
             html += '<div class="level-label">';
-            html += '<span class="level-label-text">L' + level + ': ' + desc + '</span>';
+            html += '<span class="level-label-text">' + labelText + '</span>';
             html += '<span class="level-label-value">' + count + ' (' + percentage + '%)</span>';
             html += '</div>';
             html += '<div class="level-bar">';
@@ -1189,7 +1205,8 @@
                 const phaseData = currentData['phase' + phase];
                 if (phaseData && phaseData.distribution) {
                     phaseData.distribution.forEach(level => {
-                        csv += `"Phase ${phase}",${level.level},"${levelDescriptions[subject][level.level]}",${level.count},${level.percentage}\n`;
+                        const lvlName = level.level === -1 ? 'Not recorded' : level.level;
+                        csv += `"Phase ${phase}","${lvlName}","${levelDescriptions[subject][level.level]}",${level.count},${level.percentage}\n`;
                     });
                 }
             }

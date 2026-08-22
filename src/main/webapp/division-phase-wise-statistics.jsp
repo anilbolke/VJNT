@@ -351,6 +351,30 @@
             font-size: 12px;
         }
         
+        .level-not-recorded .level-label {
+            color: #868e96;
+            font-style: italic;
+        }
+        
+        .level-not-recorded .level-value {
+            background: #adb5bd;
+        }
+        
+        .level-total {
+            margin-top: 6px;
+            padding-top: 10px;
+            border-top: 2px solid #dee2e6;
+        }
+        
+        .level-total .level-label {
+            color: #212529;
+            font-weight: 700;
+        }
+        
+        .level-total .level-value {
+            background: #343a40;
+        }
+        
         .aggregate-section {
             background: #f8f9fa;
             padding: 20px;
@@ -770,21 +794,31 @@
                 maxLevel = 6;
             }
             
-            for (let i = 0; i <= maxLevel; i++) {
+            // -1 first: students whose level was never recorded. Without it the rows below
+            // silently omit those students and the column never adds up to the total.
+            let total = 0;
+            for (let i = -1; i <= maxLevel; i++) {
                 const count = counts[i] || 0;
+                total += count;
                 const levelLabel = getLevelLabel(i, subject);
                 
-                html += '<div class="level-count">' +
+                html += '<div class="level-count' + (i === -1 ? ' level-not-recorded' : '') + '">' +
                     '<span class="level-label">' + levelLabel + '</span>' +
                     '<span class="level-value">' + count + '</span>' +
                     '</div>';
             }
+            
+            html += '<div class="level-count level-total">' +
+                '<span class="level-label">एकूण विद्यार्थी / Total students</span>' +
+                '<span class="level-value">' + total + '</span>' +
+                '</div>';
             return html;
         }
         
         // Get level label based on subject
         function getLevelLabel(level, subject) {
             const marathiLabels = {
+                '-1': 'स्तर नोंद झालेला नाही (Not recorded)',
                 0: 'स्थर निश्चित केला नाही',
                 1: 'प्रारंभिक स्तर',
                 2: 'अक्षर स्तर',
@@ -795,6 +829,7 @@
             };
             
             const mathLabels = {
+                '-1': 'स्तर नोंद झालेला नाही (Not recorded)',
                 0: 'स्थर निश्चित केला नाही',
                 1: 'प्रारंभिक स्तर',
                 2: 'अंक ज्ञान स्तर',
@@ -807,6 +842,7 @@
             };
             
             const englishLabels = {
+                '-1': 'स्तर नोंद झालेला नाही (Not recorded)',
                 0: 'स्थर निश्चित केला नाही',
                 1: 'Beginner level',
                 2: 'Alphabet level',

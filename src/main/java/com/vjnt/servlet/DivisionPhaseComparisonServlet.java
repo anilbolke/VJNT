@@ -24,6 +24,9 @@ import java.sql.SQLException;
  */
 @WebServlet("/division-phase-comparison")
 public class DivisionPhaseComparisonServlet extends HttpServlet {
+
+    /** Level bucket for students whose level was never recorded (NULL in the DB). */
+    private static final int NOT_RECORDED = -1;
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
@@ -156,6 +159,7 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
            sql = "SELECT district, COUNT(DISTINCT student_id) as student_count " +
                  "FROM students " +
                  "WHERE division = ? AND is_active = 1 " +
+                 "AND TRIM(class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
                  "GROUP BY district " +
                  "ORDER BY district";
            ps = conn.prepareStatement(sql);
@@ -164,6 +168,7 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
            sql = "SELECT district, COUNT(DISTINCT student_id) as student_count " +
                  "FROM students " +
                  "WHERE is_active = 1 " +
+                 "AND TRIM(class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
                  "GROUP BY district " +
                  "ORDER BY district";
            ps = conn.prepareStatement(sql);
@@ -236,6 +241,10 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
         sql.append("SELECT ");
         sql.append("COUNT(DISTINCT s.student_id) as total_students, ");
         
+        // Never-recorded levels. Without this the bars below silently omit NULL rows, so the
+        // distribution never accounts for every student in total_students.
+        sql.append("SUM(CASE WHEN ").append(levelColumn).append(" IS NULL THEN 1 ELSE 0 END) as level_null, ");
+        
         // Count for each level
         for (int level = 0; level <= maxLevel; level++) {
             sql.append("SUM(CASE WHEN ").append(levelColumn).append(" = ").append(level).append(" THEN 1 ELSE 0 END) as level_").append(level);
@@ -244,10 +253,12 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
         
         sql.append(" FROM students s ");
         sql.append("WHERE s.division = ? AND s.is_active = 1 ");
+        // The FLN programme covers classes I-IX only; anything else must not reach the bars.
+        sql.append("AND TRIM(s.class) IN ").append(com.vjnt.dao.StudentDAO.CLASS_I_TO_IX).append(" ");
         
         // Add class filter if provided
         if (studentClass != null && !studentClass.isEmpty()) {
-            sql.append("AND s.class = ? ");
+            sql.append("AND TRIM(s.class) = ? ");
         }
         
         // Add district filter if provided
@@ -283,9 +294,9 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
             phaseData.put("totalStudents", totalStudents);
             phaseData.put("phase", phase);
             
-            // Build level distribution
-            for (int level = 0; level <= maxLevel; level++) {
-                int count = rs.getInt("level_" + level);
+            // Build level distribution, NOT_RECORDED first so the bars add up to 100%
+            for (int level = NOT_RECORDED; level <= maxLevel; level++) {
+                int count = rs.getInt(level == NOT_RECORDED ? "level_null" : "level_" + level);
                 double percentage = (totalStudents > 0) ? ((double) count / totalStudents) * 100 : 0;
                 
                 
@@ -369,6 +380,7 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
                         "FROM students s " +
                         "LEFT JOIN schools sc ON s.udise_no = sc.udise_no COLLATE utf8mb4_unicode_ci " +
                         "WHERE s.district = ? AND s.is_active = 1 " +
+                        "AND TRIM(s.class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
                         "GROUP BY s.udise_no " +
                         "ORDER BY school_name";
             
@@ -406,7 +418,9 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
             
             String sql = "SELECT DISTINCT class FROM students " +
                         "WHERE udise_no = ? AND is_active = 1 " +
-                        "ORDER BY FIELD(class, 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII')";
+                        "AND TRIM(class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
+                        "ORDER BY FIELD(TRIM(class), 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', " +
+                        "'1', '2', '3', '4', '5', '6', '7', '8', '9')";
             
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, schoolUdise);

@@ -34,12 +34,12 @@ public class BunnyCDNService {
      * @throws IOException If upload fails
      */
     public static String uploadVideo(File videoFile, String originalFileName, String udiseNo) throws IOException {
-        
+
         // Generate unique filename to avoid collisions
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String fileExtension = getFileExtension(originalFileName);
         String uniqueFileName = "video_" + timestamp + "_" + System.currentTimeMillis() + fileExtension;
-        
+
         // Build storage path: /videos/2024/12/UDISE123/video_20241229_123456.mp4
         SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy");
         SimpleDateFormat monthFormat = new SimpleDateFormat("MM");
@@ -47,65 +47,94 @@ public class BunnyCDNService {
         String month = monthFormat.format(new Date());
         String storagePath = String.format(VIDEO_PATH_FORMAT, year, month, udiseNo);
         String fullPath = storagePath + "/" + uniqueFileName;
-        
-        
-        // Upload to Bunny CDN
-        String uploadUrl = STORAGE_API_URL + "/" + STORAGE_ZONE_NAME + "/" + fullPath;
-        
+
+        // Remove the dot from the extension for the MIME subtype, as before.
+        return uploadFile(videoFile, fullPath, "video/" + fileExtension.substring(1));
+    }
+
+    /**
+     * Upload any file to Bunny CDN Storage and return its public pull-zone URL.
+     *
+     * Extracted from {@link #uploadVideo}, whose storage path and Content-Type were hardcoded for
+     * video. The PUT itself was already generic, and the coordinator alerts need to host a PDF —
+     * so the transport lives here once and callers own their own naming.
+     *
+     * <p><b>The returned URL is public and unauthenticated.</b> Anyone holding it can read the file,
+     * and it does not expire. Do not upload anything that should not be world-readable, and delete
+     * files that no longer need to exist (see {@link #deleteFile}).
+     *
+     * @param file        local file to upload
+     * @param remotePath  path within the storage zone, no leading slash,
+     *                    e.g. {@code "alerts/2026/08/DISTRICT/Latur_NotStarted_Phase1.pdf"}
+     * @param contentType MIME type, e.g. {@code "application/pdf"}
+     * @return public CDN URL of the uploaded file
+     * @throws IOException if the upload is rejected
+     */
+    public static String uploadFile(File file, String remotePath, String contentType) throws IOException {
+        if (file == null || !file.isFile()) {
+            throw new IOException("Upload source is missing: " + file);
+        }
+        String cleanPath = remotePath == null ? "" : remotePath.replaceAll("^/+", "");
+        if (cleanPath.isEmpty()) {
+            throw new IOException("Upload path is required");
+        }
+
+        String uploadUrl = STORAGE_API_URL + "/" + STORAGE_ZONE_NAME + "/" + cleanPath;
+
         HttpURLConnection connection = null;
-        
         try {
             URL url = new URL(uploadUrl);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("PUT");
             connection.setDoOutput(true);
-            
-            // Debug: Print what we're sending
-            
-            // Try different header names that Bunny CDN might use
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(60000);
+
+            // Same three header spellings the video upload has always sent; the storage API accepts
+            // AccessKey, and the others are harmless.
             connection.setRequestProperty("AccessKey", API_KEY);
             connection.setRequestProperty("Authorization", API_KEY);
             connection.setRequestProperty("X-Auth-Token", API_KEY);
-            connection.setRequestProperty("Content-Type", "video/" + fileExtension.substring(1)); // Remove dot from extension
-            connection.setRequestProperty("Content-Length", String.valueOf(videoFile.length()));
-            
-            
-            // Upload file
-            try (FileInputStream fileInputStream = new FileInputStream(videoFile);
+            connection.setRequestProperty("Content-Type",
+                    contentType == null ? "application/octet-stream" : contentType);
+            connection.setRequestProperty("Content-Length", String.valueOf(file.length()));
+
+            try (FileInputStream fileInputStream = new FileInputStream(file);
                  OutputStream outputStream = connection.getOutputStream()) {
-                
+
                 byte[] buffer = new byte[8192];
                 int bytesRead;
-                long totalBytesWritten = 0;
-                
                 while ((bytesRead = fileInputStream.read(buffer)) != -1) {
                     outputStream.write(buffer, 0, bytesRead);
-                    totalBytesWritten += bytesRead;
                 }
-                
                 outputStream.flush();
             }
-            
-            // Check response
+
             int responseCode = connection.getResponseCode();
-            
             if (responseCode == HttpURLConnection.HTTP_CREATED || responseCode == HttpURLConnection.HTTP_OK) {
-                // Success! Return CDN URL
-                String cdnUrl = PULL_ZONE_URL + "/" + fullPath;
-                return cdnUrl;
-            } else {
-                // Read error response
-                String errorMessage = readErrorResponse(connection);
-                System.err.println("Upload failed with code: " + responseCode);
-                System.err.println("Error: " + errorMessage);
-                throw new IOException("Upload failed: " + responseCode + " - " + errorMessage);
+                return PULL_ZONE_URL + "/" + cleanPath;
             }
-            
+
+            String errorMessage = readErrorResponse(connection);
+            System.err.println("[BunnyCDN] Upload failed with code: " + responseCode);
+            System.err.println("[BunnyCDN] Error: " + errorMessage);
+            throw new IOException("Upload failed: " + responseCode + " - " + errorMessage);
+
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
+    }
+
+    /**
+     * Delete any file previously uploaded by {@link #uploadFile}, by its public CDN URL.
+     *
+     * Same DELETE as {@link #deleteVideo}; named for the general case so a retention sweep does not
+     * read as if it were removing videos.
+     */
+    public static boolean deleteFile(String cdnUrl) throws IOException {
+        return deleteVideo(cdnUrl);
     }
     
     /**

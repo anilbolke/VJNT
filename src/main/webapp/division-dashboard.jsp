@@ -19,7 +19,9 @@
     
     // Get statistics for this division
     String divisionName = user.getDivisionName();
-    List<com.vjnt.model.Student> students = studentDAO.getStudentsByDivision(divisionName);
+    // Class I-IX only: every figure on this dashboard (headcount, district/school counts,
+    // gender split, class distribution) is derived from this one list.
+    List<com.vjnt.model.Student> students = studentDAO.getFlnStudentsByDivision(divisionName);
     List<User> divisionUsers = userDAO.getUsersByDivision(divisionName);
     
     // Pagination parameters for district list
@@ -723,9 +725,17 @@
                                     <span>📊</span>
                                     <span>Phase Completion Status</span>
                                 </a>
-                                <a href="javascript:void(0)" onclick="togglePhaseStatusSection()" class="dropdown-item" title="School-wise phase stages with WhatsApp alerts for schools with pending data">
+                                <!-- <a href="javascript:void(0)" onclick="togglePhaseStatusSection()" class="dropdown-item" title="School-wise phase stages with WhatsApp alerts for schools with pending data">
                                     <span>📶</span>
                                     <span>Phase Status &amp; WhatsApp Alerts</span>
+                                </a> -->
+                                <a href="javascript:void(0)" onclick="toggleCriteriaAlerts()" class="dropdown-item" title="निकषानुसार (काम सुरू नाही / 25% / 50% / Approval बाकी / Reject) शाळांची यादी पाहून WhatsApp अलर्ट पाठवा">
+                                    <span>📣</span>
+                                    <span>निकषानुसार अलर्ट (Criteria Alerts)</span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="toggleCoordinatorAlerts()" class="dropdown-item" title="जिल्हा व विभाग समन्वयकांना जिल्हानिहाय एकत्रित आकडेवारी व शाळांची यादी WhatsApp वर पाठवा">
+                                    <span>🏛️</span>
+                                    <span>समन्वयकांना अलर्ट (Coordinator Alerts)</span>
                                 </a>
                                 <a href="<%= request.getContextPath() %>/division-tickets.jsp" class="dropdown-item" title="View and take action on support tickets raised by teachers, school coordinators and head masters">
                                     <span>🎫</span>
@@ -734,7 +744,7 @@
                             </div>
                             
                             <!-- Analytics & Reports Section -->
-                            <div class="dropdown-section">
+                           <%--  <div class="dropdown-section">
                                 <div class="section-title">Analytics & Reports</div>
                                 <a href="<%= request.getContextPath() %>/division-dashboard-enhanced.jsp" class="dropdown-item" title="View detailed analytics and reports">
                                     <span>📊</span>
@@ -748,7 +758,7 @@
                                     <span>📊</span>
                                     <span>Complete Analytics Dashboard</span>
                                 </a>
-                            </div>
+                            </div> --%>
                             
                             <!-- Student Data Section -->
                             <div class="dropdown-section">
@@ -761,26 +771,26 @@
                                     <span>⚠️</span>
                                     <span>Student Level Jumps</span>
                                 </a>
-                                <a href="<%= request.getContextPath() %>/division-charts.jsp" class="dropdown-item" title="View interactive charts and analytics for level jumps">
+                               <%--  <a href="<%= request.getContextPath() %>/division-charts.jsp" class="dropdown-item" title="View interactive charts and analytics for level jumps">
                                     <span>📊</span>
                                     <span>Level Jumps Analytics Charts</span>
-                                </a>
-                                <a href="<%= request.getContextPath() %>/division-teacher-progress.jsp" class="dropdown-item" title="View teacher-wise FLN progress — class targets, progress & non-progress students">
+                                </a> --%>
+                               <%--  <a href="<%= request.getContextPath() %>/division-teacher-progress.jsp" class="dropdown-item" title="View teacher-wise FLN progress — class targets, progress & non-progress students">
                                     <span>👨‍🏫</span>
                                     <span>Teacher Progress Report</span>
-                                </a>
+                                </a> --%>
                                 <a href="<%= request.getContextPath() %>/division-student-level-details.jsp" class="dropdown-item" title="View individual student level details with filters">
                                     <span>👨‍🎓</span>
                                     <span>Student Level Details</span>
                                 </a>
-                                <a href="<%= request.getContextPath() %>/division-student-levels-percentage.jsp" class="dropdown-item" title="View student levels percentage bar graph by district and school">
+                               <%--  <a href="<%= request.getContextPath() %>/division-student-levels-percentage.jsp" class="dropdown-item" title="View student levels percentage bar graph by district and school">
                                     <span>📊</span>
                                     <span>Subjects Percentage Graph</span>
-                                </a>
-                                <a href="<%= request.getContextPath() %>/division-student-level-distribution.jsp" class="dropdown-item" title="View detailed level-wise student distribution with percentage bars">
+                                </a> --%>
+                               <%--  <a href="<%= request.getContextPath() %>/division-student-level-distribution.jsp" class="dropdown-item" title="View detailed level-wise student distribution with percentage bars">
                                     <span>📈</span>
                                     <span>Level Distribution Graph</span>
-                                </a>
+                                </a> --%>
                                 <a href="<%= request.getContextPath() %>/division-phase-comparison.jsp" class="dropdown-item" title="Compare student levels across Phase 1, 2, 3, and 4 side-by-side">
                                     <span>🔄</span>
                                     <span>Phase-wise Comparison</span>
@@ -1696,6 +1706,215 @@
         </div>
         </div>
 
+        <!-- Criteria Alerts: chase schools by follow-up bucket rather than one at a time.
+             Summary view = one row per district; clicking a count swaps to the bucket view, where
+             the division ticks which schools to alert. Nothing sends without an explicit tick. -->
+        <div id="criteriaAlertSection" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);">
+        <div style="position: relative; margin: 2% auto; max-width: 1500px; width: 96%; background: white; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.3);">
+            <div style="background: linear-gradient(135deg, #e65100 0%, #f57c00 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">📣 निकषानुसार अलर्ट (Criteria Alerts)</h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95;">निवडलेल्या चरणासाठी निकषानुसार शाळांची यादी पाहून मुख्याध्यापक व शाळा समन्वयक यांना WhatsApp अलर्ट पाठवा.</p>
+                </div>
+                <button onclick="closeCriteriaAlerts()"
+                        style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 32px; cursor: pointer; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 300; flex-shrink: 0;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    ×
+                </button>
+            </div>
+
+            <div style="padding: 25px 30px;">
+                <!-- Populated by JS while WhatsAppConfig.ALERT_TEST_MODE is on -->
+                <div id="caTestBanner" style="display: none; margin-bottom: 20px; padding: 14px 18px; background: #FFF3CD; border: 1px solid #FFB300; border-radius: 8px; font-size: 15px; font-weight: 600; color: #7a5200;"></div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+                    <label style="font-size: 15px; font-weight: 600; color: #333;">चरण (Phase):</label>
+                    <select id="caPhase" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="loadCriteriaSummary()">
+                        <option value="1">चरण 1</option>
+                        <option value="2">चरण 2</option>
+                        <option value="3">चरण 3</option>
+                        <option value="4">चरण 4</option>
+                    </select>
+                    <button onclick="loadCriteriaSummary()" style="padding: 10px 18px; background: #e65100; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">🔄 Refresh</button>
+                </div>
+
+                <!-- Summary view -->
+                <div id="caSummaryView">
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600;">जिल्हा</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">एकूण शाळा</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">काम सुरू नाही</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">25% पेक्षा कमी</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">50% पेक्षा कमी</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">Approval बाकी</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">Reject</th>
+                                </tr>
+                            </thead>
+                            <tbody id="caSummaryBody">
+                                <tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;"><div class="spinner" style="margin: 0 auto 15px;"></div>Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="margin-top: 15px; color: #666; font-size: 13px;">कोणत्याही संख्येवर क्लिक करून त्या निकषातील शाळांची यादी पहा.</p>
+                </div>
+
+                <!-- Bucket view -->
+                <div id="caBucketView" style="display: none;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                        <button onclick="backToCriteriaSummary()" style="padding: 9px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">← मागे</button>
+                        <h3 id="caBucketTitle" style="margin: 0; font-size: 18px; color: #333;"></h3>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; padding: 12px 15px; background: #f8f9fa; border-radius: 8px;">
+                        <button onclick="selectAllCriteriaSchools(true)" style="padding: 8px 14px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">सर्व निवडा</button>
+                        <button onclick="selectAllCriteriaSchools(false)" style="padding: 8px 14px; background: #90a4ae; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">निवड रद्द</button>
+                        <span id="caSelectionInfo" style="font-size: 14px; font-weight: 600; color: #333;">0 शाळा निवडल्या → 0 संदेश</span>
+                        <button id="caSendBtn" onclick="sendCriteriaAlerts()" disabled
+                                style="margin-left: auto; padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">📨 निवडलेल्या शाळांना अलर्ट पाठवा</button>
+                    </div>
+
+                    <div id="caSendProgress" style="display: none; margin-bottom: 15px; padding: 12px 15px; background: #FFF8E1; border: 1px solid #FFB300; border-radius: 6px; font-size: 14px;"></div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; width: 40px;">
+                                        <input type="checkbox" id="caSelectAll" onclick="selectAllCriteriaSchools(this.checked)">
+                                    </th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600;">शाळा</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600;">UDISE</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">प्रगती</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600;">संपर्क</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">शेवटचा अलर्ट</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">स्थिती</th>
+                                </tr>
+                            </thead>
+                            <tbody id="caBucketBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Coordinator Alerts: the same five buckets reported UPWARD, to the officers who supervise
+             the schools. Overview = one row per district plus a division roll-up; clicking a count
+             opens the detail view, where the division confirms the exact message, the school list and
+             every recipient before anything sends. Deliberately a sibling of criteriaAlertSection
+             rather than a tab inside it: the two consoles share their SQL (PhaseBucketSql), not their
+             markup, and the school console is live. -->
+        <div id="coordinatorAlertSection" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);">
+        <div style="position: relative; margin: 2% auto; max-width: 1500px; width: 96%; background: white; border-radius: 12px; box-shadow: 0 10px 50px rgba(0,0,0,0.3);">
+            <div style="background: linear-gradient(135deg, #283593 0%, #3949ab 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin: 0; font-size: 24px; font-weight: 700;">🏛️ समन्वयकांना अलर्ट (Coordinator Alerts)</h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95;">जिल्हा समन्वयकांना जिल्ह्याची व विभाग अधिकाऱ्यांना विभागाची एकत्रित सद्यस्थिती, शाळांच्या यादीसह पाठवा.</p>
+                </div>
+                <button onclick="closeCoordinatorAlerts()"
+                        style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 32px; cursor: pointer; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 300; flex-shrink: 0;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    &times;
+                </button>
+            </div>
+
+            <div style="padding: 25px 30px;">
+                <!-- Test mode, and the two things that silently change what a send does: whether the
+                     document templates are approved, and whether a browser is present to render the
+                     PDF. Both are shown before the officer clicks, not discovered afterwards. -->
+                <div id="coTestBanner" style="display: none; margin-bottom: 15px; padding: 14px 18px; background: #FFF3CD; border: 1px solid #FFB300; border-radius: 8px; font-size: 15px; font-weight: 600; color: #7a5200;"></div>
+                <div id="coDocBanner" style="display: none; margin-bottom: 20px; padding: 14px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;"></div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+                    <label style="font-size: 15px; font-weight: 600; color: #333;">चरण (Phase):</label>
+                    <select id="coPhase" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="loadCoordinatorOverview()">
+                        <option value="1">चरण 1</option>
+                        <option value="2">चरण 2</option>
+                        <option value="3">चरण 3</option>
+                        <option value="4">चरण 4</option>
+                    </select>
+                    <button onclick="loadCoordinatorOverview()" style="padding: 10px 18px; background: #283593; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">🔄 Refresh</button>
+                </div>
+
+                <!-- Overview -->
+                <div id="coOverviewView">
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600;">जिल्हा / विभाग</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">समन्वयक</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">एकूण शाळा</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">प्रगती</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">काम सुरू नाही</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">25% पेक्षा कमी</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">50% पेक्षा कमी</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">Approval बाकी</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">Reject</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600;">सद्यस्थिती अहवाल</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coOverviewBody">
+                                <tr><td colspan="10" style="text-align: center; padding: 40px; color: #999;"><div class="spinner" style="margin: 0 auto 15px;"></div>Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="margin-top: 15px; color: #666; font-size: 13px;">कोणत्याही संख्येवर क्लिक करून तो संदेश, शाळांची यादी व प्राप्तकर्ते पहा. क्लिक केल्याने संदेश जात नाही.</p>
+                </div>
+
+                <!-- Detail: the exact message, who gets it, and what the attached list contains -->
+                <div id="coDetailView" style="display: none;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                        <button onclick="backToCoordinatorOverview()" style="padding: 9px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">&larr; मागे</button>
+                        <h3 id="coDetailTitle" style="margin: 0; font-size: 18px; color: #333;"></h3>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 18px;">
+                        <div>
+                            <div style="font-size: 13px; font-weight: 700; color: #283593; margin-bottom: 8px;">जाणारा संदेश (WhatsApp)</div>
+                            <div id="coMessagePreview" style="padding: 14px 16px; background: #E8F5E9; border: 1px solid #A5D6A7; border-radius: 10px; font-size: 14px; line-height: 1.65; white-space: pre-wrap;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 700; color: #283593; margin-bottom: 8px;">प्राप्तकर्ते</div>
+                            <div id="coRecipients" style="padding: 12px 14px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px; font-size: 14px;"></div>
+                            <div id="coLastAlerted" style="margin-top: 10px; font-size: 13px; color: #7a5200;"></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; padding: 12px 15px; background: #f8f9fa; border-radius: 8px;">
+                        <span id="coDetailInfo" style="font-size: 14px; font-weight: 600; color: #333;"></span>
+                        <button id="coSendBtn" onclick="sendCoordinatorAlert()"
+                                style="margin-left: auto; padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">📨 समन्वयकांना पाठवा</button>
+                    </div>
+
+                    <div id="coSendProgress" style="display: none; margin-bottom: 15px; padding: 12px 15px; background: #FFF8E1; border: 1px solid #FFB300; border-radius: 6px; font-size: 14px;"></div>
+
+                    <div style="font-size: 13px; font-weight: 700; color: #283593; margin-bottom: 8px;">सोबत जाणारी शाळांची यादी</div>
+                    <div style="overflow-x: auto; max-height: 360px; overflow-y: auto;">
+                        <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 10px; text-align: center; font-weight: 600; width: 50px;">अ.क्र.</th>
+                                    <th style="padding: 10px; text-align: left; font-weight: 600;">UDISE</th>
+                                    <th style="padding: 10px; text-align: left; font-weight: 600;">शाळा</th>
+                                    <th style="padding: 10px; text-align: left; font-weight: 600;">जिल्हा</th>
+                                    <th style="padding: 10px; text-align: center; font-weight: 600;">प्रगती</th>
+                                    <th style="padding: 10px; text-align: center; font-weight: 600;">Approval</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coDetailBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
         <!-- Phase Completion Status Section - Hidden by default -->
         <div id="phaseCompletionSection" style="display: none;">
         <div class="section-card" style="margin-top: 30px;">
@@ -1705,18 +1924,34 @@
             <!-- Phase 1 -->
             <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
                 <h3 style="margin: 0 0 15px 0;">📝 चरण 1 (Phase 1) - District Completion Status</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase1TotalDistricts">-</div>
-                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="phase1TotalDistricts">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Districts</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase1Completed">-</div>
-                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #5c6bc0;" id="phase1TotalSchools">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Schools</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase1AvgCompletion">-</div>
-                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4caf50;" id="phase1Completed">-</div>
+                        <div style="font-size: 13px; color: #666;">Approved</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #ff9800;" id="phase1Pending">-</div>
+                        <div style="font-size: 13px; color: #666;">Pending Approval</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #e53935;" id="phase1Rejected">-</div>
+                        <div style="font-size: 13px; color: #666;">Rejected</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #9e9e9e;" id="phase1NotStarted">-</div>
+                        <div style="font-size: 13px; color: #666;">Not Started</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #00897b;" id="phase1AvgCompletion">-</div>
+                        <div style="font-size: 13px; color: #666;">Avg Completion</div>
                     </div>
                 </div>
                 <div style="height: 400px; position: relative;">
@@ -1727,18 +1962,34 @@
             <!-- Phase 2 -->
             <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
                 <h3 style="margin: 0 0 15px 0;">📝 चरण 2 (Phase 2) - District Completion Status</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase2TotalDistricts">-</div>
-                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="phase2TotalDistricts">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Districts</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase2Completed">-</div>
-                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #5c6bc0;" id="phase2TotalSchools">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Schools</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase2AvgCompletion">-</div>
-                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4caf50;" id="phase2Completed">-</div>
+                        <div style="font-size: 13px; color: #666;">Approved</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #ff9800;" id="phase2Pending">-</div>
+                        <div style="font-size: 13px; color: #666;">Pending Approval</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #e53935;" id="phase2Rejected">-</div>
+                        <div style="font-size: 13px; color: #666;">Rejected</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #9e9e9e;" id="phase2NotStarted">-</div>
+                        <div style="font-size: 13px; color: #666;">Not Started</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #00897b;" id="phase2AvgCompletion">-</div>
+                        <div style="font-size: 13px; color: #666;">Avg Completion</div>
                     </div>
                 </div>
                 <div style="height: 400px; position: relative;">
@@ -1749,18 +2000,34 @@
             <!-- Phase 3 -->
             <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
                 <h3 style="margin: 0 0 15px 0;">📝 चरण 3 (Phase 3) - District Completion Status</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase3TotalDistricts">-</div>
-                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="phase3TotalDistricts">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Districts</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase3Completed">-</div>
-                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #5c6bc0;" id="phase3TotalSchools">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Schools</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase3AvgCompletion">-</div>
-                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4caf50;" id="phase3Completed">-</div>
+                        <div style="font-size: 13px; color: #666;">Approved</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #ff9800;" id="phase3Pending">-</div>
+                        <div style="font-size: 13px; color: #666;">Pending Approval</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #e53935;" id="phase3Rejected">-</div>
+                        <div style="font-size: 13px; color: #666;">Rejected</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #9e9e9e;" id="phase3NotStarted">-</div>
+                        <div style="font-size: 13px; color: #666;">Not Started</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #00897b;" id="phase3AvgCompletion">-</div>
+                        <div style="font-size: 13px; color: #666;">Avg Completion</div>
                     </div>
                 </div>
                 <div style="height: 400px; position: relative;">
@@ -1771,18 +2038,34 @@
             <!-- Phase 4 -->
             <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px;">
                 <h3 style="margin: 0 0 15px 0;">📝 चरण 4 (Phase 4) - District Completion Status</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="phase4TotalDistricts">-</div>
-                        <div style="font-size: 14px; color: #666;">Total Districts</div>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 15px;">
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="phase4TotalDistricts">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Districts</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #4caf50;" id="phase4Completed">-</div>
-                        <div style="font-size: 14px; color: #666;">Approved Schools</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #5c6bc0;" id="phase4TotalSchools">-</div>
+                        <div style="font-size: 13px; color: #666;">Total Schools</div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 28px; font-weight: 700; color: #ff9800;" id="phase4AvgCompletion">-</div>
-                        <div style="font-size: 14px; color: #666;">Avg Completion</div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4caf50;" id="phase4Completed">-</div>
+                        <div style="font-size: 13px; color: #666;">Approved</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #ff9800;" id="phase4Pending">-</div>
+                        <div style="font-size: 13px; color: #666;">Pending Approval</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #e53935;" id="phase4Rejected">-</div>
+                        <div style="font-size: 13px; color: #666;">Rejected</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #9e9e9e;" id="phase4NotStarted">-</div>
+                        <div style="font-size: 13px; color: #666;">Not Started</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px 8px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: 700; color: #00897b;" id="phase4AvgCompletion">-</div>
+                        <div style="font-size: 13px; color: #666;">Avg Completion</div>
                     </div>
                 </div>
                 <div style="height: 400px; position: relative;">
@@ -3375,6 +3658,787 @@
             document.body.style.overflow = 'auto';
         }
 
+        // ── Criteria Alerts ───────────────────────────────────────────────────────────────────
+        // Two views in one modal: the district summary, and the bucket of schools behind one
+        // count. Sends are per school to its Head Master + School Coordinator, and only for
+        // schools the division has explicitly ticked.
+
+        var CA_CRITERIA = ['NOT_STARTED', 'BELOW_25', 'BELOW_50', 'PENDING_APPROVAL', 'REJECTED'];
+        var CA_LABELS = {
+            'NOT_STARTED':      'काम सुरू न केलेल्या शाळा',
+            'BELOW_25':         '25% पेक्षा कमी प्रगती',
+            'BELOW_50':         '50% पेक्षा कमी प्रगती',
+            'PENDING_APPROVAL': 'माहिती 100% भरली — Approval प्रलंबित',
+            'REJECTED':         'माहिती Reject — दुरुस्ती प्रलंबित'
+        };
+
+        var caBucketSchools = [];   // schools currently shown in the bucket view
+        var caContext = null;       // { district, criterion, phase } of that view
+        var caTestMode = false;
+        var caTestNumber = '';
+
+        function toggleCriteriaAlerts() {
+            var modal = document.getElementById('criteriaAlertSection');
+            modal.style.display = 'block';
+            modal.scrollTop = 0;
+            document.body.style.overflow = 'hidden';
+            backToCriteriaSummary();
+            loadCriteriaSummary();
+        }
+
+        function closeCriteriaAlerts() {
+            document.getElementById('criteriaAlertSection').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function caPhase() {
+            return document.getElementById('caPhase').value;
+        }
+
+        // The banner is driven by the server's testMode flag, never hardcoded here — otherwise the
+        // page could keep promising "test only" after the flag was switched off.
+        function caApplyTestMode(data) {
+            caTestMode = !!data.testMode;
+            caTestNumber = data.testNumber || '';
+            var banner = document.getElementById('caTestBanner');
+            if (caTestMode) {
+                banner.style.display = 'block';
+                banner.textContent = '⚠️ चाचणी मोड: सर्व संदेश ' + caTestNumber
+                    + ' या क्रमांकावर पाठवले जातील (शाळेच्या प्रत्यक्ष क्रमांकावर नाही).';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function loadCriteriaSummary() {
+            var body = document.getElementById('caSummaryBody');
+            body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">'
+                + '<div class="spinner" style="margin: 0 auto 15px;"></div>Loading...</td></tr>';
+
+            fetch(contextPath + '/division-criteria-alert?phase=' + encodeURIComponent(caPhase()))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: red;">Error: '
+                            + escapeHtml(data.error) + '</td></tr>';
+                        return;
+                    }
+                    caApplyTestMode(data);
+                    renderCriteriaSummary(data.districts || []);
+                })
+                .catch(function (e) {
+                    body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: red;">Failed to load: '
+                        + escapeHtml(String(e)) + '</td></tr>';
+                });
+        }
+
+        function renderCriteriaSummary(districts) {
+            var body = document.getElementById('caSummaryBody');
+            if (districts.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">कोणतीही शाळा आढळली नाही</td></tr>';
+                return;
+            }
+
+            var html = '';
+            districts.forEach(function (d, i) {
+                html += '<tr style="border-bottom: 1px solid #e0e0e0;' + (i % 2 === 0 ? ' background: #f9f9f9;' : '') + '">';
+                html += '<td style="padding: 10px; font-weight: 500;">' + escapeHtml(d.districtName || '') + '</td>';
+                html += '<td style="padding: 10px; text-align: center;">' + d.totalSchools + '</td>';
+                CA_CRITERIA.forEach(function (key) {
+                    var count = (d.counts && d.counts[key]) || 0;
+                    html += '<td style="padding: 10px; text-align: center;">';
+                    if (count > 0) {
+                        // A count is the entry point to the bucket; zero is inert so there is
+                        // nothing to click that could send an empty alert. District and criterion
+                        // ride on data- attributes rather than an inline onclick argument, because
+                        // district names are free text and would break out of the attribute.
+                        html += '<a href="javascript:void(0)" class="ca-count-link"'
+                             + ' data-district="' + escapeHtml(d.districtName || '') + '"'
+                             + ' data-criterion="' + key + '"'
+                             + ' style="display: inline-block; min-width: 44px; padding: 5px 10px; background: #e65100; color: white;'
+                             + ' border-radius: 12px; font-weight: 700; text-decoration: none;">' + count + '</a>';
+                    } else {
+                        html += '<span style="color: #bbb;">—</span>';
+                    }
+                    html += '</td>';
+                });
+                html += '</tr>';
+            });
+            body.innerHTML = html;
+
+            body.querySelectorAll('.ca-count-link').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    openCriteriaBucket(this.getAttribute('data-district'),
+                                       this.getAttribute('data-criterion'));
+                });
+            });
+        }
+
+        function openCriteriaBucket(district, criterion) {
+            caContext = { district: district, criterion: criterion, phase: caPhase() };
+            document.getElementById('caSummaryView').style.display = 'none';
+            document.getElementById('caBucketView').style.display = 'block';
+            document.getElementById('caSendProgress').style.display = 'none';
+            document.getElementById('caBucketTitle').textContent =
+                district + ' — ' + (CA_LABELS[criterion] || criterion) + ' (चरण ' + caContext.phase + ')';
+            document.getElementById('caBucketBody').innerHTML =
+                '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">'
+                + '<div class="spinner" style="margin: 0 auto 15px;"></div>Loading...</td></tr>';
+
+            var url = contextPath + '/division-criteria-alert?phase=' + encodeURIComponent(caContext.phase)
+                    + '&district=' + encodeURIComponent(district)
+                    + '&criterion=' + encodeURIComponent(criterion);
+
+            fetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        document.getElementById('caBucketBody').innerHTML =
+                            '<tr><td colspan="7" style="text-align: center; padding: 20px; color: red;">Error: '
+                            + escapeHtml(data.error) + '</td></tr>';
+                        return;
+                    }
+                    caApplyTestMode(data);
+                    caBucketSchools = data.schools || [];
+                    renderCriteriaBucket();
+                })
+                .catch(function (e) {
+                    document.getElementById('caBucketBody').innerHTML =
+                        '<tr><td colspan="7" style="text-align: center; padding: 20px; color: red;">Failed to load: '
+                        + escapeHtml(String(e)) + '</td></tr>';
+                });
+        }
+
+        function backToCriteriaSummary() {
+            document.getElementById('caSummaryView').style.display = 'block';
+            document.getElementById('caBucketView').style.display = 'none';
+            document.getElementById('caSelectAll').checked = false;
+            caBucketSchools = [];
+            caContext = null;
+        }
+
+        function renderCriteriaBucket() {
+            var body = document.getElementById('caBucketBody');
+            if (caBucketSchools.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">या निकषात सध्या कोणतीही शाळा नाही</td></tr>';
+                updateCriteriaSelectionCount();
+                return;
+            }
+
+            var html = '';
+            caBucketSchools.forEach(function (s, i) {
+                var reachable = s.messageCount > 0;
+                html += '<tr id="caRow-' + escapeHtml(s.udiseNo) + '" style="border-bottom: 1px solid #e0e0e0;'
+                     + (i % 2 === 0 ? ' background: #f9f9f9;' : '') + '">';
+
+                html += '<td style="padding: 10px; text-align: center;">'
+                     + '<input type="checkbox" class="ca-school-cb" data-udise="' + escapeHtml(s.udiseNo) + '"'
+                     + (reachable ? '' : ' disabled') + ' onchange="updateCriteriaSelectionCount()">'
+                     + '</td>';
+
+                html += '<td style="padding: 10px; font-weight: 500;">' + escapeHtml(s.schoolName || '') + '</td>';
+                html += '<td style="padding: 10px; font-family: monospace; color: #666;">' + escapeHtml(s.udiseNo) + '</td>';
+                html += '<td style="padding: 10px; text-align: center;">' + s.done + '/' + s.total
+                     + ' <strong>(' + s.percentage + '%)</strong></td>';
+
+                // Contacts double as the reason a row is unselectable, so show them rather than
+                // just greying the checkbox.
+                var contacts = s.contacts || [];
+                if (contacts.length === 0) {
+                    html += '<td style="padding: 10px; color: #c62828; font-size: 13px;">संपर्क नोंद नाही</td>';
+                } else {
+                    var parts = [];
+                    contacts.forEach(function (c) {
+                        var label = escapeHtml(c.fullName || '—') + ' (' + escapeHtml(c.contactType || '') + ')';
+                        parts.push(c.hasNumber
+                            ? label + ' — ' + escapeHtml(c.number)
+                            : '<span style="color: #c62828;">' + label + ' — क्रमांक उपलब्ध नाही</span>');
+                    });
+                    html += '<td style="padding: 10px; font-size: 13px; line-height: 1.6;">' + parts.join('<br>') + '</td>';
+                }
+
+                html += '<td style="padding: 10px; text-align: center; font-size: 13px; color: #666;">'
+                     + (s.lastAlertedAt ? escapeHtml(String(s.lastAlertedAt).substring(0, 16)) : '—') + '</td>';
+                html += '<td id="caStatus-' + escapeHtml(s.udiseNo) + '" style="padding: 10px; text-align: center; font-size: 13px;">'
+                     + (reachable ? '<span style="color:#888;">' + s.messageCount + ' संदेश</span>'
+                                  : '<span style="color:#c62828;">पाठवता येणार नाही</span>') + '</td>';
+                html += '</tr>';
+            });
+            body.innerHTML = html;
+            updateCriteriaSelectionCount();
+        }
+
+        function selectAllCriteriaSchools(checked) {
+            // Disabled rows have no number, so "select all" must skip them or the counter lies.
+            document.querySelectorAll('.ca-school-cb').forEach(function (cb) {
+                if (!cb.disabled) cb.checked = checked;
+            });
+            document.getElementById('caSelectAll').checked = checked;
+            updateCriteriaSelectionCount();
+        }
+
+        function selectedCriteriaUdises() {
+            var udises = [];
+            document.querySelectorAll('.ca-school-cb').forEach(function (cb) {
+                if (cb.checked && !cb.disabled) udises.push(cb.getAttribute('data-udise'));
+            });
+            return udises;
+        }
+
+        function updateCriteriaSelectionCount() {
+            var udises = selectedCriteriaUdises();
+            var messages = 0;
+            caBucketSchools.forEach(function (s) {
+                if (udises.indexOf(s.udiseNo) !== -1) messages += (s.messageCount || 0);
+            });
+            document.getElementById('caSelectionInfo').textContent =
+                udises.length + ' शाळा निवडल्या → ' + messages + ' संदेश';
+
+            var btn = document.getElementById('caSendBtn');
+            btn.disabled = udises.length === 0;
+            btn.style.background = udises.length === 0 ? '#9e9e9e' : '#25D366';
+            btn.style.cursor = udises.length === 0 ? 'not-allowed' : 'pointer';
+        }
+
+        function sendCriteriaAlerts() {
+            if (!caContext) return;
+            var udises = selectedCriteriaUdises();
+            if (udises.length === 0) return;
+
+            var messages = 0;
+            caBucketSchools.forEach(function (s) {
+                if (udises.indexOf(s.udiseNo) !== -1) messages += (s.messageCount || 0);
+            });
+
+            var destination = caTestMode
+                ? 'चाचणी क्रमांक ' + caTestNumber + ' वर'
+                : 'शाळांच्या मुख्याध्यापक व शाळा समन्वयक यांच्या क्रमांकावर';
+
+            if (!confirm('WhatsApp अलर्ट पाठवायचा?\n\n'
+                    + 'निकष: ' + (CA_LABELS[caContext.criterion] || caContext.criterion) + '\n'
+                    + 'चरण: ' + caContext.phase + '\n'
+                    + 'जिल्हा: ' + caContext.district + '\n'
+                    + 'शाळा: ' + udises.length + '\n'
+                    + 'एकूण संदेश: ' + messages + '\n\n'
+                    + 'हे संदेश ' + destination + ' पाठवले जातील.')) {
+                return;
+            }
+
+            var btn = document.getElementById('caSendBtn');
+            btn.disabled = true;
+            btn.textContent = 'पाठवत आहे...';
+            btn.style.background = '#999';
+
+            var progress = document.getElementById('caSendProgress');
+            progress.style.display = 'block';
+            progress.textContent = udises.length + ' शाळांना ' + messages + ' संदेश पाठवत आहे...';
+
+            fetch(contextPath + '/division-criteria-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    phase: caContext.phase,
+                    criterion: caContext.criterion,
+                    udises: udises.join(',')
+                })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.error) {
+                    progress.textContent = '❌ ' + data.error;
+                    return;
+                }
+                progress.textContent = '✅ पाठवले: ' + data.sent
+                    + '   ❌ अयशस्वी: ' + data.failed
+                    + '   ⏭️ वगळले: ' + (data.skipped || 0);
+                markCriteriaResults(data.results || []);
+            })
+            .catch(function (e) {
+                progress.textContent = '❌ Failed: ' + e;
+            })
+            .then(function () {
+                btn.textContent = '📨 निवडलेल्या शाळांना अलर्ट पाठवा';
+                updateCriteriaSelectionCount();
+            });
+        }
+
+        /** Roll the per-recipient results up to one status per school row. */
+        function markCriteriaResults(results) {
+            var byUdise = {};
+            results.forEach(function (r) {
+                var u = r.udiseNo;
+                if (!u) return;
+                if (!byUdise[u]) byUdise[u] = { sent: 0, failed: 0, error: null };
+                if (r.success) {
+                    byUdise[u].sent++;
+                } else {
+                    byUdise[u].failed++;
+                    if (!byUdise[u].error) byUdise[u].error = r.error;
+                }
+            });
+
+            Object.keys(byUdise).forEach(function (u) {
+                var cell = document.getElementById('caStatus-' + u);
+                if (!cell) return;
+                var r = byUdise[u];
+                if (r.failed === 0 && r.sent > 0) {
+                    cell.innerHTML = '<span style="color:#2E7D32; font-weight:600;">✓ ' + r.sent + ' पाठवले</span>';
+                } else if (r.sent > 0) {
+                    cell.innerHTML = '<span style="color:#EF6C00; font-weight:600;">' + r.sent + ' पाठवले, '
+                        + r.failed + ' अयशस्वी</span>';
+                } else {
+                    cell.innerHTML = '<span style="color:#c62828; font-weight:600;" title="'
+                        + escapeHtml(String(r.error || '')) + '">✗ अयशस्वी</span>';
+                }
+            });
+        }
+
+        // ── Coordinator Alerts ────────────────────────────────────────────────────────────────
+        // The same five buckets, reported upward to district coordinators and division officers.
+        // Two views: an overview row per district plus a division roll-up, and a detail view that
+        // shows the exact message, the school list that will be attached, and every recipient by
+        // name and number. Nothing sends without an explicit confirm listing those recipients.
+
+        var CO_TYPES = ['NOT_STARTED', 'BELOW_25', 'BELOW_50', 'PENDING_APPROVAL', 'REJECTED'];
+        var CO_LABELS = {
+            'NOT_STARTED':      'काम सुरू न केलेल्या शाळांची यादी',
+            'BELOW_25':         '25% पेक्षा कमी प्रगती असलेल्या शाळा',
+            'BELOW_50':         '50% पेक्षा कमी प्रगती असलेल्या शाळा',
+            'PENDING_APPROVAL': '100% माहिती भरलेली — मुख्याध्यापकांची कार्यवाही प्रलंबित',
+            'REJECTED':         'माहिती Reject झालेल्या शाळा — दुरुस्ती प्रलंबित',
+            'STATUS_REPORT':    'स्तर निश्चितीकरण सद्यस्थिती अहवाल'
+        };
+
+        var coDetail = null;      // the detail payload currently on screen
+        var coTestMode = false;
+        var coTestNumber = '';
+        // Attachment support differs by message family: the status report sits on an approved
+        // document-header template (two_line_document) and attaches today, while the five alerts have
+        // no approved document template yet and fall back to a portal link.
+        var coAlertDocs = false;
+        var coReportDocs = false;
+        var coRendererOk = true;
+
+        /** Whether THIS message type will carry a PDF. */
+        function coTypeAttaches(type) {
+            return (type === 'STATUS_REPORT') ? coReportDocs : coAlertDocs;
+        }
+
+        function coPhase() {
+            return document.getElementById('coPhase').value;
+        }
+
+        function toggleCoordinatorAlerts() {
+            document.getElementById('coordinatorAlertSection').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            backToCoordinatorOverview();
+            loadCoordinatorOverview();
+        }
+
+        function closeCoordinatorAlerts() {
+            document.getElementById('coordinatorAlertSection').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function backToCoordinatorOverview() {
+            coDetail = null;
+            document.getElementById('coDetailView').style.display = 'none';
+            document.getElementById('coOverviewView').style.display = 'block';
+            document.getElementById('coSendProgress').style.display = 'none';
+        }
+
+        /** Test-mode banner, plus a warning when a promised attachment cannot actually be produced. */
+        function renderCoordinatorBanners(data) {
+            coTestMode = !!data.testMode;
+            coTestNumber = data.testNumber || '';
+            coAlertDocs = !!data.alertDocsEnabled;
+            coReportDocs = !!data.reportDocsEnabled;
+            coRendererOk = !!data.rendererAvailable;
+
+            var test = document.getElementById('coTestBanner');
+            if (coTestMode) {
+                test.style.display = 'block';
+                test.textContent = '⚠️ TEST MODE — प्रत्यक्ष समन्वयकांना संदेश जाणार नाही. सर्व संदेश '
+                    + coTestNumber + ' या क्रमांकावर जातील.';
+            } else {
+                test.style.display = 'none';
+            }
+
+            // An officer expecting a PDF should learn before sending, not after — and the two message
+            // families genuinely differ, so the banner says which is which rather than one blanket
+            // yes/no that would be wrong for half the console.
+            // Says which renderer produced the PDF. Worth surfacing: the Java2D fallback paints
+            // the page rather than laying out text, so its output is not selectable or searchable.
+            function fallbackNote(d) {
+                if (d.rendererKind !== 'java2d') return '';
+                return '<div style="margin-top:6px; font-size:12px; font-weight:400;">'
+                     + 'सर्व्हरवर browser नाही — PDF अंतर्गत Java2D ने तयार केला जाईल '
+                     + '(मजकूर निवडता येणार नाही).</div>';
+            }
+
+            var doc = document.getElementById('coDocBanner');
+            doc.style.display = 'block';
+            // Documents are configured on but there is no browser to render them. Sends still go —
+            // with a portal link instead of an attachment — so this is a warning, not a blocker.
+            var docsWanted = data.alertDocsConfigured || data.reportDocsConfigured;
+            if (docsWanted && !coRendererOk) {
+                doc.style.background = '#FFF3E0';
+                doc.style.border = '1px solid #FB8C00';
+                doc.style.color = '#E65100';
+                // No longer about the browser: the Java2D renderer needs only the bundled font,
+                // so this fires when the build shipped without that resource.
+                doc.innerHTML = '⚠️ PDF तयार करता येणार नाही — '
+                    + 'संदेश <b>पाठवले जातील</b>, मात्र यादी न जोडता पोर्टलची लिंक पाठवली जाईल.'
+                    + (data.fallbackDiagnostic
+                        ? '<div style="margin-top:8px; font-size:12px; font-weight:400;'
+                          + ' font-family:monospace; white-space:pre-wrap; word-break:break-all;">'
+                          + escapeHtml(data.fallbackDiagnostic) + '</div>'
+                        : '');
+            } else if (coAlertDocs && coReportDocs) {
+                doc.style.background = '#E8F5E9';
+                doc.style.border = '1px solid #A5D6A7';
+                doc.style.color = '#1B5E20';
+                doc.innerHTML = '✅ सर्व संदेशांसोबत शाळांची यादी PDF स्वरूपात जोडली जाईल.'
+                    + fallbackNote(data);
+            } else if (coReportDocs) {
+                doc.style.background = '#E8F5E9';
+                doc.style.border = '1px solid #A5D6A7';
+                doc.style.color = '#1B5E20';
+                doc.innerHTML = '✅ <b>सद्यस्थिती अहवाल</b> PDF सह जाईल. '
+                    + 'इतर ५ अलर्टसाठी document template अद्याप मंजूर नाही — '
+                    + 'त्यामध्ये पोर्टलची लिंक पाठवली जाईल.';
+            } else {
+                doc.style.background = '#E3F2FD';
+                doc.style.border = '1px solid #64B5F6';
+                doc.style.color = '#0D47A1';
+                doc.innerHTML = 'ℹ️ Document templates अद्याप मंजूर नाहीत — सध्या संदेशात '
+                    + 'शाळांची यादी <b>जोडली जाणार नाही</b>; पोर्टलची लिंक पाठवली जाईल.';
+            }
+        }
+
+        function loadCoordinatorOverview() {
+            document.getElementById('coOverviewBody').innerHTML =
+                '<tr><td colspan="10" style="text-align:center; padding:40px; color:#999;">'
+                + '<div class="spinner" style="margin:0 auto 15px;"></div>Loading...</td></tr>';
+
+            fetch(contextPath + '/coordinator-criteria-alert?phase=' + encodeURIComponent(coPhase()))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        document.getElementById('coOverviewBody').innerHTML =
+                            '<tr><td colspan="10" style="text-align:center; padding:30px; color:#c62828;">'
+                            + escapeHtml(data.error) + '</td></tr>';
+                        return;
+                    }
+                    renderCoordinatorBanners(data);
+                    renderCoordinatorOverview(data);
+                })
+                .catch(function (e) {
+                    document.getElementById('coOverviewBody').innerHTML =
+                        '<tr><td colspan="10" style="text-align:center; padding:30px; color:#c62828;">'
+                        + escapeHtml(String(e)) + '</td></tr>';
+                });
+        }
+
+        function renderCoordinatorOverview(data) {
+            var rows = [];
+            // Division roll-up first and visually distinct: it is the sum of the rows beneath it,
+            // so showing it above them makes the relationship legible.
+            if (data.division) rows.push({ row: data.division, isDivision: true });
+            (data.districts || []).forEach(function (d) {
+                rows.push({ row: d, isDivision: false });
+            });
+
+            if (!rows.length) {
+                document.getElementById('coOverviewBody').innerHTML =
+                    '<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">'
+                    + 'कोणताही जिल्हा आढळला नाही.</td></tr>';
+                return;
+            }
+
+            var html = '';
+            rows.forEach(function (entry) {
+                var d = entry.row;
+                var s = d.summary || d;
+                var scope = entry.isDivision ? 'DIVISION' : 'DISTRICT';
+                var name = s.name || '';
+                var reachable = (d.recipients || []).filter(function (r) { return r.hasNumber; }).length;
+                var totalRecipients = (d.recipients || []).length;
+
+                html += '<tr style="border-bottom:1px solid #eee;'
+                     + (entry.isDivision ? ' background:#E8EAF6; font-weight:600;' : '') + '">';
+                html += '<td style="padding:10px;">' + escapeHtml(name)
+                     + (entry.isDivision ? ' <span style="font-size:12px; color:#283593;">(संपूर्ण विभाग)</span>' : '')
+                     + '</td>';
+
+                // A scope with no reachable coordinator can never be sent to; say so here rather
+                // than letting the officer find out from a failed send.
+                if (reachable === 0) {
+                    html += '<td style="padding:10px; text-align:center; color:#c62828;" title="'
+                         + totalRecipients + ' नोंदी, मोबाईल क्रमांक नाही">० ⚠️</td>';
+                } else {
+                    html += '<td style="padding:10px; text-align:center;">' + reachable
+                         + (totalRecipients > reachable ? ' / ' + totalRecipients : '') + '</td>';
+                }
+
+                html += '<td style="padding:10px; text-align:center;">' + (s.totalSchools || 0) + '</td>';
+                html += '<td style="padding:10px; text-align:center;">' + (s.progress || 0) + '%</td>';
+
+                CO_TYPES.forEach(function (t) {
+                    var count = (s.counts && s.counts[t]) || 0;
+                    html += '<td style="padding:10px; text-align:center;">'
+                         + coCountCell(scope, name, t, count, reachable) + '</td>';
+                });
+
+                html += '<td style="padding:10px; text-align:center;">'
+                     + coReportCell(scope, name, reachable) + '</td>';
+                html += '</tr>';
+            });
+
+            document.getElementById('coOverviewBody').innerHTML = html;
+            bindCoordinatorCells();
+        }
+
+        /**
+         * A count is clickable only when there is something to send AND someone to send it to —
+         * otherwise it is plain text, so there is nothing to click that could produce an empty or
+         * undeliverable alert.
+         */
+        function coCountCell(scope, name, type, count, reachable) {
+            if (!count || !reachable) {
+                return '<span style="color:#999;">' + count + '</span>';
+            }
+            return '<a href="javascript:void(0)" class="co-cell" data-scope="' + escapeHtml(scope)
+                 + '" data-name="' + escapeHtml(name) + '" data-type="' + type + '"'
+                 + ' style="color:#283593; font-weight:600; text-decoration:underline;">' + count + '</a>';
+        }
+
+        /** The roll-up is sendable even at zero — "nothing pending" is a valid status report. */
+        function coReportCell(scope, name, reachable) {
+            if (!reachable) return '<span style="color:#999;">—</span>';
+            return '<a href="javascript:void(0)" class="co-cell" data-scope="' + escapeHtml(scope)
+                 + '" data-name="' + escapeHtml(name) + '" data-type="STATUS_REPORT"'
+                 + ' style="color:#00695c; font-weight:600; text-decoration:underline;">📄 पहा</a>';
+        }
+
+        function bindCoordinatorCells() {
+            document.querySelectorAll('#coOverviewBody .co-cell').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    openCoordinatorDetail(this.getAttribute('data-scope'),
+                                          this.getAttribute('data-name'),
+                                          this.getAttribute('data-type'));
+                });
+            });
+        }
+
+        function openCoordinatorDetail(scope, name, type) {
+            document.getElementById('coOverviewView').style.display = 'none';
+            document.getElementById('coDetailView').style.display = 'block';
+            document.getElementById('coDetailTitle').textContent =
+                name + ' — ' + (CO_LABELS[type] || type) + ' (चरण ' + coPhase() + ')';
+            document.getElementById('coMessagePreview').textContent = 'Loading...';
+            document.getElementById('coRecipients').innerHTML = '';
+            document.getElementById('coDetailBody').innerHTML = '';
+            document.getElementById('coDetailInfo').textContent = '';
+            document.getElementById('coLastAlerted').textContent = '';
+            document.getElementById('coSendProgress').style.display = 'none';
+
+            var url = contextPath + '/coordinator-criteria-alert?phase=' + encodeURIComponent(coPhase())
+                    + '&scope=' + encodeURIComponent(scope)
+                    + '&name=' + encodeURIComponent(name)
+                    + '&type=' + encodeURIComponent(type);
+
+            fetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        document.getElementById('coMessagePreview').textContent = data.error;
+                        return;
+                    }
+                    coDetail = data;
+                    renderCoordinatorDetail(data);
+                })
+                .catch(function (e) {
+                    document.getElementById('coMessagePreview').textContent = String(e);
+                });
+        }
+
+        function renderCoordinatorDetail(data) {
+            var p = data.params || [];
+            var attaches = coTypeAttaches(data.type);
+            // Reproduces the APPROVED template layouts verbatim — line breaks and footer included,
+            // as returned by getTemplateList() on 2026-08-19 — so what the officer approves on screen
+            // is what actually arrives. The two families have different bodies and footers.
+            var preview = '';
+            if (attaches) {
+                preview += '📎 ' + (data.name || '') + '_' + data.type + '.pdf\n'
+                        +  '─────────────────────\n\n';
+            }
+            if (data.type === 'STATUS_REPORT' && attaches) {
+                // two_line_document: heading, then {{1}} {{2}} {{3}} on consecutive lines.
+                preview += '*स्तर निश्चितीकरण सद्यस्थिती अहवाल*\n\n'
+                        +  (p[0] || '') + '\n' + (p[1] || '') + '\n' + (p[2] || '')
+                        +  '\n\nइतर मागास बहुजन कल्याण विभाग'
+                        +  '\n\nसद्यस्थिती अहवाल';
+            } else if (attaches) {
+                // gatee_performance_rpt: only TWO params, and an English heading and footer — the
+                // price of attaching without waiting on a new Meta approval. Shown as-is so nobody
+                // is surprised by it after the send.
+                preview += 'Performance Report from GATEE Portal\n\n'
+                        +  (p[0] || '') + '\n\n' + (p[1] || '')
+                        +  '\nइतर मागास बहुजन कल्याण विभाग'
+                        +  '\n\nDownload Performance Report';
+            } else {
+                // gatee_com_alert1: {{1}} and {{2}} adjacent, blank line, then {{3}}.
+                preview += '🚨🚨 GATEE Portal Alert 🚨🚨\n\n'
+                        +  (p[0] || '') + '\n' + (p[1] || '') + '\n\n' + (p[2] || '')
+                        +  '\nइतर मागास बहुजन कल्याण विभाग'
+                        +  '\n\nThis is ALERT message';
+            }
+            document.getElementById('coMessagePreview').textContent = preview;
+
+            var recipients = data.recipients || [];
+            var rHtml = '';
+            if (!recipients.length) {
+                rHtml = '<div style="color:#c62828; font-weight:600;">कोणताही सक्रिय समन्वयक आढळला नाही.</div>';
+            } else {
+                recipients.forEach(function (r) {
+                    rHtml += '<div style="padding:4px 0; border-bottom:1px dashed #e0e0e0;">'
+                          + '<b>' + escapeHtml(r.name || '') + '</b> '
+                          + '<span style="font-size:12px; color:#666;">(' + escapeHtml(r.userType || '') + ')</span> — '
+                          + (r.hasNumber
+                                ? escapeHtml(r.number)
+                                : '<span style="color:#c62828;">मोबाईल क्रमांक नाही</span>')
+                          + '</div>';
+                });
+            }
+            document.getElementById('coRecipients').innerHTML = rHtml;
+
+            if (data.lastAlertedAt) {
+                document.getElementById('coLastAlerted').textContent =
+                    '⚠️ शेवटचा अलर्ट: ' + data.lastAlertedAt + ' — पुन्हा पाठवायचे असल्यास खात्री करा.';
+            }
+
+            var count = data.schoolCount || 0;
+            var reachable = recipients.filter(function (r) { return r.hasNumber; }).length;
+            document.getElementById('coDetailInfo').textContent =
+                count + ' शाळा  •  ' + reachable + ' समन्वयकांना संदेश जाईल';
+            document.getElementById('coSendBtn').disabled = (reachable === 0);
+
+            var schools = data.schools || [];
+            var html = '';
+            schools.forEach(function (s, i) {
+                html += '<tr style="border-bottom:1px solid #f0f0f0;">'
+                     + '<td style="padding:8px; text-align:center;">' + (i + 1) + '</td>'
+                     + '<td style="padding:8px;">' + escapeHtml(s.udiseNo || '') + '</td>'
+                     + '<td style="padding:8px;">' + escapeHtml(s.schoolName || '') + '</td>'
+                     + '<td style="padding:8px;">' + escapeHtml(s.districtName || '') + '</td>'
+                     + '<td style="padding:8px; text-align:center;">' + (s.percentage || 0) + '% '
+                     + '<span style="font-size:12px; color:#888;">(' + (s.done || 0) + '/' + (s.total || 0) + ')</span></td>'
+                     + '<td style="padding:8px; text-align:center;">' + escapeHtml(s.approvalStatus || '—') + '</td>'
+                     + '</tr>';
+            });
+            if (!schools.length) {
+                html = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#999;">'
+                     + 'या निकषात कोणतीही शाळा नाही.</td></tr>';
+            }
+            document.getElementById('coDetailBody').innerHTML = html;
+        }
+
+        function sendCoordinatorAlert() {
+            if (!coDetail) return;
+
+            var recipients = (coDetail.recipients || []).filter(function (r) { return r.hasNumber; });
+            if (!recipients.length) {
+                alert('कोणत्याही समन्वयकाचा मोबाईल क्रमांक उपलब्ध नाही.');
+                return;
+            }
+
+            // Name every recipient in the confirm: one click fans out to real officers, and the
+            // officer clicking should see exactly who that is before it happens.
+            var who = recipients.map(function (r) {
+                return '• ' + r.name + ' (' + r.number + ')';
+            }).join('\n');
+            var target = coTestMode
+                ? '\n\n⚠️ TEST MODE — प्रत्यक्षात सर्व संदेश ' + coTestNumber + ' वर जातील.'
+                : '';
+            if (!confirm((CO_LABELS[coDetail.type] || coDetail.type) + '\n'
+                    + coDetail.name + ' — चरण ' + coDetail.phase + '\n\n'
+                    + recipients.length + ' समन्वयकांना संदेश पाठवायचा?\n\n' + who + target)) {
+                return;
+            }
+
+            var btn = document.getElementById('coSendBtn');
+            var progress = document.getElementById('coSendProgress');
+            btn.disabled = true;
+            btn.textContent = 'पाठवत आहे...';
+            progress.style.display = 'block';
+            progress.textContent = coTypeAttaches(coDetail.type)
+                ? 'PDF तयार करून संदेश पाठवत आहे... (काही सेकंद लागू शकतात)'
+                : 'संदेश पाठवत आहे...';
+
+            var body = new URLSearchParams();
+            body.append('phase', coDetail.phase);
+            body.append('type', coDetail.type);
+            body.append('scope', coDetail.scope);
+            body.append('names', coDetail.name);
+
+            fetch(contextPath + '/coordinator-criteria-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    btn.disabled = false;
+                    btn.textContent = '📨 समन्वयकांना पाठवा';
+                    renderCoordinatorSendResult(data, progress);
+                })
+                .catch(function (e) {
+                    btn.disabled = false;
+                    btn.textContent = '📨 समन्वयकांना पाठवा';
+                    progress.style.background = '#FFEBEE';
+                    progress.textContent = 'त्रुटी: ' + e;
+                });
+        }
+
+        function renderCoordinatorSendResult(data, progress) {
+            if (data.error) {
+                progress.style.background = '#FFEBEE';
+                progress.textContent = 'त्रुटी: ' + data.error;
+                return;
+            }
+
+            var lines = [];
+            lines.push('पाठवले: ' + (data.sent || 0)
+                     + '  •  अयशस्वी: ' + (data.failed || 0)
+                     + '  •  वगळले: ' + (data.skipped || 0));
+
+            (data.results || []).forEach(function (scopeResult) {
+                if (scopeResult.error) {
+                    lines.push('✗ ' + scopeResult.name + ': ' + scopeResult.error);
+                    return;
+                }
+                if (scopeResult.documentUrl) {
+                    lines.push('📎 यादी: ' + scopeResult.documentUrl);
+                }
+                (scopeResult.recipients || []).forEach(function (r) {
+                    lines.push((r.success ? '✓ ' : '✗ ') + r.name
+                             + (r.number ? ' (' + r.number + ')' : '')
+                             + (r.success ? '' : ' — ' + (r.error || '')));
+                });
+            });
+
+            progress.style.background = (data.failed > 0) ? '#FFF3E0' : '#E8F5E9';
+            progress.textContent = lines.join('\n');
+            progress.style.whiteSpace = 'pre-wrap';
+
+            // Refresh the last-sent stamp so a second click is a deliberate repeat, not an accident.
+            if (data.sent > 0) {
+                loadCoordinatorOverview();
+            }
+        }
+
         function loadPhaseStatus() {
             document.getElementById('phaseStatusTableBody').innerHTML =
                 '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #999;"><div class="spinner" style="margin: 0 auto 15px;"></div>Loading phase status...</td></tr>';
@@ -3474,7 +4538,10 @@
                 school.phases.forEach(phase => {
                     html += '<td style="padding: 10px; text-align: center;">' + getPhaseStageBadge(phase.status);
                     if (phase.status === 'IN_PROGRESS' || phase.status === 'PENDING') {
-                        html += '<div style="font-size: 11px; color: #666; margin-top: 4px;">' + phase.completedStudents + '/' + school.totalStudents + ' (' + phase.percentage + '%)</div>';
+                        // phase.totalStudents, not school.totalStudents: the percentage is over the
+                        // roster for THIS phase (what manage-students lists), which excludes
+                        // FLN-completed students the school never gets to fill in.
+                        html += '<div style="font-size: 11px; color: #666; margin-top: 4px;">' + phase.completedStudents + '/' + phase.totalStudents + ' (' + phase.percentage + '%)</div>';
                     }
                     html += '</td>';
                 });
@@ -3733,9 +4800,15 @@
                         ? (districts.reduce((sum, s) => sum + s.completionPercentage, 0) / districts.length).toFixed(1) 
                         : 0;
                     
-                    // Update statistics
+                    // Update statistics. School counts come from the schools master via
+                    // phase_approvals, so they are the real school totals, not a students-derived
+                    // approximation.
                     document.getElementById('phase' + phaseNumber + 'TotalDistricts').textContent = totalDistricts;
-                    document.getElementById('phase' + phaseNumber + 'Completed').textContent = completedSchools;
+                    document.getElementById('phase' + phaseNumber + 'TotalSchools').textContent = data.totalSchools || 0;
+                    document.getElementById('phase' + phaseNumber + 'Completed').textContent = data.approvedSchools || 0;
+                    document.getElementById('phase' + phaseNumber + 'Pending').textContent = data.pendingSchools || 0;
+                    document.getElementById('phase' + phaseNumber + 'Rejected').textContent = data.rejectedSchools || 0;
+                    document.getElementById('phase' + phaseNumber + 'NotStarted').textContent = data.notStartedSchools || 0;
                     document.getElementById('phase' + phaseNumber + 'AvgCompletion').textContent = avgCompletion + '%';
                     
                     // Render chart
@@ -3748,8 +4821,9 @@
         function renderPhaseChart(phaseNumber, data) {
             const districts = data.districts || [];
             const districtNames = districts.map(d => d.districtName);
-            const completedData = districts.map(d => d.completedSchools);
-            const incompleteData = districts.map(d => d.incompleteSchools || 0);
+            const completedData = districts.map(d => d.approvedSchools || 0);
+            const pendingData = districts.map(d => d.pendingSchools || 0);
+            const rejectedData = districts.map(d => d.rejectedSchools || 0);
             const notStartedData = districts.map(d => d.notStartedSchools || 0);
             
             const chartId = 'phase' + phaseNumber + 'Chart';
@@ -3774,17 +4848,24 @@
                             borderWidth: 2
                         },
                         {
-                            label: 'Incomplete Schools',
-                            data: incompleteData,
+                            label: 'Pending Approval',
+                            data: pendingData,
                             backgroundColor: 'rgba(255, 152, 0, 0.8)',
                             borderColor: 'rgba(255, 152, 0, 1)',
                             borderWidth: 2
                         },
                         {
+                            label: 'Rejected',
+                            data: rejectedData,
+                            backgroundColor: 'rgba(229, 57, 53, 0.8)',
+                            borderColor: 'rgba(229, 57, 53, 1)',
+                            borderWidth: 2
+                        },
+                        {
                             label: 'Not Started',
                             data: notStartedData,
-                            backgroundColor: 'rgba(244, 67, 54, 0.8)',
-                            borderColor: 'rgba(244, 67, 54, 1)',
+                            backgroundColor: 'rgba(158, 158, 158, 0.8)',
+                            borderColor: 'rgba(158, 158, 158, 1)',
                             borderWidth: 2
                         }
                     ]

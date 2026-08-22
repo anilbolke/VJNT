@@ -462,113 +462,117 @@ public class DivisionAnalyticsServlet extends HttpServlet {
         
         try (Connection conn = DatabaseConnection.getConnection()) {
             
-            // FIXED: Query students directly to match Overview Stats count
-            // Get districts with phase approval status, school counts, and student counts
-            // Phase is complete only when approved by Head Master (approval_status = 'APPROVED')
+            // School counts come from the schools master, NOT from students. Counting
+            // DISTINCT udise_no in students only ever sees schools that happen to have
+            // students on file, so the dashboard total never matched the real school count.
+            // Phase state comes entirely from phase_approvals: APPROVED / PENDING /
+            // REJECTED, and "not started" is simply the absence of a row for that phase.
+            // students is touched only to resolve which districts belong to the division -
+            // the schools table has no division column of its own.
             StringBuilder sql = new StringBuilder();
-            sql.append("SELECT st.district as district, ");
+            sql.append("SELECT s.district_name AS district, ");
+            sql.append("COUNT(DISTINCT s.udise_no) AS total_schools, ");
+            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'APPROVED' THEN s.udise_no END) AS approved_schools, ");
+            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'PENDING'  THEN s.udise_no END) AS pending_schools, ");
+            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'REJECTED' THEN s.udise_no END) AS rejected_schools, ");
+            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL      THEN s.udise_no END) AS not_started_schools, ");
+            // Student figures are the ones the school itself submitted with the phase.
+            sql.append("COALESCE(SUM(pa.total_students), 0) AS total_students, ");
+            sql.append("COALESCE(SUM(CASE WHEN pa.approval_status = 'APPROVED' THEN pa.completed_students END), 0) AS completed_students ");
+            sql.append("FROM schools s ");
+            sql.append("LEFT JOIN phase_approvals pa ");
+            sql.append("       ON s.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci ");
+            sql.append("      AND pa.phase_number = ? ");
             
-            // Count schools from students table (distinct UDISE numbers)
-            sql.append("COUNT(DISTINCT st.udise_no) as total_schools, ");
-            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'APPROVED' THEN st.udise_no END) as completed_schools, ");
-            
-            // Count incomplete schools based on phase.
-            // The st2 subquery needs its own is_active = 1: the outer query filters active
-            // students, but without it here a school counts as "started" purely on last year's
-            // graduates, whose phase dates promotion leaves populated.
-            if (phase == 1) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase1_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
-            } else if (phase == 2) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase2_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
-            } else if (phase == 3) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase3_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
-            } else if (phase == 4) {
-                sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status IS NULL AND EXISTS (SELECT 1 FROM students st2 WHERE st2.udise_no = st.udise_no AND st2.is_active = 1 AND st2.phase4_date IS NOT NULL) THEN st.udise_no END) as incomplete_schools, ");
-            }
-            
-            // Count students directly - this matches the Overview Stats logic
-            sql.append("COUNT(DISTINCT st.student_id) as total_students, ");
-            sql.append("COUNT(DISTINCT CASE WHEN pa.approval_status = 'APPROVED' THEN st.student_id END) as completed_students ");
-            
-            // Query from students table directly, not through schools table
-            sql.append("FROM students st ");
-            sql.append("LEFT JOIN phase_approvals pa ON st.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci AND pa.phase_number = ? ");
-            sql.append("WHERE st.division = ? AND st.is_active = 1 ");
-            
+            // In the JOIN, not the WHERE: in the WHERE this would turn the LEFT JOIN into an
+            // INNER JOIN and drop every school without an approval in the date range -
+            // exactly the not-started schools the chart needs to show.
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
-                sql.append("AND pa.approved_date BETWEEN ? AND ? ");
+                sql.append("      AND pa.approved_date BETWEEN ? AND ? ");
             }
             
-            sql.append("GROUP BY st.district ");
-            sql.append("ORDER BY st.district");
+            sql.append("WHERE s.district_name COLLATE utf8mb4_unicode_ci IN ");
+            sql.append("      (SELECT DISTINCT st.district COLLATE utf8mb4_unicode_ci ");
+            sql.append("       FROM students st WHERE st.division = ?) ");
+            sql.append("GROUP BY s.district_name ");
+            sql.append("ORDER BY s.district_name");
             
             PreparedStatement stmt = conn.prepareStatement(sql.toString());
-            stmt.setInt(1, phase);
-            stmt.setString(2, divisionName);
-            
-            int paramIndex = 3;
+            int paramIndex = 1;
+            stmt.setInt(paramIndex++, phase);
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 stmt.setString(paramIndex++, startDate);
                 stmt.setString(paramIndex++, endDate);
             }
+            stmt.setString(paramIndex++, divisionName);
             
             ResultSet rs = stmt.executeQuery();
             
             JSONArray districts = new JSONArray();
-            int totalCompletedSchools = 0;
-            int totalIncompleteSchools = 0;
+            int totalApprovedSchools = 0;
+            int totalPendingSchools = 0;
+            int totalRejectedSchools = 0;
+            int totalNotStartedSchools = 0;
             int totalSchools = 0;
             int totalStudents = 0;
             int totalCompletedStudents = 0;
-            int districtsWithAllSchoolsComplete = 0; // NEW: Count districts at 100%
+            int districtsWithAllSchoolsComplete = 0;
             
             while (rs.next()) {
                 JSONObject district = new JSONObject();
-                String districtName = rs.getString("district");
-                int districtTotalSchools = rs.getInt("total_schools");
-                int districtCompletedSchools = rs.getInt("completed_schools");
-                int districtIncompleteSchools = rs.getInt("incomplete_schools");
-                int districtNotStartedSchools = districtTotalSchools - districtCompletedSchools - districtIncompleteSchools;
-                int districtTotalStudents = rs.getInt("total_students");
-                int districtCompletedStudents = rs.getInt("completed_students");
+                String districtName        = rs.getString("district");
+                int districtTotalSchools   = rs.getInt("total_schools");
+                int districtApproved       = rs.getInt("approved_schools");
+                int districtPending        = rs.getInt("pending_schools");
+                int districtRejected       = rs.getInt("rejected_schools");
+                int districtNotStarted     = rs.getInt("not_started_schools");
+                int districtTotalStudents  = rs.getInt("total_students");
+                int districtCompletedStuds = rs.getInt("completed_students");
                 
-                double completionPercentage = districtTotalSchools > 0 ? 
-                    (districtCompletedSchools * 100.0 / districtTotalSchools) : 0.0;
+                double completionPercentage = districtTotalSchools > 0 ?
+                    (districtApproved * 100.0 / districtTotalSchools) : 0.0;
                 
-                // Count if this district has 100% completion
                 if (completionPercentage >= 100.0) {
                     districtsWithAllSchoolsComplete++;
                 }
                 
                 district.put("districtName", districtName);
                 district.put("totalSchools", districtTotalSchools);
-                district.put("completedSchools", districtCompletedSchools);
-                district.put("incompleteSchools", districtIncompleteSchools);
-                district.put("notStartedSchools", districtNotStartedSchools);
                 district.put("schoolCount", districtTotalSchools);
+                district.put("completedSchools", districtApproved);
+                district.put("approvedSchools", districtApproved);
+                district.put("pendingSchools", districtPending);
+                district.put("rejectedSchools", districtRejected);
+                district.put("notStartedSchools", districtNotStarted);
+                // Retained for callers still reading the old key: everything submitted but
+                // not yet approved, i.e. pending plus rejected.
+                district.put("incompleteSchools", districtPending + districtRejected);
                 district.put("totalStudents", districtTotalStudents);
-                district.put("completedStudents", districtCompletedStudents);
+                district.put("completedStudents", districtCompletedStuds);
                 district.put("completionPercentage", Math.round(completionPercentage * 10.0) / 10.0);
                 
                 districts.put(district);
                 
-                totalCompletedSchools += districtCompletedSchools;
-                totalIncompleteSchools += districtIncompleteSchools;
-                totalSchools += districtTotalSchools;
-                totalStudents += districtTotalStudents;
-                totalCompletedStudents += districtCompletedStudents;
+                totalApprovedSchools   += districtApproved;
+                totalPendingSchools    += districtPending;
+                totalRejectedSchools   += districtRejected;
+                totalNotStartedSchools += districtNotStarted;
+                totalSchools           += districtTotalSchools;
+                totalStudents          += districtTotalStudents;
+                totalCompletedStudents += districtCompletedStuds;
             }
             
-            double overallCompletion = totalSchools > 0 ? 
-                (totalCompletedSchools * 100.0 / totalSchools) : 0.0;
-            
-            int totalNotStartedSchools = totalSchools - totalCompletedSchools - totalIncompleteSchools;
+            double overallCompletion = totalSchools > 0 ?
+                (totalApprovedSchools * 100.0 / totalSchools) : 0.0;
             
             result.put("districts", districts);
             result.put("totalSchools", totalSchools);
-            result.put("completedSchools", totalCompletedSchools); // Total SCHOOLS completed across all districts
-            result.put("incompleteSchools", totalIncompleteSchools); // Total SCHOOLS incomplete across all districts
-            result.put("notStartedSchools", totalNotStartedSchools); // Total SCHOOLS not started across all districts
+            result.put("completedSchools", totalApprovedSchools);  // APPROVED in phase_approvals
+            result.put("approvedSchools", totalApprovedSchools);
+            result.put("pendingSchools", totalPendingSchools);     // PENDING - awaiting HM approval
+            result.put("rejectedSchools", totalRejectedSchools);   // REJECTED - sent back
+            result.put("notStartedSchools", totalNotStartedSchools); // no phase_approvals row at all
+            result.put("incompleteSchools", totalPendingSchools + totalRejectedSchools);
             result.put("totalStudents", totalStudents); // Total students across all districts
             result.put("completedStudents", totalCompletedStudents); // Total students in completed schools
             result.put("districtsComplete", districtsWithAllSchoolsComplete); // Districts at 100%

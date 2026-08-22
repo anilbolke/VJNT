@@ -64,6 +64,10 @@ public class GetSchoolStudentsServlet extends HttpServlet {
                              "phase4_marathi, phase4_math, phase4_english, phase4_date, " +
                              "division, district, udise_no " +
                              "FROM students " +
+                             // is_active was missing entirely, so deactivated students -
+                             // chiefly last year's graduates - were still being listed.
+                             "WHERE is_active = 1 " +
+                             "AND TRIM(class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
                              "ORDER BY division, district, udise_no, student_name";
 
                 ps = conn.prepareStatement(studentSql);
@@ -77,7 +81,8 @@ public class GetSchoolStudentsServlet extends HttpServlet {
                              "phase3_marathi, phase3_math, phase3_english, phase3_date, " +
                              "phase4_marathi, phase4_math, phase4_english, phase4_date " +
                              "FROM students " +
-                             "WHERE udise_no = ? " +
+                             "WHERE udise_no = ? AND is_active = 1 " +
+                             "AND TRIM(class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
                              "ORDER BY student_name";
 
                 ps = conn.prepareStatement(studentSql);

@@ -55,25 +55,31 @@ public class GetDivisionStudentLevelsServlet extends HttpServlet {
 
             // Shared WHERE clause
             StringBuilder where = new StringBuilder("WHERE s.is_active = 1 ");
+            // The FLN programme covers classes I-IX only; anything else is out of scope.
+            where.append("AND TRIM(s.class) IN ").append(com.vjnt.dao.StudentDAO.CLASS_I_TO_IX).append(" ");
             if (hasDivision) {
                 where.append("AND s.division = ? ");
             }
             if (district != null && !district.isEmpty()) {
-                where.append("AND sch.district_name = ? ");
+                // Coalesced, so students at a UDISE missing from the schools master are still
+                // reachable by their district instead of being unfilterable.
+                where.append("AND COALESCE(sch.district_name, s.district) = ? ");
             }
             if (school != null && !school.isEmpty()) {
                 where.append("AND s.udise_no = ? ");
             }
             if (classFilter != null && !classFilter.isEmpty()) {
-                where.append("AND s.class = ? ");
+                where.append("AND TRIM(s.class) = ? ");
             }
 
             // COUNT query for accurate summary totals (no LIMIT)
+            // LEFT JOIN, not INNER: a UDISE missing from the schools master would otherwise
+            // take its students off this listing entirely and out of the summary totals.
             String countSql = "SELECT COUNT(*) AS total_students, " +
                     "COUNT(DISTINCT s.udise_no) AS total_schools, " +
-                    "COUNT(DISTINCT sch.district_name) AS total_districts " +
+                    "COUNT(DISTINCT COALESCE(sch.district_name, s.district)) AS total_districts " +
                     "FROM students s " +
-                    "INNER JOIN schools sch ON s.udise_no = sch.udise_no COLLATE utf8mb4_unicode_ci " +
+                    "LEFT JOIN schools sch ON s.udise_no = sch.udise_no COLLATE utf8mb4_unicode_ci " +
                     where.toString();
 
             pstmt = conn.prepareStatement(countSql);
@@ -95,15 +101,17 @@ public class GetDivisionStudentLevelsServlet extends HttpServlet {
             // Data query (LIMIT 5000 for performance)
             StringBuilder sql = new StringBuilder();
             sql.append("SELECT s.student_id, s.student_name, s.student_pen, s.class, ");
-            sql.append("s.udise_no, sch.school_name, sch.district_name, ");
+            sql.append("s.udise_no, ");
+            sql.append("COALESCE(sch.school_name, CONCAT('UDISE ', s.udise_no, ' (not in schools master)')) AS school_name, ");
+            sql.append("COALESCE(sch.district_name, s.district, 'Unknown District') AS district_name, ");
             sql.append("s.phase1_marathi, s.phase1_math, s.phase1_english, ");
             sql.append("s.phase2_marathi, s.phase2_math, s.phase2_english, ");
             sql.append("s.phase3_marathi, s.phase3_math, s.phase3_english, ");
             sql.append("s.phase4_marathi, s.phase4_math, s.phase4_english ");
             sql.append("FROM students s ");
-            sql.append("INNER JOIN schools sch ON s.udise_no = sch.udise_no COLLATE utf8mb4_unicode_ci ");
+            sql.append("LEFT JOIN schools sch ON s.udise_no = sch.udise_no COLLATE utf8mb4_unicode_ci ");
             sql.append(where);
-            sql.append("ORDER BY sch.district_name, sch.school_name, s.class, s.student_name ");
+            sql.append("ORDER BY district_name, school_name, s.class, s.student_name ");
             sql.append("LIMIT 5000");
 
             pstmt = conn.prepareStatement(sql.toString());

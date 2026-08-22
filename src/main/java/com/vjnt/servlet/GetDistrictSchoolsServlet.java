@@ -78,6 +78,10 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
                       // phase dates promotion leaves populated -- were still counted.
                       "LEFT JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
                       "     AND st.is_active = 1 " +
+                      // Alongside is_active and for the same reason: in the JOIN, so a school
+                      // with no class I-IX students still lists (with a zero) rather than
+                      // silently disappearing from the dropdown.
+                      "     AND TRIM(st.class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
                       "GROUP BY s.udise_no, s.school_name, s.district_name " +
                       "ORDER BY s.district_name, s.school_name";
 
@@ -99,6 +103,7 @@ public class GetDistrictSchoolsServlet extends HttpServlet {
                       "FROM schools s " +
                       "INNER JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
                       "     AND st.is_active = 1 " +
+                      "     AND TRIM(st.class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
                       "WHERE st.district COLLATE utf8mb4_unicode_ci = ? " +
                       "GROUP BY s.udise_no, s.school_name, s.district_name " +
                       "ORDER BY s.school_name";

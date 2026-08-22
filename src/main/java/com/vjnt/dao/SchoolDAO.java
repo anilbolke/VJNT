@@ -196,28 +196,71 @@ public class SchoolDAO {
      * Get schools by division (based on students' division)
      */
     public List<School> getSchoolsByDivision(String divisionName) {
+        return getSchoolsWithStudents(divisionName);
+    }
+
+    /**
+     * Every school that actually has active class I-IX students, across all divisions.
+     * Unlike {@link #getAllSchools()} this is driven from the students table, so it neither
+     * lists schools with nobody in them nor loses students whose UDISE is missing from the
+     * schools master.
+     */
+    public List<School> getSchoolsWithStudents() {
+        return getSchoolsWithStudents(null);
+    }
+
+    /**
+     * Schools that have active class I-IX students, optionally scoped to one division.
+     *
+     * Driven from students, not schools: a UDISE that never made it into the schools
+     * master would be dropped by an INNER JOIN, taking its students out of every
+     * division total with it. LEFT JOIN keeps them and falls back to the district
+     * recorded on the student rows. GROUP BY collapses duplicate schools rows for the
+     * same UDISE, which would otherwise be counted twice by the callers that aggregate.
+     *
+     * @param divisionName division to scope to, or null/empty for every division
+     */
+    public List<School> getSchoolsWithStudents(String divisionName) {
         List<School> schools = new ArrayList<>();
-        // Get distinct UDISE codes from students table for the given division
-        String sql = "SELECT DISTINCT s.* FROM schools s " +
-                     "INNER JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no " +
-                     "WHERE st.division = ? AND st.is_active = 1 " +
-                     "ORDER BY s.district_name, s.school_name";
-        
+        boolean scoped = divisionName != null && !divisionName.trim().isEmpty();
+
+        String sql = "SELECT st.udise_no, " +
+                     "MAX(s.school_id) AS school_id, " +
+                     "COALESCE(MAX(s.school_name), CONCAT('UDISE ', st.udise_no, ' (not in schools master)')) AS school_name, " +
+                     "COALESCE(MAX(s.district_name), MAX(st.district), 'Unknown District') AS district_name " +
+                     "FROM students st " +
+                     "LEFT JOIN schools s ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no " +
+                     "WHERE st.is_active = 1 " +
+                     // Same I-IX restriction the level counts use, from the same constant so
+                     // the two cannot drift. Without it a school whose only students sit
+                     // outside the programme would list with a zero total.
+                     "AND TRIM(st.class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
+                     (scoped ? "AND st.division = ? " : "") +
+                     "GROUP BY st.udise_no " +
+                     "ORDER BY district_name, school_name";
+
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setString(1, divisionName);
-            ResultSet rs = pstmt.executeQuery();
-            
-            while (rs.next()) {
-                schools.add(extractSchoolFromResultSet(rs));
+
+            if (scoped) {
+                pstmt.setString(1, divisionName);
             }
-            
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                School school = new School();
+                school.setSchoolId(rs.getInt("school_id"));
+                school.setUdiseNo(rs.getString("udise_no"));
+                school.setSchoolName(rs.getString("school_name"));
+                school.setDistrictName(rs.getString("district_name"));
+                schools.add(school);
+            }
+
         } catch (SQLException e) {
-            System.err.println("Error getting schools by division: " + e.getMessage());
+            System.err.println("Error getting schools with students: " + e.getMessage());
             e.printStackTrace();
         }
-        
+
         return schools;
     }
     
