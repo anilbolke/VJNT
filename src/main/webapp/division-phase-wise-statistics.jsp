@@ -418,7 +418,76 @@
         .school-stats-container.active {
             display: block;
         }
-        
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 10px;
+            width: 95%;
+            height: 92%;
+            max-width: 1600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+        }
+
+        .modal-close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .modal-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
         @media (max-width: 768px) {
             .toolbar {
                 flex-direction: column;
@@ -488,6 +557,7 @@
             </div>
             
             <div>
+                <button class="btn btn-primary" onclick="openSnapshotModal()">📸 Phase Statistics Snapshot</button>
                 <a href="division-dashboard.jsp" class="btn btn-secondary">← Back to Dashboard</a>
             </div>
         </div>
@@ -547,7 +617,19 @@
             <div id="loadingMessage" class="loading">⏳ Loading statistics...</div>
         </div>
     </div>
-    
+
+    <div class="modal-overlay" id="snapshotModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>📸 Phase Statistics Snapshot</h3>
+                <button class="modal-close-btn" onclick="closeSnapshotModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <iframe id="snapshotFrame" src="about:blank"></iframe>
+            </div>
+        </div>
+    </div>
+
     <script>
         let allData = null;
         let currentFilters = {
@@ -794,15 +876,18 @@
                 maxLevel = 6;
             }
             
-            // -1 first: students whose level was never recorded. Without it the rows below
-            // silently omit those students and the column never adds up to the total.
+            // "Not recorded" (-1) is folded into level 0 (स्थर निश्चित केला नाही) instead of
+            // getting its own row, per request - the column still adds up to the total.
             let total = 0;
-            for (let i = -1; i <= maxLevel; i++) {
-                const count = counts[i] || 0;
+            for (let i = 0; i <= maxLevel; i++) {
+                let count = counts[i] || 0;
+                if (i === 0) {
+                    count += counts[-1] || 0;
+                }
                 total += count;
                 const levelLabel = getLevelLabel(i, subject);
-                
-                html += '<div class="level-count' + (i === -1 ? ' level-not-recorded' : '') + '">' +
+
+                html += '<div class="level-count">' +
                     '<span class="level-label">' + levelLabel + '</span>' +
                     '<span class="level-value">' + count + '</span>' +
                     '</div>';
@@ -1030,6 +1115,31 @@
             document.getElementById('loadingMessage').style.display = 'none';
         }
         
+        // Open phase statistics snapshot modal
+        function openSnapshotModal() {
+            const frame = document.getElementById('snapshotFrame');
+            frame.src = 'phase-statistics-snapshot.html';
+            document.getElementById('snapshotModal').classList.add('active');
+        }
+
+        // Close phase statistics snapshot modal
+        function closeSnapshotModal() {
+            document.getElementById('snapshotModal').classList.remove('active');
+            document.getElementById('snapshotFrame').src = 'about:blank';
+        }
+
+        document.getElementById('snapshotModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeSnapshotModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeSnapshotModal();
+            }
+        });
+
         // Escape HTML
         function escapeHtml(text) {
             if (!text) return '-';

@@ -25,9 +25,7 @@ import java.sql.SQLException;
 @WebServlet("/division-phase-comparison")
 public class DivisionPhaseComparisonServlet extends HttpServlet {
 
-    /** Level bucket for students whose level was never recorded (NULL in the DB). */
-    private static final int NOT_RECORDED = -1;
-    
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
@@ -294,12 +292,16 @@ public class DivisionPhaseComparisonServlet extends HttpServlet {
             phaseData.put("totalStudents", totalStudents);
             phaseData.put("phase", phase);
             
-            // Build level distribution, NOT_RECORDED first so the bars add up to 100%
-            for (int level = NOT_RECORDED; level <= maxLevel; level++) {
-                int count = rs.getInt(level == NOT_RECORDED ? "level_null" : "level_" + level);
+            // NOT_RECORDED is folded into level 0 instead of getting its own bar - the bars
+            // still add up to 100% since it's the same students, just counted under level 0.
+            int notRecordedCount = rs.getInt("level_null");
+            for (int level = 0; level <= maxLevel; level++) {
+                int count = rs.getInt("level_" + level);
+                if (level == 0) {
+                    count += notRecordedCount;
+                }
                 double percentage = (totalStudents > 0) ? ((double) count / totalStudents) * 100 : 0;
-                
-                
+
                 JSONObject levelData = new JSONObject();
                 levelData.put("level", level);
                 levelData.put("count", count);

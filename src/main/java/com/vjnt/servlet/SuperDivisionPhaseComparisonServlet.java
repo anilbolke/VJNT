@@ -216,6 +216,11 @@ public class SuperDivisionPhaseComparisonServlet extends HttpServlet {
         sql.append("SELECT ");
         sql.append("COUNT(DISTINCT s.student_id) as total_students, ");
 
+        // Never-recorded levels (NULL) get folded into level 0 below. Without counting them
+        // here, students with no level entered would be dropped from every bar even though
+        // they're included in total_students.
+        sql.append("SUM(CASE WHEN ").append(levelColumn).append(" IS NULL THEN 1 ELSE 0 END) as level_null, ");
+
         for (int level = 0; level <= maxLevel; level++) {
             sql.append("SUM(CASE WHEN ").append(levelColumn).append(" = ").append(level).append(" THEN 1 ELSE 0 END) as level_").append(level);
             if (level < maxLevel) sql.append(", ");
@@ -259,8 +264,12 @@ public class SuperDivisionPhaseComparisonServlet extends HttpServlet {
             phaseData.put("totalStudents", totalStudents);
             phaseData.put("phase", phase);
 
+            int notRecordedCount = rs.getInt("level_null");
             for (int level = 0; level <= maxLevel; level++) {
                 int count = rs.getInt("level_" + level);
+                if (level == 0) {
+                    count += notRecordedCount;
+                }
                 double percentage = (totalStudents > 0) ? ((double) count / totalStudents) * 100 : 0;
 
                 JSONObject levelData = new JSONObject();

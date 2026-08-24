@@ -38,35 +38,22 @@
     
     // Calculate statistics
     Map<String, Integer> districtCount = new HashMap<>();
-    Map<String, String> districtToSchoolCount = new HashMap<>();
     Map<String, Integer> districtToTeacherCount = new HashMap<>();
     Map<String, Integer> classCount = new HashMap<>();
     int maleCount = 0, femaleCount = 0;
-    int totalSchools = 0;
-    
-    // Track unique UDISE codes per district
-    Map<String, Set<String>> districtUdiseMap = new HashMap<>();
-    
+
     for (com.vjnt.model.Student student : students) {
         String district = student.getDistrict();
-        String udise = student.getUdiseNo();
         String studentClass = student.getStudentClass();
-        
+
         if (district != null) {
             districtCount.put(district, districtCount.getOrDefault(district, 0) + 1);
-            
-            if (!districtUdiseMap.containsKey(district)) {
-                districtUdiseMap.put(district, new HashSet<>());
-            }
-            if (udise != null) {
-                districtUdiseMap.get(district).add(udise);
-            }
         }
-        
+
         if (studentClass != null) {
             classCount.put(studentClass, classCount.getOrDefault(studentClass, 0) + 1);
         }
-        
+
         String gender = student.getGender();
         if ("Male".equalsIgnoreCase(gender) || "पुरुष".equals(gender)) {
             maleCount++;
@@ -74,13 +61,13 @@
             femaleCount++;
         }
     }
-    
-    // Count schools per district
-    for (Map.Entry<String, Set<String>> entry : districtUdiseMap.entrySet()) {
-        String district = entry.getKey();
-        int schoolCount = entry.getValue().size();
-        districtToSchoolCount.put(district, String.valueOf(schoolCount));
-        totalSchools += schoolCount;
+
+    // Real school counts from the schools master table, not derived from distinct
+    // UDISE numbers on the (possibly incomplete) student list above.
+    Map<String, Integer> districtToSchoolCount = schoolDAO.getSchoolCountsByDistrictForDivision(divisionName);
+    int totalSchools = 0;
+    for (int c : districtToSchoolCount.values()) {
+        totalSchools += c;
     }
     
     // Count teachers per district from teachers table
@@ -803,6 +790,14 @@
                         </div>
                     </div>
                     
+                    <!-- Opens the offline snapshot in a new tab. Static file, not a live page:
+                         data is baked in and does not update, so it will not agree with the live
+                         Phase Levels Statistics page. Regenerate the file to refresh it. -->
+                   <%--  <a href="<%= request.getContextPath() %>/phase-statistics-snapshot.html" class="btn btn-change-password" target="_blank" rel="noopener" title="Phase-wise statistics snapshot — offline copy, data frozen at 2026-08-10, will not match the live page" style="background:linear-gradient(135deg,#5b6ee1,#8e6bd8);">
+                        <span>🗄️</span>
+                        <span>Phase Statistics</span>
+                    </a> --%>
+                    
                     <!-- Account Actions -->
                     <a href="<%= request.getContextPath() %>/division-tickets.jsp" class="btn btn-change-password" title="View and take action on support tickets raised by teachers, school coordinators and head masters" style="background:linear-gradient(135deg,#43A047,#66BB6A);">
                         <span>🎫</span>
@@ -1323,17 +1318,21 @@
         <div class="section">
             <h2 class="section-title">📚 Class-wise Student Distribution</h2>
             <div class="chart-container">
-                <% 
+                <%
+                // class stores Roman numerals (I-IX), so a plain string/numeric compare
+                // sorts them wrong (e.g. "IX" before "V"); rank against the fixed sequence.
+                final List<String> romanClassOrder = Arrays.asList("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX");
                 List<Map.Entry<String, Integer>> sortedClasses = new ArrayList<>(classCount.entrySet());
                 sortedClasses.sort((a, b) -> {
-                    try {
-                        return Integer.compare(Integer.parseInt(a.getKey()), Integer.parseInt(b.getKey()));
-                    } catch (NumberFormatException e) {
-                        return a.getKey().compareTo(b.getKey());
-                    }
+                    int ia = romanClassOrder.indexOf(a.getKey().trim());
+                    int ib = romanClassOrder.indexOf(b.getKey().trim());
+                    if (ia == -1) ia = Integer.MAX_VALUE;
+                    if (ib == -1) ib = Integer.MAX_VALUE;
+                    if (ia != ib) return Integer.compare(ia, ib);
+                    return a.getKey().compareTo(b.getKey());
                 });
-                
-                for (Map.Entry<String, Integer> entry : sortedClasses) { 
+
+                for (Map.Entry<String, Integer> entry : sortedClasses) {
                 %>
                 <div class="chart-item">
                     <div class="chart-value"><%= entry.getValue() %></div>
@@ -1381,7 +1380,7 @@
                     for (Map.Entry<String, Integer> entry : paginatedDistricts) {
                         String district = entry.getKey();
                         int totalCount = entry.getValue();
-                        int schoolCount = Integer.parseInt(districtToSchoolCount.getOrDefault(district, "0"));
+                        int schoolCount = districtToSchoolCount.getOrDefault(district, 0);
                         int teacherCount = districtToTeacherCount.getOrDefault(district, 0);
                         
                         // Count gender for this district

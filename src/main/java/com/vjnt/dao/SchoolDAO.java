@@ -200,6 +200,41 @@ public class SchoolDAO {
     }
 
     /**
+     * Real school counts per district for a division, read from the schools master
+     * table itself rather than derived from distinct UDISE numbers on the students
+     * table (which only ever counts schools that currently have an active student on
+     * file, undercounting/overcounting whenever a school has none or a UDISE typo).
+     * The schools table has no division column of its own, so students is touched
+     * only to resolve which districts belong to the division.
+     */
+    public java.util.Map<String, Integer> getSchoolCountsByDistrictForDivision(String divisionName) {
+        java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        String sql = "SELECT s.district_name AS district, COUNT(DISTINCT s.udise_no) AS cnt " +
+                     "FROM schools s " +
+                     "WHERE s.district_name COLLATE utf8mb4_unicode_ci IN " +
+                     "      (SELECT DISTINCT st.district COLLATE utf8mb4_unicode_ci " +
+                     "       FROM students st WHERE st.division = ?) " +
+                     "GROUP BY s.district_name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, divisionName);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                counts.put(rs.getString("district"), rs.getInt("cnt"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting school counts by district for division: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return counts;
+    }
+
+    /**
      * Every school that actually has active class I-IX students, across all divisions.
      * Unlike {@link #getAllSchools()} this is driven from the students table, so it neither
      * lists schools with nobody in them nor loses students whose UDISE is missing from the

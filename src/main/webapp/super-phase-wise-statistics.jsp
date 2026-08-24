@@ -455,15 +455,18 @@
                 maxLevel = 6;
             }
 
-            // -1 first: students whose level was never recorded. Without it the rows below
-            // silently omit those students and the column never adds up to the total.
+            // "Not recorded" (-1) is folded into level 0 (स्थर निश्चित केला नाही) instead of
+            // getting its own row, per request - the column still adds up to the total.
             let total = 0;
-            for (let i = -1; i <= maxLevel; i++) {
-                const count = counts[i] || 0;
+            for (let i = 0; i <= maxLevel; i++) {
+                let count = counts[i] || 0;
+                if (i === 0) {
+                    count += counts[-1] || 0;
+                }
                 total += count;
                 const levelLabel = getLevelLabel(i, subject);
 
-                html += '<div class="level-count' + (i === -1 ? ' level-not-recorded' : '') + '">' +
+                html += '<div class="level-count">' +
                     '<span class="level-label">' + levelLabel + '</span>' +
                     '<span class="level-value">' + count + '</span>' +
                     '</div>';
