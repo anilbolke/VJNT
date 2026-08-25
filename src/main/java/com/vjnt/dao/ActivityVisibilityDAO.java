@@ -44,7 +44,8 @@ public class ActivityVisibilityDAO {
         {"STUDENT_ACTIVITY",        "Student Activities",                       "विद्यार्थी उपक्रम",              "🏅", "11"},
         {"GRADUATED_STUDENTS",      "Graduated Students",                       "उत्तीर्ण विद्यार्थी",            "🎓", "12"},
         {"FLN_COMPLETED",           "FLN Completed Students",                   "FLN 100% पूर्ण विद्यार्थी",      "🏆", "13"},
-        {"GENERATE_STUDENT_REPORT", "Generate Student Report",                  "विद्यार्थी अहवाल तयार करा",       "📊", "14"}
+        {"GENERATE_STUDENT_REPORT", "Generate Student Report",                  "विद्यार्थी अहवाल तयार करा",       "📊", "14"},
+        {"UPLOAD_STUDENT_EXCEL",    "Upload Student Excel",                     "विद्यार्थी एक्सेल पाठवा",         "📤", "15"}
     };
 
     private static volatile boolean tablesEnsured = false;

@@ -3086,6 +3086,16 @@
                 </a>
                 <% } %>
 
+                <!-- Upload Student Excel for Admin Review -->
+                <% if (!hiddenActivities.contains("UPLOAD_STUDENT_EXCEL")) { %>
+                <a href="javascript:void(0);" onclick="openStudentExcelUploadModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📤</div>
+                    <div class="quick-action-title">Upload Student Excel</div>
+                    <div class="quick-action-subtitle">विद्यार्थी एक्सेल पाठवा (पडताळणीसाठी)</div>
+                    <div class="quick-action-desc">Send a student data Excel sheet to Admin for manual review. It is not loaded into the system automatically - Admin verifies it before uploading.</div>
+                </a>
+                <% } %>
+
                 <!-- 6. Edit Student - DISABLED -->
                 <% if (!hiddenActivities.contains("EDIT_STUDENT")) { %>
                <a href="<%= request.getContextPath() %>/select-student-to-edit.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -4005,8 +4015,112 @@
             </div>
         </div>
         
+        <!-- Upload Student Excel Modal (School Coordinator) -->
+        <div id="studentExcelUploadModal" class="modal">
+            <div class="modal-content" style="max-width: 550px;">
+                <div class="modal-header">
+                    <h2>📤 Upload Student Excel / विद्यार्थी एक्सेल पाठवा</h2>
+                    <span class="close" onclick="closeStudentExcelUploadModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                        ही फाईल थेट सिस्टीममध्ये अपलोड होत नाही. Admin ती डाउनलोड करून तपासतील आणि नंतर स्वतः अपलोड करतील.<br>
+                        This file is NOT loaded into the system automatically. Admin will download, verify it manually, and then upload it themselves.
+                    </p>
+                    <form id="studentExcelUploadForm" onsubmit="submitStudentExcelUpload(event)">
+                        <div style="border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 15px;">
+                            <input type="file" id="studentExcelFile" name="excelFile" accept=".xlsx,.xls" required
+                                   style="width: 100%;">
+                            <div style="color: #666; margin-top: 8px; font-size: 12px;">Supported formats: .xlsx, .xls</div>
+                        </div>
+                        <div id="studentExcelUploadMsg" style="font-size: 13px; margin-bottom: 10px;"></div>
+                        <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                            <button type="button" onclick="closeStudentExcelUploadModal()"
+                                    style="padding: 12px 30px; border: 2px solid #e0e0e0; background: white; color: #666; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                Cancel
+                            </button>
+                            <button type="submit" id="studentExcelUploadBtn"
+                                    style="padding: 12px 30px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                📤 Send to Admin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function openStudentExcelUploadModal() {
+                const modal = document.getElementById('studentExcelUploadModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                }
+            }
+
+            function closeStudentExcelUploadModal() {
+                const modal = document.getElementById('studentExcelUploadModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                }
+                document.getElementById('studentExcelUploadForm').reset();
+                document.getElementById('studentExcelUploadMsg').textContent = '';
+            }
+
+            function submitStudentExcelUpload(event) {
+                event.preventDefault();
+                const fileInput = document.getElementById('studentExcelFile');
+                const msg = document.getElementById('studentExcelUploadMsg');
+                const btn = document.getElementById('studentExcelUploadBtn');
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    msg.style.color = '#c62828';
+                    msg.textContent = 'Please select a file first.';
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('excelFile', fileInput.files[0]);
+                formData.append('schoolName', '<%= schoolName != null ? schoolName.replace("'", "") : "" %>');
+
+                btn.disabled = true;
+                msg.style.color = '#666';
+                msg.textContent = 'Uploading...';
+
+                fetch('<%= request.getContextPath() %>/pending-student-upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    btn.disabled = false;
+                    if (data.success) {
+                        msg.style.color = '#2e7d32';
+                        msg.textContent = '✔ ' + data.message;
+                        setTimeout(closeStudentExcelUploadModal, 1500);
+                    } else {
+                        msg.style.color = '#c62828';
+                        msg.textContent = data.message || 'Upload failed';
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    msg.style.color = '#c62828';
+                    msg.textContent = 'Upload failed: ' + err;
+                });
+            }
+
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('studentExcelUploadModal');
+                if (event.target === modal) {
+                    closeStudentExcelUploadModal();
+                }
+            });
+        </script>
+
         <!-- Test button for debugging -->
-        
+
         <script>
             // Prepare student data for each phase
             <% 

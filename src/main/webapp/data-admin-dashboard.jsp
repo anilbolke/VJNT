@@ -530,8 +530,33 @@
                 <pre id="resultMessage"></pre>
             </div>
         </div>
+
+        <!-- Pending Student Excel Sheets from Schools -->
+        <div style="background: white; padding: 25px; border-radius: 10px; margin-top: 30px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+            <h2 style="color:#000; margin-bottom: 8px;">📥 Pending Student Excel Sheets (from Schools)</h2>
+            <p style="color:#666; font-size: 13px; margin-bottom: 15px;">
+                Sheets sent by School Coordinators for review. These are NOT loaded into the system automatically -
+                download and verify each one, then use the "Upload Student Data (Excel)" section above to import it.
+            </p>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background:#f5f5f5; text-align:left;">
+                            <th style="padding: 10px; border-bottom: 2px solid #e0e0e0;">UDISE No</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #e0e0e0;">School</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #e0e0e0;">Uploaded At</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #e0e0e0;">Size</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #e0e0e0;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingUploadsBody">
+                        <tr><td colspan="5" style="padding: 15px; color:#999;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    
+
     <script>
         // ---------- Teacher student assignment percentage setting ----------
         const settingsUrl = '<%= request.getContextPath() %>/admin-settings';
@@ -720,7 +745,64 @@
             resultMessage.textContent = message;
             resultBox.classList.add('show');
         }
-        
+
+        // ---------- Pending student excel sheets from schools ----------
+        const pendingUploadsUrl = '<%= request.getContextPath() %>/pending-student-upload';
+
+        function loadPendingUploads() {
+            const body = document.getElementById('pendingUploadsBody');
+            fetch(pendingUploadsUrl)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success || !data.files || data.files.length === 0) {
+                        body.innerHTML = '<tr><td colspan="5" style="padding: 15px; color:#999;">No pending sheets.</td></tr>';
+                        return;
+                    }
+                    body.innerHTML = data.files.map(f => {
+                        const downloadUrl = pendingUploadsUrl + '?action=download&file=' + encodeURIComponent(f.fileName);
+                        return '<tr>' +
+                            '<td style="padding: 10px; border-bottom: 1px solid #eee;">' + escapeHtml(f.udiseNo) + '</td>' +
+                            '<td style="padding: 10px; border-bottom: 1px solid #eee;">' + escapeHtml(f.schoolName) + '</td>' +
+                            '<td style="padding: 10px; border-bottom: 1px solid #eee;">' + escapeHtml(f.uploadedAt) + '</td>' +
+                            '<td style="padding: 10px; border-bottom: 1px solid #eee;">' + f.sizeKb + ' KB</td>' +
+                            '<td style="padding: 10px; border-bottom: 1px solid #eee;">' +
+                                '<a href="' + downloadUrl + '" style="margin-right: 12px; color: #667eea; font-weight: 600; text-decoration: none;">⬇ Download</a>' +
+                                '<a href="javascript:void(0);" onclick="deletePendingUpload(\'' + f.fileName.replace(/'/g, "\\'") + '\')" style="color: #c62828; font-weight: 600; text-decoration: none;">🗑 Remove</a>' +
+                            '</td>' +
+                        '</tr>';
+                    }).join('');
+                })
+                .catch(() => {
+                    body.innerHTML = '<tr><td colspan="5" style="padding: 15px; color:#c62828;">Failed to load pending sheets.</td></tr>';
+                });
+        }
+
+        function deletePendingUpload(fileName) {
+            if (!confirm('Remove this sheet from the pending list? This cannot be undone.')) return;
+            fetch(pendingUploadsUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ action: 'delete', file: fileName })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadPendingUploads();
+                } else {
+                    alert(data.message || 'Failed to remove file');
+                }
+            })
+            .catch(err => alert('Failed to remove file: ' + err));
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : str;
+            return div.innerHTML;
+        }
+
+        loadPendingUploads();
+
     </script>
 <jsp:include page="chatbot-widget.jsp" />
 </body>
