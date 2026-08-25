@@ -2874,8 +2874,11 @@
                     <% } %>
                     
                     <!-- Account Actions -->
-                    <a href="<%= request.getContextPath() %>/raise-ticket.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#43A047,#66BB6A);" title="Raise a support ticket to the Division office">
+                    <a href="<%= request.getContextPath() %>/raise-ticket.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#43A047,#66BB6A);" title="Raise a support ticket">
                         🎫 तिकीट
+                    </a>
+                    <a href="<%= request.getContextPath() %>/school-tickets.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#00897B,#26A69A);" title="View and act on tickets raised by teachers of your school">
+                        📥 शिक्षक तिकिटे
                     </a>
                     <a href="<%= request.getContextPath() %>/helpdesk.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#667eea,#764ba2);">
                         🙋 मदत केंद्र
@@ -3260,6 +3263,13 @@
                     <div class="quick-action-title">Approve School Activities</div>
                     <div class="quick-action-subtitle">शालेय उपक्रम मंजूर करा</div>
                     <div class="quick-action-desc">Review and approve pending other school activities submitted by coordinator. View details, photos and approve or reject.</div>
+                </a>
+                <!-- View Uploaded Videos (Headmaster Only) - ENABLED -->
+                <a href="<%= request.getContextPath() %>/view-videos.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📹</div>
+                    <div class="quick-action-title">View Uploaded Videos</div>
+                    <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
+                    <div class="quick-action-desc">View all student progress videos uploaded for this school, including pending, approved and rejected.</div>
                 </a>
                 <a href="<%= request.getContextPath() %>/fln-completed-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🏆</div>

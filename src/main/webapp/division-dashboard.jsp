@@ -786,10 +786,14 @@
                                     <span>🎓</span>
                                     <span>उत्तीर्ण विद्यार्थी</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/view-videos.jsp" class="dropdown-item" title="View all student progress videos uploaded across this division's schools">
+                                    <span>📹</span>
+                                    <span>View Uploaded Videos</span>
+                                </a>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Opens the offline snapshot in a new tab. Static file, not a live page:
                          data is baked in and does not update, so it will not agree with the live
                          Phase Levels Statistics page. Regenerate the file to refresh it. -->
