@@ -382,6 +382,51 @@
             color: #5568d3;
             text-decoration: underline;
         }
+
+        /* Forgot-password modal */
+        .forgot-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .forgot-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .forgot-box h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+        .forgot-box p {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+        .forgot-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 26px;
+            line-height: 1;
+            color: #9ca3af;
+            cursor: pointer;
+        }
+        .forgot-close:hover { color: #667eea; }
         
         .btn-login {
             width: 100%;
@@ -659,7 +704,7 @@
                         <input type="checkbox" id="remember" name="remember">
                         <label for="remember">Remember me</label>
                     </div>
-                    <a href="#" class="forgot-password">Forgot Password?</a>
+                    <a href="#" class="forgot-password" onclick="openForgotModal(event)">Forgot Password?</a>
                 </div>
                 
                 <button type="submit" class="btn-login">Sign In</button>
@@ -682,7 +727,25 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Forgot Password (Teacher) modal -->
+    <div id="forgotOverlay" class="forgot-overlay" onclick="if (event.target === this) closeForgotModal()">
+        <div class="forgot-box">
+            <button type="button" class="forgot-close" onclick="closeForgotModal()" aria-label="Close">&times;</button>
+            <h3>Forgot Password</h3>
+            <p>Teachers: enter your username and your password will be sent to your registered WhatsApp number.</p>
+            <div id="forgotAlert"></div>
+            <div class="form-group">
+                <label for="forgotUsername">Username</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input type="text" id="forgotUsername" placeholder="Enter your username" autocomplete="off">
+                </div>
+            </div>
+            <button type="button" class="btn-login" id="forgotSubmit" onclick="submitForgot()">📩 Send to WhatsApp</button>
+        </div>
+    </div>
+
     <script>
         function togglePassword() {
             const passwordInput = document.getElementById('password');
@@ -696,6 +759,49 @@
                 toggleIcon.textContent = '👁️';
             }
         }
+
+        function openForgotModal(e) {
+            if (e) e.preventDefault();
+            document.getElementById('forgotAlert').innerHTML = '';
+            document.getElementById('forgotUsername').value = '';
+            document.getElementById('forgotOverlay').style.display = 'flex';
+            document.getElementById('forgotUsername').focus();
+        }
+        function closeForgotModal() {
+            document.getElementById('forgotOverlay').style.display = 'none';
+        }
+        function submitForgot() {
+            var u = document.getElementById('forgotUsername').value.trim();
+            var box = document.getElementById('forgotAlert');
+            var btn = document.getElementById('forgotSubmit');
+            if (!u) {
+                box.innerHTML = '<div class="alert alert-error">Please enter your username</div>';
+                return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            var params = new URLSearchParams();
+            params.append('username', u);
+            fetch('<%= request.getContextPath() %>/teacher-forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                btn.disabled = false;
+                btn.textContent = '📩 Send to WhatsApp';
+                box.innerHTML = '<div class="alert ' + (res.success ? 'alert-success' : 'alert-error') + '">' + res.message + '</div>';
+            })
+            .catch(function () {
+                btn.disabled = false;
+                btn.textContent = '📩 Send to WhatsApp';
+                box.innerHTML = '<div class="alert alert-error">Something went wrong. Please try again.</div>';
+            });
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeForgotModal();
+        });
     </script>
 </body>
 </html>

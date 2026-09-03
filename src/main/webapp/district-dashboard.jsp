@@ -827,6 +827,10 @@
                                     <span>👥</span>
                                     <span>Teacher Assignments</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/district-teacher-category.jsp" class="dropdown-item" title="Set teacher category: शिक्षक / पर्मनंट शिक्षक">
+                                    <span>🏷️</span>
+                                    <span>Teacher Category</span>
+                                </a>
                             </div>
                             
                             <!-- Support Tickets Section -->

@@ -13,15 +13,16 @@ import com.zaxxer.hikari.HikariDataSource;
 public class DatabaseConnection {
 
     // Database credentials - UPDATE THESE WITH YOUR DATABASE DETAILS
-  //  private static final String DB_URL = "jdbc:mysql://localhost:3306/vjnt_class_management_live?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci";
+   // private static final String DB_URL = "jdbc:mysql://localhost:3306/vjnt_class_management_live?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci";
 
 	//GWSonline
+  
     private static final String DB_URL = "jdbc:mysql://localhost:3306/vjnt_class_management?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&connectTimeout=5000&socketTimeout=20000";
     //gateeonline
 	//private static final String DB_URL = "jdbc:mysql://localhost:3306/gateepor_vjnt_class_management?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci";
 
   private static final String DB_USER = "root";
-  //private static final String DB_PASSWORD = "root";
+ // private static final String DB_PASSWORD = "root";
 	//gateeonline
      //  private static final String DB_USER = "gateepor_root";
  //  private static final String DB_PASSWORD = "Anill}gN4n3maAy*";
@@ -44,7 +45,7 @@ public class DatabaseConnection {
         config.setPassword(DB_PASSWORD);
 
         // Pool sizing - keep well under MySQL's max_connections and Tomcat's thread pool
-        config.setMaximumPoolSize(20);
+        config.setMaximumPoolSize(200);
         config.setMinimumIdle(5);
 
         // Fail fast instead of hanging the request thread when the pool/DB is unavailable
@@ -74,6 +75,22 @@ public class DatabaseConnection {
             } catch (SQLException e) {
                 System.err.println("Error closing connection: " + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Shut the pool down. Called from {@link AppLifecycleListener}
+     * on context destroy so Hikari's background threads stop before the
+     * WebappClassLoader is torn down (otherwise they log
+     * "this web application instance has been stopped already").
+     */
+    public static void shutdown() {
+        try {
+            if (dataSource != null && !dataSource.isClosed()) {
+                dataSource.close();
+            }
+        } catch (Exception e) {
+            System.err.println("Error closing HikariCP pool: " + e.getMessage());
         }
     }
 

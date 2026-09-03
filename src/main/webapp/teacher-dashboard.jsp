@@ -1,10 +1,29 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.vjnt.model.User" %>
+<%@ page import="java.sql.*" %>
+<%@ page import="com.vjnt.util.DatabaseConnection" %>
 <%
     User user = (User) session.getAttribute("user");
     if (user == null || !user.getUserType().equals(User.UserType.TEACHER)) {
         response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
+    }
+
+    // School name for the header, looked up from the teacher's UDISE
+    String schoolName = "";
+    if (user.getUdiseNo() != null && !user.getUdiseNo().trim().isEmpty()) {
+        try (Connection schoolConn = DatabaseConnection.getConnection();
+             PreparedStatement schoolPs = schoolConn.prepareStatement(
+                     "SELECT school_name FROM schools WHERE udise_no = ? LIMIT 1")) {
+            schoolPs.setString(1, user.getUdiseNo().trim());
+            try (ResultSet schoolRs = schoolPs.executeQuery()) {
+                if (schoolRs.next() && schoolRs.getString("school_name") != null) {
+                    schoolName = schoolRs.getString("school_name").trim();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 %>
 <!DOCTYPE html>
@@ -72,8 +91,9 @@
 <body>
     <div class="header">
         <div>
-            <h1>👨‍🏫 <span id="hdrTeacherName"><%= user.getFullName() != null ? user.getFullName() : user.getUsername() %></span></h1>
-            <div class="sub">Subject Teacher | UDISE: <%= user.getUdiseNo() != null ? user.getUdiseNo() : "-" %> | <span id="hdrSubjects"></span></div>
+            <h1>🏫 GATEE Portal</h1>
+            <div class="sub" style="font-size: 15px; margin-top: 6px;">👨‍🏫 <span id="hdrTeacherName"><%= user.getFullName() != null ? user.getFullName() : user.getUsername() %></span></div>
+            <div class="sub">Subject Teacher | UDISE: <%= user.getUdiseNo() != null ? user.getUdiseNo() : "-" %><% if (schoolName != null && !schoolName.isEmpty()) { %> | <span style="background:#FFD54F; color:#4527A0; padding:2px 10px; border-radius:6px; font-weight:700;">🏫 <%= schoolName %></span><% } %> | <span id="hdrSubjects"></span></div>
         </div>
         <div class="header-actions">
             <a href="<%= request.getContextPath() %>/raise-ticket.jsp">🎫 Support Tickets</a>
@@ -108,11 +128,14 @@
         <!-- My Students -->
         <div class="section">
             <h2>👨‍🎓 माझे विद्यार्थी (My Students)</h2>
-            <p style="color:#666; font-size:13px; margin-bottom:15px;">फक्त आपल्याला नियुक्त केलेले विद्यार्थी येथे दिसतात (Only students mapped to you are shown).</p>
+            <p style="color:#666; font-size:13px; margin-bottom:15px;">फक्त आपल्याला नियुक्त केलेले विद्यार्थी येथे दिसतात. विद्यार्थी पाहण्यासाठी आधी वर्ग व विषय निवडा (Only students mapped to you are shown. Select a class and a subject to view students).</p>
             <div class="filters">
                 <input type="text" id="searchBox" placeholder="Search student name / PEN..." onkeyup="renderStudents()">
-                <select id="classFilter" onchange="renderStudents()">
-                    <option value="">All Classes</option>
+                <select id="classFilter" onchange="onClassChange()">
+                    <option value="">-- वर्ग निवडा (Select Class) --</option>
+                </select>
+                <select id="subjectFilter" onchange="renderStudents()">
+                    <option value="">-- विषय निवडा (Select Subject) --</option>
                 </select>
             </div>
             <div class="table-wrap">
@@ -125,14 +148,12 @@
                             <th>तुकडी (Section)</th>
                             <th>Gender</th>
                             <th>PEN</th>
-                            <th>मराठी</th>
-                            <th>गणित</th>
-                            <th>English</th>
+                            <th id="levelColHeader">Level</th>
                             <th>Phase Video</th>
                         </tr>
                     </thead>
                     <tbody id="studentsBody">
-                        <tr><td colspan="10" style="text-align:center; padding:40px;"><div class="spinner"></div></td></tr>
+                        <tr><td colspan="8" style="text-align:center; padding:40px;"><div class="spinner"></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -174,6 +195,7 @@
     <script>
         const contextPath = '<%= request.getContextPath() %>';
         let allStudents = [];
+        let allAssignments = [];
         let phaseApprovals = {};   // { "1": "APPROVED"/"PENDING"/"REJECTED"/undefined, ... }
         let videosByStudent = {};  // { studentId: { "1": {approvalStatus, rejectionReason, ...}, ... } }
         let activeModalStudentId = null;
@@ -202,7 +224,7 @@
                     if (data.error) {
                         document.getElementById('assignmentChips').innerHTML = '';
                         document.getElementById('studentsBody').innerHTML =
-                            '<tr><td colspan="10"><div class="error-box">' + escapeHtml(data.error) + '</div></td></tr>';
+                            '<tr><td colspan="8"><div class="error-box">' + escapeHtml(data.error) + '</div></td></tr>';
                         return;
                     }
 
@@ -219,15 +241,18 @@
                     document.getElementById('assignmentChips').innerHTML =
                         chips || '<div class="error-box">अद्याप वर्ग नियुक्त केलेले नाहीत. कृपया शाळा समन्वयकांशी संपर्क करा.<br>(No classes assigned yet. Please contact your School Coordinator.)</div>';
 
-                    // Cards
-                    allStudents = data.students || [];
-                    document.getElementById('cardStudents').textContent = allStudents.length;
+                    // Cards — only मराठी / इंग्रजी / गणित students are counted
+                    allStudents = (data.students || []).filter(s => isAllowedSubject(s.subject));
+                    allAssignments = assignments;
+                    const distinctStudents = new Set(allStudents.map(s => s.studentId));
+                    document.getElementById('cardStudents').textContent = distinctStudents.size;
                     document.getElementById('cardClasses').textContent = assignments.length;
-                    const subjects = (data.subjectsTaught || '').split(',').map(s => s.trim()).filter(s => s);
+                    const subjects = (data.subjectsTaught || '').split(',').map(s => s.trim())
+                        .filter(s => s && isAllowedSubject(s));
                     document.getElementById('cardSubjects').textContent = subjects.length || '-';
 
-                    // Class filter options
-                    const classes = [...new Set(allStudents.map(s => s['class'] + ' - ' + s.section))].sort();
+                    // Class filter options come from the teacher's assignments (class-section).
+                    const classes = [...new Set(assignments.map(a => String(a['class']).trim() + ' - ' + String(a.section).trim()))].sort();
                     const sel = document.getElementById('classFilter');
                     classes.forEach(c => {
                         const opt = document.createElement('option');
@@ -235,12 +260,15 @@
                         opt.textContent = 'वर्ग ' + c;
                         sel.appendChild(opt);
                     });
-
-                    renderStudents();
+                    // Only one class assigned — preselect it so the teacher just picks a subject
+                    if (classes.length === 1) {
+                        sel.value = classes[0];
+                    }
+                    onClassChange();
                 })
                 .catch(err => {
                     document.getElementById('studentsBody').innerHTML =
-                        '<tr><td colspan="10"><div class="error-box">Failed to load students: ' + escapeHtml(err) + '</div></td></tr>';
+                        '<tr><td colspan="8"><div class="error-box">Failed to load students: ' + escapeHtml(err) + '</div></td></tr>';
                 });
         });
 
@@ -249,24 +277,103 @@
             return '<span class="badge" style="background:#667eea;">' + escapeHtml(level) + '</span>';
         }
 
+        // Mirrors TeacherMyStudentsServlet#levelColumnFor: maps a subject name
+        // (Marathi or English spelling) to the student level field to show,
+        // since a teacher only teaches/uploads for one subject at a time.
+        function levelFieldForSubject(subject) {
+            if (!subject) return null;
+            const lower = subject.trim().toLowerCase();
+            if (lower.includes('marathi') || subject.includes('मराठी')) return 'marathiLevel';
+            if (lower.includes('math') || subject.includes('गणित')) return 'mathLevel';
+            if (lower.includes('english') || subject.includes('इंग्रजी') || subject.includes('इंग्लिश')) return 'englishLevel';
+            return null;
+        }
+
+        // Only मराठी / इंग्रजी / गणित students are shown in "My Students".
+        // A subject is one of these exactly when it maps to a level field.
+        function isAllowedSubject(subject) {
+            return levelFieldForSubject(subject) !== null;
+        }
+
+        // Repopulates the subject dropdown with the subjects of the selected
+        // class-section. Students are mapped per subject, so subjects come from
+        // the mapped student rows (fallback: the assignment's subject list).
+        function onClassChange() {
+            const classFilter = document.getElementById('classFilter').value;
+            const subjectSel = document.getElementById('subjectFilter');
+            subjectSel.innerHTML = '<option value="">-- विषय निवडा (Select Subject) --</option>';
+
+            if (classFilter) {
+                // Prefer the subjects the assignment lists for this class-section, so the
+                // dropdown always shows every subject the teacher is assigned here — even
+                // when no students are mapped yet (mapped rows are the secondary source).
+                let subjects = [];
+                allAssignments
+                    .filter(a => (String(a['class']).trim() + ' - ' + String(a.section).trim()) === classFilter && a.subjects)
+                    .forEach(a => String(a.subjects).split(',').map(x => x.trim()).filter(x => x)
+                        .forEach(x => { if (!subjects.includes(x)) subjects.push(x); }));
+                allStudents
+                    .filter(s => (String(s['class']).trim() + ' - ' + String(s.section).trim()) === classFilter && s.subject)
+                    .forEach(s => { if (!subjects.includes(s.subject)) subjects.push(s.subject); });
+
+                subjects = subjects.filter(isAllowedSubject);
+                subjects.sort().forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.textContent = sub;
+                    subjectSel.appendChild(opt);
+                });
+                if (subjects.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.disabled = true;
+                    opt.textContent = '⚠️ या वर्गासाठी विषय आढळला नाही — समन्वयकांशी संपर्क करा';
+                    subjectSel.appendChild(opt);
+                }
+                // Only one subject for this class — preselect it (the dropdown stays
+                // visible and can still be reopened).
+                if (subjects.length === 1) {
+                    subjectSel.value = subjects[0];
+                }
+            }
+            renderStudents();
+        }
+
         function renderStudents() {
             const search = document.getElementById('searchBox').value.toLowerCase();
             const classFilter = document.getElementById('classFilter').value;
+            const subjectFilter = document.getElementById('subjectFilter').value;
             const tbody = document.getElementById('studentsBody');
+
+            // Students are shown only after BOTH class and subject are selected
+            if (!classFilter || !subjectFilter) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#999;">' +
+                    '📌 विद्यार्थी पाहण्यासाठी कृपया वर्ग आणि विषय निवडा<br>(Please select a class and a subject to view students)</td></tr>';
+                document.getElementById('countInfo').textContent = '';
+                return;
+            }
 
             const filtered = allStudents.filter(s => {
                 const matchesSearch = !search ||
                     s.studentName.toLowerCase().includes(search) ||
                     (s.studentPen && s.studentPen.toLowerCase().includes(search));
-                const matchesClass = !classFilter || (s['class'] + ' - ' + s.section) === classFilter;
-                return matchesSearch && matchesClass;
+                const matchesClass = (String(s['class']).trim() + ' - ' + String(s.section).trim()) === classFilter;
+                const matchesSubject = s.subject === subjectFilter && isAllowedSubject(s.subject);
+                return matchesSearch && matchesClass && matchesSubject;
             });
 
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:25px; color:#999;">No students found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:25px; color:#999;">' +
+                    'या वर्ग व विषयासाठी तुम्हाला विद्यार्थी नियुक्त केलेले नाहीत.<br>' +
+                    '<span style="font-size:12px;">(No students are mapped to you for ' + escapeHtml(classFilter) + ' | ' + escapeHtml(subjectFilter) + '. ' +
+                    'Only students currently at ' + escapeHtml(subjectFilter) + ' level 1&ndash;4 are mapped &mdash; contact your School Coordinator if this looks wrong.)</span>' +
+                    '</td></tr>';
                 document.getElementById('countInfo').textContent = '';
                 return;
             }
+
+            const levelField = levelFieldForSubject(subjectFilter);
+            document.getElementById('levelColHeader').textContent = subjectFilter + ' Level';
 
             let html = '';
             filtered.forEach((s, i) => {
@@ -277,14 +384,13 @@
                 html += '<td>' + escapeHtml(s.section) + '</td>';
                 html += '<td>' + escapeHtml(s.gender) + '</td>';
                 html += '<td style="font-family:monospace; color:#666;">' + escapeHtml(s.studentPen) + '</td>';
-                html += '<td>' + levelBadge(s.marathiLevel) + '</td>';
-                html += '<td>' + levelBadge(s.mathLevel) + '</td>';
-                html += '<td>' + levelBadge(s.englishLevel) + '</td>';
+                html += '<td>' + levelBadge(levelField ? s[levelField] : null) + '</td>';
                 html += '<td>' + videoCellHtml(s.studentId) + '</td>';
                 html += '</tr>';
             });
             tbody.innerHTML = html;
-            document.getElementById('countInfo').textContent = 'Showing ' + filtered.length + ' of ' + allStudents.length + ' students';
+            document.getElementById('countInfo').textContent = 'Showing ' + filtered.length + ' students — ' +
+                'वर्ग ' + classFilter + ' | ' + subjectFilter;
         }
 
         // ---------- Phase Video Upload ----------
@@ -408,6 +514,7 @@
             const formData = new FormData();
             formData.append('studentId', activeModalStudentId);
             formData.append('phaseNumber', phase);
+            formData.append('subject', document.getElementById('subjectFilter').value);
             formData.append('videoFile', fileInput.files[0]);
 
             submitBtn.disabled = true;
