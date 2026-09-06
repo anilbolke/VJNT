@@ -831,6 +831,10 @@
                                     <span>🏷️</span>
                                     <span>Teacher Category</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/district-teacher-videos.jsp" class="dropdown-item" title="View subject-wise phase videos of students assigned to each teacher">
+                                    <span>📹</span>
+                                    <span>Teacher Student Videos</span>
+                                </a>
                             </div>
                             
                             <!-- Support Tickets Section -->
