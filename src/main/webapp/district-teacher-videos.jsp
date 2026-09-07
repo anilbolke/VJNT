@@ -17,6 +17,15 @@
             || s.contains("इंग्रजी") || s.contains("इंग्लिश") || s.contains("english")
             || s.contains("गणित") || s.contains("math");
     }
+
+    /** SQL CASE expression that reduces a subject column to an FLN code M/E/T (NULL for others). */
+    private static String flnCode(String col) {
+        return "CASE " +
+               "WHEN " + col + " LIKE '%मराठी%' OR " + col + " LIKE '%marathi%' THEN 'M' " +
+               "WHEN " + col + " LIKE '%इंग्रजी%' OR " + col + " LIKE '%इंग्लिश%' OR " + col + " LIKE '%english%' THEN 'E' " +
+               "WHEN " + col + " LIKE '%गणित%' OR " + col + " LIKE '%math%' THEN 'T' " +
+               "END";
+    }
 %>
 <%
     User user = (User) session.getAttribute("user");
@@ -30,23 +39,36 @@
 
     List<Map<String, Object>> teachers = new ArrayList<>();
     int teachersWithData = 0;
-    int pendingApprovalCount = 0;
+    long totApproved = 0, totApprovalPending = 0, totUploadPending = 0;   // district-wide (FLN mapped students)
     String errorMessage = null;
 
     try (Connection conn = DatabaseConnection.getConnection()) {
 
-        // District-wide count of phase videos still awaiting Head Master approval.
-        String pendSql =
-            "SELECT COUNT(*) FROM student_videos v " +
-            "JOIN schools s ON v.udise_no COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci " +
-            "WHERE s.district_name = ? AND v.phase_number IS NOT NULL AND v.is_active = 1 " +
-            "  AND v.approval_status = 'PENDING'";
-        try (PreparedStatement ps = conn.prepareStatement(pendSql)) {
-            ps.setString(1, districtName);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) pendingApprovalCount = rs.getInt(1);
-            }
-        }
+        // FLN-subject filter on teacher_student_mapping.subject (Marathi/English/Math,
+        // either spelling). JDBC connection is characterEncoding=UTF-8 so the
+        // Devanagari literals transmit correctly.
+        String flnSubj =
+            " AND ( m.subject LIKE '%मराठी%' OR m.subject LIKE '%marathi%' " +
+            "    OR m.subject LIKE '%इंग्रजी%' " +
+            "    OR m.subject LIKE '%इंग्लिश%' OR m.subject LIKE '%english%' " +
+            "    OR m.subject LIKE '%गणित%' OR m.subject LIKE '%math%' )";
+
+        // Same student join the popup uses: student still active AND still in the
+        // class-section the mapping was made for (drops promoted / moved / removed).
+        String mapJoin =
+            " JOIN students st ON st.student_id = m.student_id AND st.is_active = 1 " +
+            "   AND TRIM(m.class)   COLLATE utf8mb4_unicode_ci = TRIM(st.class)   COLLATE utf8mb4_unicode_ci " +
+            "   AND TRIM(m.section) COLLATE utf8mb4_unicode_ci = TRIM(st.section) COLLATE utf8mb4_unicode_ci ";
+
+        // Per-school LATEST phase the Head Master has opened for upload
+        // (highest APPROVED phase_number). Only this one phase is counted -
+        // e.g. once Phase 2 is open, the target is one Phase-2 video per student,
+        // regardless of what happened with Phase 1.
+        String latestPhaseSub =
+            " ( SELECT udise_no, MAX(phase_number) AS latest_phase FROM phase_approvals " +
+            "   WHERE approval_status = 'APPROVED' AND phase_number BETWEEN 1 AND 4 " +
+            "   GROUP BY udise_no ) ";
+
         String sql =
             "SELECT ta.teacher_id, ta.teacher_name, " +
             "       MIN(s.school_name) AS school_name, " +
@@ -54,23 +76,38 @@
             "       MAX(t.mobile_number) AS mobile_number, " +
             "       MAX(t.subjects_taught) AS subjects_taught, " +
             "       GROUP_CONCAT(DISTINCT ta.subjects_assigned SEPARATOR ',') AS subjects_assigned_all, " +
-            "       COALESCE(mm.mapped_count, 0) AS mapped_count, " +
-            "       COALESCE(pp.pending_count, 0) AS pending_count " +
+            "       COALESCE(mm.student_count, 0) AS student_count, " +
+            "       COALESCE(mm.pair_count, 0) AS pair_count, " +
+            "       COALESCE(tv.approved_count, 0) AS approved_count, " +
+            "       COALESCE(tv.pending_count, 0)  AS pending_count, " +
+            "       MAX(COALESCE(ap.latest_phase, 0)) AS latest_phase " +   // highest phase the HM has opened at this school
             "FROM teacher_assignments ta " +
             "LEFT JOIN schools s ON ta.udise_code COLLATE utf8mb4_unicode_ci = s.udise_no COLLATE utf8mb4_unicode_ci " +
             "LEFT JOIN teachers t ON t.teacher_id = ta.teacher_id " +
-            "LEFT JOIN ( SELECT teacher_id, COUNT(DISTINCT student_id) AS mapped_count " +
-            "            FROM teacher_student_mapping WHERE is_active = 1 GROUP BY teacher_id ) mm " +
+            "LEFT JOIN " + latestPhaseSub + " ap " +
+            "       ON ap.udise_no COLLATE utf8mb4_unicode_ci = ta.udise_code COLLATE utf8mb4_unicode_ci " +
+            "LEFT JOIN ( SELECT m.teacher_id, " +
+            "                   COUNT(DISTINCT m.student_id) AS student_count, " +   // distinct students (matches teacher dashboard card)
+            "                   COUNT(*) AS pair_count " +                            // (student, subject) pairs = one video expected per pair for the latest phase
+            "            FROM teacher_student_mapping m " + mapJoin +
+            "            WHERE m.is_active = 1 " + flnSubj +
+            "            GROUP BY m.teacher_id ) mm " +
             "       ON mm.teacher_id = ta.teacher_id " +
-            "LEFT JOIN ( SELECT m.teacher_id, COUNT(*) AS pending_count " +
-            "            FROM teacher_student_mapping m " +
+            "LEFT JOIN ( SELECT m.teacher_id, " +
+            "                   SUM(CASE WHEN v.approval_status = 'APPROVED' THEN 1 ELSE 0 END) AS approved_count, " +
+            "                   SUM(CASE WHEN v.approval_status = 'PENDING'  THEN 1 ELSE 0 END) AS pending_count " +
+            "            FROM teacher_student_mapping m " + mapJoin +
+            "            JOIN " + latestPhaseSub + " lp " +
+            "              ON lp.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
             "            JOIN student_videos v ON v.student_id = m.student_id " +
-            "                 AND v.phase_number IS NOT NULL AND v.is_active = 1 " +
-            "                 AND v.approval_status = 'PENDING' " +
-            "            WHERE m.is_active = 1 GROUP BY m.teacher_id ) pp " +
-            "       ON pp.teacher_id = ta.teacher_id " +
+            "                 AND v.phase_number = lp.latest_phase AND v.is_active = 1 " +
+            "                 AND ( v.subject IS NULL OR v.subject = '' " +
+            "                    OR (" + flnCode("v.subject") + ") = (" + flnCode("m.subject") + ") ) " +
+            "            WHERE m.is_active = 1 " + flnSubj +
+            "            GROUP BY m.teacher_id ) tv " +
+            "       ON tv.teacher_id = ta.teacher_id " +
             "WHERE ta.is_active = 1 AND ta.district = ? " +
-            "GROUP BY ta.teacher_id, ta.teacher_name, mm.mapped_count, pp.pending_count " +
+            "GROUP BY ta.teacher_id, ta.teacher_name, mm.student_count, mm.pair_count, tv.approved_count, tv.pending_count " +
             "ORDER BY school_name, ta.teacher_name";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, districtName);
@@ -88,10 +125,30 @@
                     t.put("udise", rs.getString("udise_codes"));
                     t.put("mobile", rs.getString("mobile_number"));
                     t.put("subjects", rs.getString("subjects_taught"));
-                    int mapped = rs.getInt("mapped_count");
-                    t.put("mapped", mapped);
-                    t.put("pending", rs.getInt("pending_count"));
-                    if (mapped > 0) teachersWithData++;
+                    int students = rs.getInt("student_count");   // distinct students (matches teacher dashboard)
+                    int pairs = rs.getInt("pair_count");         // (student, subject) pairs
+                    int approved = rs.getInt("approved_count");
+                    int approvalPending = rs.getInt("pending_count");
+                    // Only the LATEST phase the Head Master has opened is counted:
+                    // one video expected per (student, subject) for that one phase.
+                    int latestPhase = rs.getInt("latest_phase");   // 0 = no phase open
+                    int expected = (latestPhase == 0) ? 0 : pairs;
+                    int uploadPending = expected - approved - approvalPending;
+                    if (uploadPending < 0) uploadPending = 0;
+
+                    t.put("mapped", students);
+                    t.put("pairs", pairs);
+                    t.put("latestPhase", latestPhase);
+                    t.put("expected", expected);
+                    t.put("approved", approved);
+                    t.put("approvalPending", approvalPending);
+                    t.put("uploadPending", uploadPending);
+                    if (students > 0) teachersWithData++;
+
+                    totApproved += approved;
+                    totApprovalPending += approvalPending;
+                    totUploadPending += uploadPending;
+
                     teachers.add(t);
                 }
             }
@@ -125,13 +182,20 @@
         .stat .n { font-size: 26px; font-weight: 800; }
         .stat .l { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
         .stat.data .n { color: #059669; }
+        .stat.up   .n { color: #6b7280; }
         .stat.pend .n { color: #b45309; }
+        .stat.appr .n { color: #059669; }
 
         .toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
         .toolbar input, .toolbar select { padding: 9px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; background: #fff; }
         .toolbar input:focus, .toolbar select:focus { border-color: #667eea; }
         .toolbar input[type=text] { flex: 1; min-width: 220px; }
-        .pill.pend { background: #fef3c7; color: #92400e; margin-left: 4px; }
+        .pill.pend { background: #fef3c7; color: #92400e; }
+        .pill.up   { background: #f1f5f9; color: #475569; }
+        .pill.appr { background: #dcfce7; color: #166534; }
+        .pill.phase { background: #e0e7ff; color: #3730a3; }
+        .vcounts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+        .vcounts .pill { font-size: 10px; padding: 1px 7px; }
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         thead th { background: #667eea; color: #fff; text-align: left; padding: 10px 12px; white-space: nowrap; position: sticky; top: 0; }
@@ -207,8 +271,10 @@
             <h1>📹 शिक्षक विद्यार्थी व्हिडिओ (Teacher Student Videos)</h1>
             <p><%= esc(districtName) %> District — शिक्षक निवडा; त्या शिक्षकाच्या विद्यार्थ्यांवर क्लिक करून विषयनिहाय टप्पा-व्हिडिओची स्थिती पहा.</p>
             <div class="header-pending">
-                ⏳ मुख्याध्यापक मंजुरीसाठी प्रलंबित व्हिडिओ (Pending HM approval):
-                <strong><%= pendingApprovalCount %></strong>
+                चालू टप्प्याचे व्हिडिओ (latest open phase) &nbsp;·&nbsp;
+                ⬆ अपलोड बाकी (Upload pending): <strong><%= totUploadPending %></strong> &nbsp;
+                ⏳ मंजुरी बाकी (Approval pending): <strong><%= totApprovalPending %></strong> &nbsp;
+                ✅ मंजूर (Approved): <strong><%= totApproved %></strong>
             </div>
         </div>
 
@@ -220,7 +286,9 @@
             <div class="stats">
                 <div class="stat"><div class="n"><%= teachers.size() %></div><div class="l">Total Teachers</div></div>
                 <div class="stat data"><div class="n"><%= teachersWithData %></div><div class="l">Teachers With Student Data</div></div>
-                <div class="stat pend"><div class="n"><%= pendingApprovalCount %></div><div class="l">Videos Pending HM Approval</div></div>
+                <div class="stat up"><div class="n"><%= totUploadPending %></div><div class="l">Upload Pending (latest phase)</div></div>
+                <div class="stat pend"><div class="n"><%= totApprovalPending %></div><div class="l">Approval Pending (latest phase)</div></div>
+                <div class="stat appr"><div class="n"><%= totApproved %></div><div class="l">Approved (latest phase)</div></div>
             </div>
 
             <% if (teachers.isEmpty() && errorMessage == null) { %>
@@ -253,9 +321,14 @@
                             String subjectsStr = (String) t.get("subjects");
                             String[] subs = (subjectsStr == null ? "" : subjectsStr).split(",");
                             int mapped = (Integer) t.get("mapped");
-                            int pending = (Integer) t.get("pending");
+                            int pairs = (Integer) t.get("pairs");
+                            int latestPhase = (Integer) t.get("latestPhase");
+                            int expected = (Integer) t.get("expected");
+                            int approved = (Integer) t.get("approved");
+                            int approvalPending = (Integer) t.get("approvalPending");
+                            int uploadPending = (Integer) t.get("uploadPending");
                         %>
-                        <tr data-pending="<%= pending %>" data-search="<%= esc((String.valueOf(t.get("name")) + " " + String.valueOf(t.get("school")) + " " + String.valueOf(t.get("mobile")) + " " + String.valueOf(t.get("udise"))).toLowerCase()) %>">
+                        <tr data-pending="<%= approvalPending %>" data-search="<%= esc((String.valueOf(t.get("name")) + " " + String.valueOf(t.get("school")) + " " + String.valueOf(t.get("mobile")) + " " + String.valueOf(t.get("udise"))).toLowerCase()) %>">
                             <td class="sr"><%= sr %></td>
                             <td><strong><%= esc((String) t.get("school")) %></strong><br><span style="color:#94a3b8;font-size:11px;"><%= esc((String) t.get("udise")) %></span></td>
                             <td><strong><%= esc((String) t.get("name")) %></strong></td>
@@ -268,11 +341,18 @@
                             <td>
                                 <% if (mapped > 0) { %>
                                     <span class="pill has"><%= mapped %> students</span>
+                                    <% if (latestPhase == 0) { %>
+                                        <div class="vcounts"><span class="pill up" title="The Head Master has not opened any phase for video upload at this school yet">कोणताही टप्पा सुरू नाही (no phase open)</span></div>
+                                    <% } else { %>
+                                    <div class="vcounts">
+                                        <span class="pill phase" title="Latest phase opened by the Head Master at this school">टप्पा <%= latestPhase %> (Phase <%= latestPhase %>)</span>
+                                        <span class="pill up" title="Phase <%= latestPhase %> videos not uploaded yet — out of <%= expected %> expected (one per student-subject)">⬆ <%= uploadPending %> upload</span>
+                                        <span class="pill pend" title="Phase <%= latestPhase %> videos uploaded, awaiting Head Master approval">⏳ <%= approvalPending %> approval</span>
+                                        <span class="pill appr" title="Phase <%= latestPhase %> videos approved by Head Master">✅ <%= approved %> approved</span>
+                                    </div>
+                                    <% } %>
                                 <% } else { %>
                                     <span class="pill none">no data yet</span>
-                                <% } %>
-                                <% if (pending > 0) { %>
-                                    <span class="pill pend">⏳ <%= pending %> pending</span>
                                 <% } %>
                             </td>
                             <td>

@@ -116,7 +116,8 @@ public class DistrictTeacherVideosServlet extends HttpServlet {
             //    teacher_student_mapping (utf8mb4_unicode_ci) -> COLLATE on the join.
             String sql =
                 "SELECT m.subject, s.student_id, s.student_name, s.class, s.section, s.student_pen, " +
-                "       v.video_id, v.phase_number, v.approval_status, v.rejection_reason, v.upload_date " +
+                "       v.video_id, v.phase_number, v.subject AS video_subject, " +
+                "       v.approval_status, v.rejection_reason, v.upload_date " +
                 "FROM teacher_student_mapping m " +
                 "JOIN students s ON m.student_id = s.student_id " +
                 "LEFT JOIN student_videos v ON v.student_id = s.student_id " +
@@ -155,7 +156,16 @@ public class DistrictTeacherVideosServlet extends HttpServlet {
                         }
 
                         int videoId = rs.getInt("video_id");
-                        if (!rs.wasNull()) {
+                        // Only attach a phase video to the block whose subject it
+                        // actually belongs to — a मराठी video must not show under
+                        // गणित / इंग्रजी for a student mapped to more than one subject.
+                        // A video whose subject is blank/unrecognised falls back to
+                        // showing everywhere (legacy rows).
+                        String rawVideoSubject = rs.getString("video_subject");
+                        String videoSubject = canonicalSubject(rawVideoSubject);
+                        boolean videoBelongsHere = (rawVideoSubject == null || rawVideoSubject.trim().isEmpty())
+                                || subject.equals(videoSubject);
+                        if (!rs.wasNull() && videoBelongsHere) {
                             // District login gets only the STATUS of each phase video,
                             // never the video file/URL itself.
                             JSONObject v = new JSONObject();

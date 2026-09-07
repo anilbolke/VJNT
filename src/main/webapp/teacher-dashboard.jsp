@@ -46,6 +46,12 @@
         .card { padding: 20px; border-radius: 12px; color: white; text-align: center; }
         .card .num { font-size: 32px; font-weight: 700; }
         .card .lbl { font-size: 14px; margin-top: 5px; }
+        .card .split { font-size: 12px; margin-top: 6px; opacity: 0.9; font-weight: 500; }
+        .pager { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+        .pager button { border: 1px solid #d0d7de; background: #fff; color: #333; border-radius: 6px; padding: 5px 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .pager button:hover:not(:disabled) { background: #eef1ff; border-color: #667eea; }
+        .pager button:disabled { opacity: 0.45; cursor: default; }
+        .pager button.active { background: #667eea; border-color: #667eea; color: #fff; }
         .section { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px; }
         .section h2 { color: #333; margin-bottom: 15px; font-size: 18px; }
         .filters { display: flex; gap: 15px; margin-bottom: 18px; flex-wrap: wrap; }
@@ -107,7 +113,8 @@
         <div class="cards">
             <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <div class="num" id="cardStudents">-</div>
-                <div class="lbl">माझे विद्यार्थी (My Students)</div>
+                <div class="lbl">माझे विद्यार्थी – सर्व विषय (My Students – all subjects)</div>
+                <div class="split" id="cardStudentsSplit"></div>
             </div>
             <div class="card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
                 <div class="num" id="cardClasses">-</div>
@@ -130,11 +137,11 @@
             <h2>👨‍🎓 माझे विद्यार्थी (My Students)</h2>
             <p style="color:#666; font-size:13px; margin-bottom:15px;">फक्त आपल्याला नियुक्त केलेले विद्यार्थी येथे दिसतात. विद्यार्थी पाहण्यासाठी आधी वर्ग व विषय निवडा (Only students mapped to you are shown. Select a class and a subject to view students).</p>
             <div class="filters">
-                <input type="text" id="searchBox" placeholder="Search student name / PEN..." onkeyup="renderStudents()">
+                <input type="text" id="searchBox" placeholder="Search student name / PEN..." onkeyup="onStudentFilterChange()">
                 <select id="classFilter" onchange="onClassChange()">
                     <option value="">-- वर्ग निवडा (Select Class) --</option>
                 </select>
-                <select id="subjectFilter" onchange="renderStudents()">
+                <select id="subjectFilter" onchange="onStudentFilterChange()">
                     <option value="">-- विषय निवडा (Select Subject) --</option>
                 </select>
             </div>
@@ -158,6 +165,7 @@
                 </table>
             </div>
             <div id="countInfo" style="margin-top:12px; color:#666; font-size:14px;"></div>
+            <div class="pager" id="studentsPager"></div>
         </div>
     </div>
 
@@ -197,8 +205,9 @@
         let allStudents = [];
         let allAssignments = [];
         let phaseApprovals = {};   // { "1": "APPROVED"/"PENDING"/"REJECTED"/undefined, ... }
-        let videosByStudent = {};  // { studentId: { "1": {approvalStatus, rejectionReason, ...}, ... } }
+        let videosByStudent = {};  // { studentId: { subjectKey: { "1": {approvalStatus, ...}, ... } } }
         let activeModalStudentId = null;
+        let activeModalSubjectKey = null;   // subject the open video modal is scoped to
 
         function escapeHtml(text) {
             if (text === null || text === undefined) return '';
@@ -246,6 +255,21 @@
                     allAssignments = assignments;
                     const distinctStudents = new Set(allStudents.map(s => s.studentId));
                     document.getElementById('cardStudents').textContent = distinctStudents.size;
+
+                    // Per-subject split under the card: distinct students per FLN subject.
+                    const splitSets = { 'मराठी': new Set(), 'इंग्रजी': new Set(), 'गणित': new Set() };
+                    allStudents.forEach(s => {
+                        const f = levelFieldForSubject(s.subject);
+                        if (f === 'marathiLevel') splitSets['मराठी'].add(s.studentId);
+                        else if (f === 'englishLevel') splitSets['इंग्रजी'].add(s.studentId);
+                        else if (f === 'mathLevel') splitSets['गणित'].add(s.studentId);
+                    });
+                    const splitParts = [];
+                    ['मराठी', 'इंग्रजी', 'गणित'].forEach(k => {
+                        if (splitSets[k].size > 0) splitParts.push(k + ' ' + splitSets[k].size);
+                    });
+                    document.getElementById('cardStudentsSplit').textContent = splitParts.join('  ·  ');
+
                     document.getElementById('cardClasses').textContent = assignments.length;
                     const subjects = (data.subjectsTaught || '').split(',').map(s => s.trim())
                         .filter(s => s && isAllowedSubject(s));
@@ -295,6 +319,18 @@
             return levelFieldForSubject(subject) !== null;
         }
 
+        // Canonical subject key — must match
+        // TeacherPhaseVideoStatusServlet.canonicalSubjectKey (server side).
+        // Phase videos are stored per subject and only shown for that subject.
+        function subjectKey(subject) {
+            if (!subject) return null;
+            var s = subject.trim().toLowerCase();
+            if (s.indexOf('marathi') > -1 || subject.indexOf('मराठी') > -1) return 'marathi';
+            if (s.indexOf('math') > -1 || subject.indexOf('गणित') > -1) return 'math';
+            if (s.indexOf('english') > -1 || subject.indexOf('इंग्रजी') > -1 || subject.indexOf('इंग्लिश') > -1) return 'english';
+            return null;
+        }
+
         // Repopulates the subject dropdown with the subjects of the selected
         // class-section. Students are mapped per subject, so subjects come from
         // the mapped student rows (fallback: the assignment's subject list).
@@ -336,6 +372,15 @@
                     subjectSel.value = subjects[0];
                 }
             }
+            studentsPageNum = 1;
+            renderStudents();
+        }
+
+        const STUDENTS_PAGE_SIZE = 15;
+        let studentsPageNum = 1;
+
+        function onStudentFilterChange() {
+            studentsPageNum = 1;
             renderStudents();
         }
 
@@ -344,6 +389,8 @@
             const classFilter = document.getElementById('classFilter').value;
             const subjectFilter = document.getElementById('subjectFilter').value;
             const tbody = document.getElementById('studentsBody');
+            const pager = document.getElementById('studentsPager');
+            pager.innerHTML = '';
 
             // Students are shown only after BOTH class and subject are selected
             if (!classFilter || !subjectFilter) {
@@ -375,22 +422,60 @@
             const levelField = levelFieldForSubject(subjectFilter);
             document.getElementById('levelColHeader').textContent = subjectFilter + ' Level';
 
+            // Pagination
+            const totalPages = Math.max(1, Math.ceil(filtered.length / STUDENTS_PAGE_SIZE));
+            if (studentsPageNum > totalPages) studentsPageNum = totalPages;
+            if (studentsPageNum < 1) studentsPageNum = 1;
+            const startIdx = (studentsPageNum - 1) * STUDENTS_PAGE_SIZE;
+            const pageRows = filtered.slice(startIdx, startIdx + STUDENTS_PAGE_SIZE);
+
             let html = '';
-            filtered.forEach((s, i) => {
+            pageRows.forEach((s, i) => {
                 html += '<tr>';
-                html += '<td>' + (i + 1) + '</td>';
+                html += '<td>' + (startIdx + i + 1) + '</td>';
                 html += '<td style="font-weight:500;">' + escapeHtml(s.studentName) + '</td>';
                 html += '<td>' + escapeHtml(s['class']) + '</td>';
                 html += '<td>' + escapeHtml(s.section) + '</td>';
                 html += '<td>' + escapeHtml(s.gender) + '</td>';
                 html += '<td style="font-family:monospace; color:#666;">' + escapeHtml(s.studentPen) + '</td>';
                 html += '<td>' + levelBadge(levelField ? s[levelField] : null) + '</td>';
-                html += '<td>' + videoCellHtml(s.studentId) + '</td>';
+                html += '<td>' + videoCellHtml(s.studentId, subjectKey(subjectFilter)) + '</td>';
                 html += '</tr>';
             });
             tbody.innerHTML = html;
-            document.getElementById('countInfo').textContent = 'Showing ' + filtered.length + ' students — ' +
-                'वर्ग ' + classFilter + ' | ' + subjectFilter;
+
+            const showFrom = startIdx + 1;
+            const showTo = startIdx + pageRows.length;
+            document.getElementById('countInfo').textContent = 'Showing ' + showFrom + '–' + showTo +
+                ' of ' + filtered.length + ' students — वर्ग ' + classFilter + ' | ' + subjectFilter;
+
+            renderStudentsPager(totalPages);
+        }
+
+        function renderStudentsPager(totalPages) {
+            const pager = document.getElementById('studentsPager');
+            if (totalPages <= 1) { pager.innerHTML = ''; return; }
+
+            let h = '';
+            h += '<button ' + (studentsPageNum === 1 ? 'disabled' : '') + ' data-go="' + (studentsPageNum - 1) + '">‹ Prev</button>';
+            let from = Math.max(1, studentsPageNum - 2);
+            let to = Math.min(totalPages, from + 4);
+            from = Math.max(1, to - 4);
+            for (let p = from; p <= to; p++) {
+                h += '<button class="' + (p === studentsPageNum ? 'active' : '') + '" data-go="' + p + '">' + p + '</button>';
+            }
+            h += '<button ' + (studentsPageNum === totalPages ? 'disabled' : '') + ' data-go="' + (studentsPageNum + 1) + '">Next ›</button>';
+            pager.innerHTML = h;
+
+            pager.querySelectorAll('button[data-go]').forEach(b => {
+                b.addEventListener('click', () => {
+                    const go = parseInt(b.getAttribute('data-go'), 10);
+                    if (!isNaN(go) && go >= 1 && go <= totalPages) {
+                        studentsPageNum = go;
+                        renderStudents();
+                    }
+                });
+            });
         }
 
         // ---------- Phase Video Upload ----------
@@ -398,9 +483,9 @@
         // Upload stays locked until the Head Master approves the phase.
         const TESTING_BYPASS_PHASE_LOCK = false;
 
-        function phaseStateFor(studentId, phase) {
+        function phaseStateFor(studentId, phase, subjKey) {
             const approvalStatus = phaseApprovals[String(phase)];
-            const video = (videosByStudent[String(studentId)] || {})[String(phase)];
+            const video = (((videosByStudent[String(studentId)] || {})[subjKey]) || {})[String(phase)];
 
             if (approvalStatus !== 'APPROVED' && !TESTING_BYPASS_PHASE_LOCK) {
                 return { state: 'locked', label: 'Locked', video: video || null };
@@ -417,10 +502,10 @@
             return { state: 'rejected', label: 'Rejected - Re-upload', video: video };
         }
 
-        function videoCellHtml(studentId) {
+        function videoCellHtml(studentId, subjKey) {
             let done = 0;
             for (let p = 1; p <= 4; p++) {
-                if (phaseStateFor(studentId, p).state === 'approved') done++;
+                if (phaseStateFor(studentId, p, subjKey).state === 'approved') done++;
             }
             return '<button class="video-btn" onclick="openVideoModal(' + studentId + ')">📹 ' + done + '/4</button>';
         }
@@ -449,15 +534,18 @@
             const student = allStudents.find(s => s.studentId === studentId);
             if (!student) return;
             activeModalStudentId = studentId;
+            const subjectFilterVal = document.getElementById('subjectFilter').value;
+            activeModalSubjectKey = subjectKey(subjectFilterVal);
 
             document.getElementById('modalStudentName').textContent = student.studentName +
-                ' (वर्ग ' + student['class'] + ' - ' + student.section + ')';
+                ' (वर्ग ' + student['class'] + ' - ' + student.section + ')' +
+                (subjectFilterVal ? ' — ' + subjectFilterVal : '');
 
             modalPhaseVideoUrls = {};
             let listHtml = '';
             let defaultPhase = null;
             for (let p = 1; p <= 4; p++) {
-                const info = phaseStateFor(studentId, p);
+                const info = phaseStateFor(studentId, p, activeModalSubjectKey);
                 let watchBtn = '';
                 if (info.video && info.video.filePath) {
                     modalPhaseVideoUrls[p] = info.video.filePath;
@@ -475,7 +563,7 @@
             select.innerHTML = '';
             let anyUploadable = false;
             for (let p = 1; p <= 4; p++) {
-                const info = phaseStateFor(studentId, p);
+                const info = phaseStateFor(studentId, p, activeModalSubjectKey);
                 const uploadable = info.state === 'available' || info.state === 'rejected';
                 if (uploadable) anyUploadable = true;
                 const opt = document.createElement('option');
