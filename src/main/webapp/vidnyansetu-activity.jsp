@@ -1,22 +1,60 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="true"%>
-<%@ page import="com.vjnt.model.User,com.vjnt.util.DatabaseConnection,java.sql.*,java.util.*" %>
+<%@ page import="com.vjnt.model.User,com.vjnt.model.VidnyanSetuUser,com.vjnt.model.School,com.vjnt.dao.SchoolDAO,com.vjnt.util.DatabaseConnection,java.sql.*,java.util.*" %>
 <%
+    // Reachable from two portals: the main GATEE login ("user" session,
+    // SCHOOL_COORDINATOR/HEAD_MASTER/etc.) and the standalone VidnyanSetu
+    // login ("vsUser" session, role COORDINATOR) — see VidnyanSetuUser.
     User user = (User) session.getAttribute("user");
-    if (user == null) { response.sendRedirect(request.getContextPath() + "/login"); return; }
+    VidnyanSetuUser vsUser = (VidnyanSetuUser) session.getAttribute("vsUser");
+    if (user == null && vsUser == null) { response.sendRedirect(request.getContextPath() + "/login"); return; }
 
-    String userType  = user.getUserType().toString();
-    String userUdise = user.getUdiseNo() != null ? user.getUdiseNo().trim() : "";
-    boolean canWrite = userType.equals("SCHOOL_COORDINATOR") || userType.equals("HEAD_MASTER")
-                        || userType.equals("SUPER_DIVISION_OFFICER") || userType.equals("DATA_ADMIN");
+    String userType;
+    String userUdise;
+    boolean canWrite;
+    // VS Teacher can log activities too, but only for their own assigned class(es)
+    // (empty for everyone else — coordinator/main-portal roles are not restricted).
+    List<String> allowedClasses = new ArrayList<>();
+    if (user != null) {
+        userType  = user.getUserType().toString();
+        userUdise = user.getUdiseNo() != null ? user.getUdiseNo().trim() : "";
+        canWrite = userType.equals("SCHOOL_COORDINATOR") || userType.equals("HEAD_MASTER")
+                            || userType.equals("SUPER_DIVISION_OFFICER") || userType.equals("DATA_ADMIN");
+    } else {
+        userType  = "VS_" + vsUser.getRole().name();
+        userUdise = vsUser.getUdiseNo() != null ? vsUser.getUdiseNo().trim() : "";
+        if (vsUser.getRole() == VidnyanSetuUser.Role.COORDINATOR) {
+            canWrite = true;
+        } else {
+            try (Connection conn = DatabaseConnection.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(
+                     "SELECT DISTINCT class FROM vidnyansetu_teacher_assignments " +
+                     "WHERE vs_user_id = ? AND is_active = 1 ORDER BY class")) {
+                ps.setInt(1, vsUser.getVsUserId());
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) allowedClasses.add(rs.getString("class"));
+                }
+            }
+            canWrite = !allowedClasses.isEmpty();
+        }
+    }
 
-    // ── Load students for the search box (own school) ──
+    // ── Load students for the search box — school-wide, except a VS Teacher
+    //    only sees students of their own assigned class(es) ──
+    boolean isVsTeacher = vsUser != null && vsUser.getRole() == VidnyanSetuUser.Role.TEACHER;
     List<Map<String,Object>> students = new ArrayList<>();
-    if (!userUdise.isEmpty()) {
+    if (!userUdise.isEmpty() && !(isVsTeacher && allowedClasses.isEmpty())) {
+        String classFilter = isVsTeacher
+                ? " AND class IN (" + String.join(",", Collections.nCopies(allowedClasses.size(), "?")) + ")"
+                : "";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                  "SELECT student_id, student_pen, student_name, class " +
-                 "FROM students WHERE is_active=1 AND udise_no=? ORDER BY class, student_name")) {
+                 "FROM students WHERE is_active=1 AND udise_no=?" + classFilter + " ORDER BY class, student_name")) {
             ps.setString(1, userUdise);
+            if (isVsTeacher) {
+                int idx = 2;
+                for (String c : allowedClasses) ps.setString(idx++, c);
+            }
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 Map<String,Object> s = new LinkedHashMap<>();
@@ -27,6 +65,13 @@
             }
         } catch (Exception ex) { /* table/column not ready yet — page still renders */ }
     }
+
+    // Header stats: school name, total students, distinct classes for this school.
+    School school = userUdise.isEmpty() ? null : new SchoolDAO().getSchoolByUdise(userUdise);
+    String schoolName = school != null ? school.getSchoolName() : "-";
+    LinkedHashSet<String> distinctClasses = new LinkedHashSet<>();
+    for (Map<String,Object> s : students) distinctClasses.add((String) s.get("class"));
+    String classesLabel = distinctClasses.isEmpty() ? "-" : String.join(", ", distinctClasses);
 %>
 <!DOCTYPE html>
 <html lang="mr">
@@ -47,6 +92,18 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f4f8;
 .topbar-btn:hover{background:rgba(255,255,255,.25);}
 
 .page{max-width:1200px;margin:0 auto;padding:24px 20px 60px;}
+
+/* School info header + stat cards — same pattern as school-dashboard-enhanced.jsp */
+.school-header{background:#f0f2f5;color:#000;padding:20px 30px;border-radius:8px;margin-bottom:20px;text-align:center;}
+.school-header .school-icon{font-size:24px;}
+.school-header h1{font-size:22px;font-weight:700;margin:4px 0;}
+.school-header .header-subtitle{font-size:14px;opacity:0.85;}
+.breadcrumb{background:#fff;padding:15px 25px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-left:5px solid #f97316;font-size:13.5px;}
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:#fff;padding:15px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-left:3px solid #f97316;text-align:center;}
+.stat-icon{font-size:28px;margin-bottom:6px;display:block;}
+.stat-value{font-size:26px;font-weight:700;color:#2d3748;margin-bottom:4px;}
+.stat-label{font-size:11px;color:#718096;font-weight:500;}
 
 .alert{border-radius:10px;padding:12px 18px;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
 .alert-ok  {background:#dcfce7;color:#14532d;border:1px solid #86efac;}
@@ -120,6 +177,31 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f4f8;
 </div>
 
 <div class="page">
+  <div class="school-header">
+    <div class="school-icon">🏫</div>
+    <h1><%= schoolName %></h1>
+    <div class="header-subtitle">UDISE: <%= userUdise %></div>
+  </div>
+
+  <div class="breadcrumb">
+    <span>🏫 School:</span> <strong><%= schoolName %></strong> (<%= userUdise %>)
+    <span style="margin: 0 10px;">→</span>
+    <span>📚 Class:</span> <strong><%= classesLabel %></strong>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-value"><%= students.size() %></div>
+      <div class="stat-label">Total Students</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📚</div>
+      <div class="stat-value"><%= distinctClasses.size() %></div>
+      <div class="stat-label">Classes</div>
+    </div>
+  </div>
+
   <div id="alertBox"></div>
 
   <div class="layout">
@@ -218,6 +300,9 @@ const CTX = '<%= request.getContextPath() %>';
 let curriculum = null;   // full nested {class: {weeks:[...]}} payload
 let selectedPen = '', selectedName = '', selectedClass = '';
 const CLASS_ORDER = ['III','IV','V','VI','VII','VIII','IX'];
+// Non-empty only for a VS Teacher — restricts the Class dropdown to their
+// own assigned class(es). Empty means no restriction (coordinator/main portal).
+const ALLOWED_CLASSES = [<% for (String c : allowedClasses) { %>'<%= c %>',<% } %>];
 
 function showAlert(msg, ok) {
   document.getElementById('alertBox').innerHTML =
@@ -332,7 +417,9 @@ fetch(CTX + '/vidnyansetu-curriculum')
     const selClass = document.getElementById('selClass');
     if (!selClass) return; // read-only viewer, no form
     selClass.innerHTML = '<option value="">-- निवडा --</option>';
-    CLASS_ORDER.filter(c => curriculum[c]).forEach(function(c){
+    CLASS_ORDER.filter(c => curriculum[c])
+      .filter(c => ALLOWED_CLASSES.length === 0 || ALLOWED_CLASSES.includes(c))
+      .forEach(function(c){
       const opt = document.createElement('option');
       opt.value = c; opt.textContent = 'इयत्ता ' + c;
       selClass.appendChild(opt);

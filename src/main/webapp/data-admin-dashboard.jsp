@@ -364,6 +364,26 @@
                 <div style="font-size: 18px; font-weight: 600;">Activity Visibility</div>
                 <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Division-wise School Coordinator activities</div>
             </a>
+            <a href="<%= request.getContextPath() %>/reset-school-phases.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #ff9a44 0%, #fc6076 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">♻️</div>
+                <div style="font-size: 18px; font-weight: 600;">Reset School Phases</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Clear Phase Data by UDISE</div>
+            </a>
+            <a href="<%= request.getContextPath() %>/logs-viewer.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px; background: linear-gradient(135deg, #334155 0%, #0f172a 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🗒️</div>
+                <div style="font-size: 18px; font-weight: 600;">Server Logs</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">View log path & tail server logs</div>
+            </a>
         </div>
 
         <!-- Year-End Actions -->
@@ -409,6 +429,36 @@
                 <div style="margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;
                             padding: 3px 10px; font-size: 11px; font-weight: 700; display: inline-block;">
                     ⚙ Set Before Promoting
+                </div>
+            </a>
+            <a href="<%= request.getContextPath() %>/manage-class-level-targets.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #f6ad55 0%, #c05621 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">🎯</div>
+                <div style="font-size: 18px; font-weight: 600;">Class-wise Top Levels</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">Set the FLN level each class should reach</div>
+                <div style="margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;
+                            padding: 3px 10px; font-size: 11px; font-weight: 700; display: inline-block;">
+                    🔒 Data Admin Only
+                </div>
+            </a>
+            <a href="<%= request.getContextPath() %>/teacher-effort-impact.jsp"
+               style="flex: 1; min-width: 200px; padding: 20px;
+                      background: linear-gradient(135deg, #9f7aea 0%, #553c9a 100%);
+                      color: white; text-decoration: none; border-radius: 10px; text-align: center;
+                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+               onmouseover="this.style.transform='translateY(-3px)'"
+               onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size: 36px; margin-bottom: 10px;">📈</div>
+                <div style="font-size: 18px; font-weight: 600;">Teacher Efforts Impact</div>
+                <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">% of students reaching their class target</div>
+                <div style="margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;
+                            padding: 3px 10px; font-size: 11px; font-weight: 700; display: inline-block;">
+                    🔒 Data Admin Only · Pilot
                 </div>
             </a>
             <a href="<%= request.getContextPath() %>/promotion-correction.jsp"
@@ -458,17 +508,6 @@
                 <div style="font-size: 36px; margin-bottom: 10px;">🏅</div>
                 <div style="font-size: 18px; font-weight: 600;">विद्यार्थी उपक्रम</div>
                 <div style="font-size: 13px; margin-top: 5px; opacity: 0.9;">क्रीडा, सांस्कृतिक, शैक्षणिक कामगिरी</div>
-            </a>
-            <a href="<%= request.getContextPath() %>/admin-sql-console.jsp"
-               style="flex: 1; min-width: 200px; padding: 20px;
-                      background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-                      color: #fff; text-decoration: none; border-radius: 10px; text-align: center;
-                      transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
-               onmouseover="this.style.transform='translateY(-3px)'"
-               onmouseout="this.style.transform='translateY(0)'">
-                <div style="font-size: 36px; margin-bottom: 10px;">🛠️</div>
-                <div style="font-size: 18px; font-weight: 600;">SQL Console</div>
-                <div style="font-size: 13px; margin-top: 5px; opacity: 0.85;">Run database scripts (Admin only)</div>
             </a>
         </div>
 

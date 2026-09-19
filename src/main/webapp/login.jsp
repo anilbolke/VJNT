@@ -618,8 +618,11 @@
                 <h1 class="system-title"><span style="font-size: 64px;">GATEE</span> </h1>
                 <h1><span style="font-size: 32px;">PORTAL</span></h1><br>
                 <p class="system-subtitle">Growth  Achievement  Transformation  Excellence in Education  </p>
+                <a href="<%= request.getContextPath() %>/vidnyansetu-login" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:#fff;text-decoration:none;padding:10px 18px;border-radius:24px;font-size:14px;font-weight:700;">
+                    🔬 विज्ञानसेतू Login
+                </a>
             </div>
-            
+
            <!--  <div class="gatee-section">
                 <h3 class="gatee-title">Our Vision</h3>
                 <ul class="gatee-list">

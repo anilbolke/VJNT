@@ -3,6 +3,7 @@ package com.vjnt.servlet;
 import com.vjnt.dao.UserDAO;
 import com.vjnt.model.User;
 import com.vjnt.util.DatabaseConnection;
+import com.vjnt.util.PasswordUtil;
 import com.vjnt.util.TeacherLoginNotifier;
 import org.json.JSONObject;
 
@@ -20,10 +21,15 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * The teacher types their username on login.jsp and asks for it to be sent to
  * WhatsApp. We look the account up, and if it is an active TEACHER with a mobile
- * on file we WhatsApp the current credentials to that number — same message and
- * template as {@link TeacherLoginNotifier} uses on login creation / password
- * change. Passwords are stored in plain text in this app (see PasswordUtil), so
- * the actual password is sent, not a reset link.
+ * on file we generate a fresh one-time temporary password, store its hash, force
+ * a change at next login, and WhatsApp that temporary password to the number on
+ * file — same message and template as {@link TeacherLoginNotifier} uses on login
+ * creation / password change.
+ *
+ * VJNT-002: passwords are hashed (BCrypt) since 2026-09-11, so the original
+ * password can no longer be recovered from storage to resend — this generates
+ * a new one instead, which is also the correct pattern regardless (nothing
+ * that can read out a working credential should exist at all).
  *
  * Restricted to TEACHER on purpose: other roles (division / district / admin)
  * do not self-serve password recovery over WhatsApp.
@@ -85,9 +91,18 @@ public class TeacherForgotPasswordServlet extends HttpServlet {
                 return;
             }
 
+            String tempPassword = PasswordUtil.generateTempPassword();
+            boolean reset = userDAO.resetPasswordForceChange(user.getUserId(), PasswordUtil.hashPassword(tempPassword));
+            if (!reset) {
+                result.put("success", false);
+                result.put("message", "विनंती प्रक्रिया करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.");
+                out.print(result.toString());
+                return;
+            }
+
             try (Connection conn = DatabaseConnection.getConnection()) {
                 TeacherLoginNotifier.sendCredentials(conn, mobile, user.getFullName(),
-                        user.getUdiseNo(), user.getUsername(), user.getPassword());
+                        user.getUdiseNo(), user.getUsername(), tempPassword);
             }
             LAST_SENT.put(username.toLowerCase(), now);
 

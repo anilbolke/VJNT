@@ -24,7 +24,11 @@ public class AppLifecycleListener implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        // nothing to do — the pool initialises lazily on first use
+        // VJNT-002: hash any legacy plaintext password left in `users`.
+        // Idempotent — a no-op after the first successful run in each
+        // environment. See PasswordMigration for why this runs here instead
+        // of behind a request-triggered admin endpoint.
+        PasswordMigration.hashLegacyPasswordsIfNeeded();
     }
 
     @Override

@@ -280,7 +280,28 @@
             } catch (Exception e) {}
         }
     }
-    
+
+    // Get pending VidnyanSetu activities count for Head Master approval
+    int pendingVidnyanSetuCount = 0;
+    if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        try (Connection vsConn = DatabaseConnection.getConnection();
+             PreparedStatement vsPstmt = vsConn.prepareStatement(
+                 "SELECT COUNT(*) as count FROM vidnyansetu_activities WHERE udise_no = ? AND approval_status = 'PENDING'")) {
+            vsPstmt.setString(1, udiseNo);
+            try (ResultSet vsRs = vsPstmt.executeQuery()) {
+                if (vsRs.next()) pendingVidnyanSetuCount = vsRs.getInt("count");
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting pending VidnyanSetu activities count: " + e.getMessage());
+        }
+    }
+
+    // Get pending VidnyanSetu phase approvals count for Head Master
+    int pendingVidnyanSetuPhaseCount = 0;
+    if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        pendingVidnyanSetuPhaseCount = new com.vjnt.dao.VidnyanSetuPhaseApprovalDAO().getPendingApprovalCount(udiseNo);
+    }
+
     // Separate students by phase completion status
     Map<Integer, List<com.vjnt.model.Student>> phaseCompletedStudents = new HashMap<>();
     Map<Integer, List<com.vjnt.model.Student>> phasePendingStudents = new HashMap<>();
@@ -2828,7 +2849,7 @@
                                 <span>⚡</span>
                                 <span>Quick Actions</span>
                                 <% 
-                                    int totalPending = pendingApprovalsCount + palakMelavaPendingCount + pendingVideosCount;
+                                    int totalPending = pendingApprovalsCount + palakMelavaPendingCount + pendingVideosCount + pendingVidnyanSetuCount + pendingVidnyanSetuPhaseCount;
                                     if (totalPending > 0) { 
                                 %>
                                     <span class="badge"><%= totalPending %></span>
@@ -2868,11 +2889,31 @@
                                             <span class="item-badge"><%= pendingVideosCount %></span>
                                         <% } %>
                                     </a>
+
+                                    <a href="<%= request.getContextPath() %>/vidnyansetu-activity-approval.jsp" class="dropdown-item" title="Approve VidnyanSetu activities">
+                                        <div class="dropdown-item-content">
+                                            <span>🔬</span>
+                                            <span>VidnyanSetu Activities</span>
+                                        </div>
+                                        <% if (pendingVidnyanSetuCount > 0) { %>
+                                            <span class="item-badge"><%= pendingVidnyanSetuCount %></span>
+                                        <% } %>
+                                    </a>
+
+                                    <a href="<%= request.getContextPath() %>/vidnyansetu-phase-approvals.jsp" class="dropdown-item" title="Approve VidnyanSetu phase completions">
+                                        <div class="dropdown-item-content">
+                                            <span>📋</span>
+                                            <span>VidnyanSetu Phase Approvals</span>
+                                        </div>
+                                        <% if (pendingVidnyanSetuPhaseCount > 0) { %>
+                                            <span class="item-badge"><%= pendingVidnyanSetuPhaseCount %></span>
+                                        <% } %>
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     <% } %>
-                    
+
                     <!-- Account Actions -->
                     <a href="<%= request.getContextPath() %>/raise-ticket.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#43A047,#66BB6A);" title="Raise a support ticket">
                         🎫 तिकीट
@@ -3167,6 +3208,14 @@
                     <div class="quick-action-title">विद्यार्थी उपक्रम</div>
                     <div class="quick-action-subtitle">Student Activities</div>
                     <div class="quick-action-desc">विद्यार्थ्यांचे क्रीडा, सांस्कृतिक, शैक्षणिक, विज्ञान उपक्रम व कामगिरी नोंदवा. फोटोसह.</div>
+                </a>
+                <% } %>
+                <% if (!hiddenActivities.contains("VIDNYANSETU_ACTIVITY")) { %>
+                <a href="<%= request.getContextPath() %>/vidnyansetu-activity.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🔬</div>
+                    <div class="quick-action-title">विज्ञानसेतू उपक्रम</div>
+                    <div class="quick-action-subtitle">VidnyanSetu Activity</div>
+                    <div class="quick-action-desc">इयत्ता, आठवडा व दिवसानुसार कृतीतून संकल्पनेकडे उपक्रम नोंदवा.</div>
                 </a>
                 <% } %>
                 <% if (!hiddenActivities.contains("GRADUATED_STUDENTS")) { %>
