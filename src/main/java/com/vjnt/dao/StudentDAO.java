@@ -3,6 +3,7 @@ package com.vjnt.dao;
 import com.vjnt.model.Student;
 import com.vjnt.util.DatabaseConnection;
 import com.vjnt.util.PhaseRosterSql;
+import com.vjnt.util.PromotionVideoArchiver;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -1866,6 +1867,9 @@ public class StudentDAO {
     public Map<String, Object> promoteAllClasses(String promotedBy, String academicYear, String remarks) {
         Map<String, Object> result = new HashMap<>();
 
+        // Archive columns must exist before the transaction (ALTER would implicitly commit).
+        PromotionVideoArchiver.ensureSchema();
+
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
@@ -1927,6 +1931,9 @@ public class StudentDAO {
             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM phase_approvals")) {
                 ps.executeUpdate();
             }
+
+            // ── Steps 3c–3e: Archive teacher / VidnyanSetu videos, retire mappings ──
+            PromotionVideoArchiver.archive(conn, promotionId, null, promotedBy);
 
             // ── Step 4a: Insert graduating students (Class 9) ────────────────
             String sqlGraduate =

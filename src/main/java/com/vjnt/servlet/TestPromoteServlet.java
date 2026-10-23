@@ -3,6 +3,7 @@ package com.vjnt.servlet;
 import com.vjnt.model.User;
 import com.vjnt.util.DatabaseConnection;
 import com.vjnt.util.PromotionClassRules;
+import com.vjnt.util.PromotionVideoArchiver;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -85,6 +86,8 @@ public class TestPromoteServlet extends HttpServlet {
             "WHERE is_active=1 AND udise_no=? AND NOT (" + IS_GRADUATING + ") " +
             "AND (phase4_marathi IS NULL OR phase4_math IS NULL OR phase4_english IS NULL OR phase4_date IS NULL)";
 
+        PromotionVideoArchiver.ensureSchema();   // preview counts read the archive columns
+
         try (Connection conn = DatabaseConnection.getConnection()) {
 
             // School info
@@ -158,6 +161,11 @@ public class TestPromoteServlet extends HttpServlet {
             result.put("incompleteStudents", incompleteStudents);
             result.put("terminalRank",       terminalRank);
             result.put("terminalClass",      PromotionClassRules.roman(terminalRank));
+            // What promotion will archive / retire for this school (teacher + VidnyanSetu videos)
+            PromotionVideoArchiver.Result toArchive = PromotionVideoArchiver.preview(conn, udise);
+            result.put("videosToArchive",       toArchive.phaseVideos);
+            result.put("vsActivitiesToArchive", toArchive.vsActivities);
+            result.put("mappingsToRetire",      toArchive.mappingsRetired);
             out.print(result.toString());
 
         } catch (SQLException e) {
@@ -204,6 +212,9 @@ public class TestPromoteServlet extends HttpServlet {
         academicYear = academicYear.trim();
         String testRemarks = "[TEST-SINGLE-SCHOOL udise=" + udise + "] " +
                              (remarks != null ? remarks.trim() : "");
+
+        // Archive columns must exist before the transaction (ALTER would implicitly commit).
+        PromotionVideoArchiver.ensureSchema();
 
         Connection conn = null;
         try {
@@ -275,6 +286,11 @@ public class TestPromoteServlet extends HttpServlet {
                 ps.setString(1, udise);
                 ps.executeUpdate();
             }
+
+            // Steps 3c-3e: Archive this school's teacher phase videos + VidnyanSetu
+            // activity videos, retire its students' teacher mappings
+            PromotionVideoArchiver.Result archived =
+                PromotionVideoArchiver.archive(conn, promotionId, udise, username);
 
             // Step 4a: Graduate this school's terminal-class students
             String sqlGraduate =
@@ -358,6 +374,9 @@ public class TestPromoteServlet extends HttpServlet {
             result.put("promotionId",       promotionId);
             result.put("studentsPromoted",  promotedCount);
             result.put("studentsGraduated", graduatedCount);
+            result.put("videosArchived",       archived.phaseVideos);
+            result.put("vsActivitiesArchived", archived.vsActivities);
+            result.put("mappingsRetired",      archived.mappingsRetired);
             out.print(result.toString());
 
         } catch (Exception e) {

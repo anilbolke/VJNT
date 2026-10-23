@@ -835,6 +835,10 @@
                                     <span>📹</span>
                                     <span>Teacher Student Videos</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/district-vidnyansetu2-report.jsp" class="dropdown-item" title="School-wise VidnyanSetu 2 STEM activities (classes VI-IX) and approval status">
+                                    <span>🧪</span>
+                                    <span>VidnyanSetu 2 Report</span>
+                                </a>
                             </div>
                             
                             <!-- Support Tickets Section -->

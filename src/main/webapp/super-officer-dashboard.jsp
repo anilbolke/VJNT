@@ -786,6 +786,10 @@
                                     <span>📹</span>
                                     <span>View Uploaded Videos</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/division-vidnyansetu2-videos.jsp" class="dropdown-item" title="VidnyanSetu 2 STEM activity videos (classes VI-IX) — pick any division">
+                                    <span>🧪</span>
+                                    <span>VidnyanSetu 2 Videos</span>
+                                </a>
                             </div>
                         </div>
                     </div>
