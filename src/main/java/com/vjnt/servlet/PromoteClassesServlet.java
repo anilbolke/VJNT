@@ -3,6 +3,7 @@ package com.vjnt.servlet;
 import com.vjnt.model.User;
 import com.vjnt.util.DatabaseConnection;
 import com.vjnt.util.PromotionClassRules;
+import com.vjnt.util.PromotionVideoArchiver;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -90,6 +91,8 @@ public class PromoteClassesServlet extends HttpServlet {
             out.print(new JSONObject().put("success", false).put("message", "Access denied").toString());
             return;
         }
+
+        PromotionVideoArchiver.ensureSchema();   // preview counts read the archive columns
 
         try (Connection conn = DatabaseConnection.getConnection()) {
 
@@ -192,6 +195,11 @@ public class PromoteClassesServlet extends HttpServlet {
             result.put("incompleteSchools",   incompleteSchools);
             result.put("terminals",           terminals);
             result.put("schoolsBelowIX",      schoolsBelowIX);
+            // What promotion will archive / retire across all schools (teacher + VidnyanSetu videos)
+            PromotionVideoArchiver.Result toArchive = PromotionVideoArchiver.preview(conn, null);
+            result.put("videosToArchive",       toArchive.phaseVideos);
+            result.put("vsActivitiesToArchive", toArchive.vsActivities);
+            result.put("mappingsToRetire",      toArchive.mappingsRetired);
             out.print(result.toString());
 
         } catch (SQLException e) {
@@ -228,6 +236,9 @@ public class PromoteClassesServlet extends HttpServlet {
             out.print(new JSONObject().put("success", false).put("message", "Academic year is required").toString());
             return;
         }
+
+        // Archive columns must exist before the transaction (ALTER would implicitly commit).
+        PromotionVideoArchiver.ensureSchema();
 
         Connection conn = null;
         try {
@@ -292,6 +303,11 @@ public class PromoteClassesServlet extends HttpServlet {
             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM phase_approvals")) {
                 ps.executeUpdate();
             }
+
+            // ── Steps 3c–3e: Archive teacher phase videos + VidnyanSetu activity
+            //    videos, retire the promoted students' teacher mappings ─────────
+            PromotionVideoArchiver.Result archived =
+                PromotionVideoArchiver.archive(conn, promotionId, null, username);
 
             // ── Step 4a: Move Class IX students to graduated_students ─────────
             String sqlGraduate =
@@ -383,6 +399,9 @@ public class PromoteClassesServlet extends HttpServlet {
             result.put("promotionId",       promotionId);
             result.put("studentsPromoted",  promotedCount);
             result.put("studentsGraduated", graduatedCount);
+            result.put("videosArchived",       archived.phaseVideos);
+            result.put("vsActivitiesArchived", archived.vsActivities);
+            result.put("mappingsRetired",      archived.mappingsRetired);
             out.print(result.toString());
 
         } catch (Exception e) {

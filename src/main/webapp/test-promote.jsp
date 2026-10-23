@@ -208,6 +208,19 @@
       </div>
     </div>
 
+    <!-- Teacher / VidnyanSetu videos this promotion will archive (filled from the preview) -->
+    <div class="warn-box" id="videoArchiveInfo" style="background:#ebf4ff;border-color:#a3bffa;color:#2a4365;">
+      🎬
+      <div>
+        <strong>Teacher videos for this school:</strong>
+        <span id="vidToArchive">0</span> teacher phase videos and
+        <span id="vsToArchive">0</span> VidnyanSetu activity videos will be archived — hidden from current-year screens
+        so teachers can upload again, but kept and viewable under <em>Previous year</em>.
+        <span id="mapToRetire">0</span> teacher–student mappings will be retired (teachers get the new students on their next login).
+        VidnyanSetu levels are not changed.
+      </div>
+    </div>
+
     <!-- Type-to-confirm -->
     <div class="confirm-section">
       <h3>⚠️ Confirm Test Promotion</h3>
@@ -296,6 +309,11 @@
           document.getElementById('incompleteWarn').style.display = 'none';
         }
 
+        // Videos / mappings that promotion will archive
+        document.getElementById('vidToArchive').textContent = (data.videosToArchive || 0).toLocaleString();
+        document.getElementById('vsToArchive').textContent  = (data.vsActivitiesToArchive || 0).toLocaleString();
+        document.getElementById('mapToRetire').textContent  = (data.mappingsToRetire || 0).toLocaleString();
+
         // Table
         const tbody = document.getElementById('previewBody');
         (data.preview||[]).forEach(row => {
@@ -364,6 +382,9 @@
           '<p class="detail">Promotion Log ID: <strong>#' + data.promotionId + '</strong></p>' +
           '<p class="detail">Students Promoted: <strong>' + (data.studentsPromoted||0) + '</strong></p>' +
           '<p class="detail">Students Graduated: <strong>' + (data.studentsGraduated||0) + '</strong></p>' +
+          '<p class="detail">Teacher phase videos archived: <strong>' + (data.videosArchived||0) + '</strong></p>' +
+          '<p class="detail">VidnyanSetu activity videos archived: <strong>' + (data.vsActivitiesArchived||0) + '</strong></p>' +
+          '<p class="detail">Teacher-student mappings retired: <strong>' + (data.mappingsRetired||0) + '</strong></p>' +
           '<p style="margin-top:10px;color:#276749;">The promotion logic is working correctly.<br/>You can now run the full promotion for all schools.</p>';
       } else {
         box.className = 'result error';

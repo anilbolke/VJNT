@@ -29,6 +29,10 @@ public class AppLifecycleListener implements ServletContextListener {
         // environment. See PasswordMigration for why this runs here instead
         // of behind a request-triggered admin endpoint.
         PasswordMigration.hashLegacyPasswordsIfNeeded();
+
+        // Promotion archive columns (student_videos / vidnyansetu_activities
+        // .archived_promotion_id) — every video screen filters on them.
+        PromotionVideoArchiver.ensureSchema();
     }
 
     @Override
