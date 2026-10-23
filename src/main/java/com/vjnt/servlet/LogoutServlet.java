@@ -15,13 +15,15 @@ public class LogoutServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         HttpSession session = request.getSession(false);
+        boolean isVidnyanSetuSession = session != null && session.getAttribute("vsUser") != null;
         if (session != null) {
             session.invalidate();
         }
-        
-        response.sendRedirect(request.getContextPath() + "/login?message=logout");
+
+        String target = isVidnyanSetuSession ? "/vidnyansetu-login" : "/login";
+        response.sendRedirect(request.getContextPath() + target + "?message=logout");
     }
     
     @Override

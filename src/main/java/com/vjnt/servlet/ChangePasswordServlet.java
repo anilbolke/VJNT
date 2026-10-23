@@ -69,7 +69,7 @@ public class ChangePasswordServlet extends HttpServlet {
         }
         
         // Verify current password
-        if (!user.getPassword().equals(PasswordUtil.hashPassword(currentPassword))) {
+        if (!PasswordUtil.verifyPassword(currentPassword, user.getPassword())) {
             request.setAttribute("errorMessage", "Current password is incorrect");
             request.setAttribute("isFirstLogin", user.isFirstLogin());
             request.setAttribute("mustChangePassword", user.isMustChangePassword());
@@ -108,6 +108,19 @@ public class ChangePasswordServlet extends HttpServlet {
         // Update password
         String hashedNewPassword = PasswordUtil.hashPassword(newPassword);
         if (userDAO.updatePassword(user.getUserId(), hashedNewPassword)) {
+
+            // Teacher changed their password (usually the forced first-login change) —
+            // send the updated credentials to their mobile over WhatsApp.
+            if (user.getUserType() == User.UserType.TEACHER) {
+                try (java.sql.Connection conn = com.vjnt.util.DatabaseConnection.getConnection()) {
+                    com.vjnt.util.TeacherLoginNotifier.sendCredentials(conn, user.getUsername(),
+                            user.getFullName(), user.getUdiseNo(), user.getUsername(), newPassword);
+                } catch (Exception e) {
+                    System.err.println("[ChangePasswordServlet] teacher WhatsApp notify failed, ignored: "
+                            + e.getMessage());
+                }
+            }
+
             // Invalidate session to force re-login
             session.invalidate();
             

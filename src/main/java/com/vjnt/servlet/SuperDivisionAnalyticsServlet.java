@@ -186,7 +186,9 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
             sql.append("COUNT(*) as unique_activities ");
             sql.append("FROM student_weekly_activities swa ");
             sql.append("INNER JOIN students s ON swa.student_id = s.student_id ");
-            sql.append("WHERE 1=1 ");
+            // Current cohort only: without this, activity records belonging to last year's
+            // graduates keep counting toward this year's participation figures.
+            sql.append("WHERE s.is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND s.division = ? ");
             }
@@ -258,7 +260,8 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
             sql.append("SUM(CASE WHEN english_level IS NOT NULL THEN 1 ELSE 0 END) as english_count, ");
             sql.append("marathi_level, math_level, english_level ");
             sql.append("FROM students ");
-            sql.append("WHERE 1=1 ");
+            // Current cohort only: graduates left active here would inflate the level counts.
+            sql.append("WHERE is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND division = ? ");
             }
@@ -334,7 +337,9 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
             sql.append("AVG(COALESCE(st.math_samajpurvak_level, 0)) as avg_math_samaj, ");
             sql.append("COUNT(*) as student_count ");
             sql.append("FROM students st ");
-            sql.append("WHERE 1=1 ");
+            // Current cohort only: graduates finished at high levels and would drag the
+            // averages upward, masking a genuine drop in the new intake.
+            sql.append("WHERE st.is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND st.division = ? ");
             }
@@ -442,8 +447,11 @@ public class SuperDivisionAnalyticsServlet extends HttpServlet {
 
             sql.append("FROM students st ");
             sql.append("LEFT JOIN phase_approvals pa ON st.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci AND pa.phase_number = ? ");
-            // Schools that have started this phase (phase is a validated int 1-4, safe to inline)
-            sql.append("LEFT JOIN (SELECT DISTINCT udise_no FROM students WHERE phase").append(phase).append("_date IS NOT NULL) started ON st.udise_no = started.udise_no ");
+            // Schools that have started this phase (phase is a validated int 1-4, safe to inline).
+            // is_active = 1 belongs inside this derived table as well as in the outer WHERE:
+            // without it a school reads as "started" on last year's graduates alone, since
+            // promotion deactivates them but leaves their phase dates in place.
+            sql.append("LEFT JOIN (SELECT DISTINCT udise_no FROM students WHERE is_active = 1 AND phase").append(phase).append("_date IS NOT NULL) started ON st.udise_no = started.udise_no ");
             sql.append("WHERE st.is_active = 1 ");
             if (divisionName != null) {
                 sql.append("AND st.division = ? ");

@@ -59,6 +59,35 @@ public class WhatsAppService {
      */
     public WhatsAppResponse sendTemplateMessage(String toNumber, String templateName,
                                                 String languageCode, String[] bodyParams) {
+        return sendTemplateMessage(toNumber, templateName, languageCode, bodyParams, null, null);
+    }
+
+    /**
+     * Send a Meta-approved template that carries a document in its header.
+     *
+     * Only works with a template Meta approved WITH a DOCUMENT header — attaching a file to a
+     * body-only template is not possible, and the gateway reports the mismatch as an opaque
+     * per-recipient failure. {@link #sendDocument} is not an alternative for business-initiated
+     * messages: free-form documents only send inside the 24-hour customer-service window.
+     *
+     * @param documentUrl publicly reachable HTTPS URL of the file; WhatsApp fetches it server-side,
+     *                    so anything behind authentication or a private network will fail
+     * @param filename    name the recipient sees in the chat; keep it self-describing
+     */
+    public WhatsAppResponse sendTemplateMessageWithDocument(String toNumber, String templateName,
+                                                            String languageCode, String[] bodyParams,
+                                                            String documentUrl, String filename) {
+        return sendTemplateMessage(toNumber, templateName, languageCode, bodyParams,
+                                   documentUrl, filename);
+    }
+
+    /**
+     * Shared builder. A null {@code documentUrl} emits exactly the body-only payload this class has
+     * always sent, so the existing school alerts are byte-for-byte unchanged.
+     */
+    private WhatsAppResponse sendTemplateMessage(String toNumber, String templateName,
+                                                 String languageCode, String[] bodyParams,
+                                                 String documentUrl, String filename) {
         JSONObject template = new JSONObject()
                 .put("language", new JSONObject()
                         .put("policy", "deterministic")
@@ -66,6 +95,18 @@ public class WhatsAppService {
                 .put("name", templateName);
 
         JSONArray components = new JSONArray();
+
+        // Header first: Meta requires components in template order, and the header precedes the body.
+        if (documentUrl != null && !documentUrl.trim().isEmpty()) {
+            JSONObject document = new JSONObject().put("link", documentUrl.trim());
+            if (filename != null && !filename.trim().isEmpty()) {
+                document.put("filename", filename.trim());
+            }
+            JSONArray headerParams = new JSONArray()
+                    .put(new JSONObject().put("type", "document").put("document", document));
+            components.put(new JSONObject().put("type", "header").put("parameters", headerParams));
+        }
+
         if (bodyParams != null && bodyParams.length > 0) {
             JSONArray parameters = new JSONArray();
             for (String value : bodyParams) {

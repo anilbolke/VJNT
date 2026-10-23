@@ -22,6 +22,9 @@ import java.util.*;
  */
 @WebServlet("/division-phase-statistics")
 public class DivisionPhaseStatisticsServlet extends HttpServlet {
+
+    /** Level bucket for students whose level was never recorded (NULL in the DB). */
+    private static final int NOT_RECORDED = -1;
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
@@ -91,7 +94,9 @@ public class DivisionPhaseStatisticsServlet extends HttpServlet {
                 }
                 
                 // Get phase-wise statistics for this school
-                Map<String, Object> schoolStats = studentDAO.getPhaseWiseSubjectCounts(udiseNo, filterClass);
+                // divisionName is passed on purpose: the school list only needs one student
+                // from this division to include a UDISE, but the counts must stay inside it.
+                Map<String, Object> schoolStats = studentDAO.getPhaseWiseSubjectCounts(udiseNo, filterClass, divisionName);
                 
                 // Add school metadata
                 Map<String, Object> schoolInfo = new LinkedHashMap<>();
@@ -145,23 +150,23 @@ public class DivisionPhaseStatisticsServlet extends HttpServlet {
         
         // Initialize counts for all phases and subjects
         for (int phase = 1; phase <= 4; phase++) {
-            // Marathi (0-6)
+            // Marathi (-1 = not recorded, then 0-6)
             Map<Integer, Integer> marathiCounts = new LinkedHashMap<>();
-            for (int i = 0; i <= 6; i++) {
+            for (int i = NOT_RECORDED; i <= 6; i++) {
                 marathiCounts.put(i, 0);
             }
             summary.put("phase" + phase + "_marathi", marathiCounts);
             
-            // Math (0-8)
+            // Math (-1 = not recorded, then 0-8)
             Map<Integer, Integer> mathCounts = new LinkedHashMap<>();
-            for (int i = 0; i <= 8; i++) {
+            for (int i = NOT_RECORDED; i <= 8; i++) {
                 mathCounts.put(i, 0);
             }
             summary.put("phase" + phase + "_math", mathCounts);
             
-            // English (0-6)
+            // English (-1 = not recorded, then 0-6)
             Map<Integer, Integer> englishCounts = new LinkedHashMap<>();
-            for (int i = 0; i <= 6; i++) {
+            for (int i = NOT_RECORDED; i <= 6; i++) {
                 englishCounts.put(i, 0);
             }
             summary.put("phase" + phase + "_english", englishCounts);

@@ -435,6 +435,15 @@
             gap: 10px;
         }
         
+        .level-bar-container.level-not-recorded .level-label-text {
+            color: #868e96;
+            font-style: italic;
+        }
+        
+        .level-bar-container.level-not-recorded .level-bar-fill {
+            background: #adb5bd;
+        }
+        
         .level-legend {
             background: #f8f9fa;
             padding: 20px;
@@ -1126,10 +1135,11 @@
             const count = levelData.count;
             const percentage = levelData.percentage;
             const desc = levelDescriptions[subject][level];
-            
+            const labelText = 'L' + level + ': ' + desc;
+
             let html = '<div class="level-bar-container">';
             html += '<div class="level-label">';
-            html += '<span class="level-label-text">L' + level + ': ' + desc + '</span>';
+            html += '<span class="level-label-text">' + labelText + '</span>';
             html += '<span class="level-label-value">' + count + ' (' + percentage + '%)</span>';
             html += '</div>';
             html += '<div class="level-bar">';
@@ -1189,7 +1199,7 @@
                 const phaseData = currentData['phase' + phase];
                 if (phaseData && phaseData.distribution) {
                     phaseData.distribution.forEach(level => {
-                        csv += `"Phase ${phase}",${level.level},"${levelDescriptions[subject][level.level]}",${level.count},${level.percentage}\n`;
+                        csv += `"Phase ${phase}","${level.level}","${levelDescriptions[subject][level.level]}",${level.count},${level.percentage}\n`;
                     });
                 }
             }

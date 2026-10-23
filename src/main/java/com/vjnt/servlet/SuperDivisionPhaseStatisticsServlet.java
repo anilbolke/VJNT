@@ -26,6 +26,9 @@ import java.util.*;
 @WebServlet("/super-phase-statistics")
 public class SuperDivisionPhaseStatisticsServlet extends HttpServlet {
 
+    /** Level bucket for students whose level was never recorded (NULL in the DB). */
+    private static final int NOT_RECORDED = -1;
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -61,10 +64,12 @@ public class SuperDivisionPhaseStatisticsServlet extends HttpServlet {
             SchoolDAO schoolDAO = new SchoolDAO();
             StudentDAO studentDAO = new StudentDAO();
 
-            // All divisions -> every school; otherwise the selected division's schools
+            // Both modes go through the students table so a UDISE missing from the schools
+            // master still contributes its students, and schools with nobody in class I-IX
+            // do not pad the list with zero rows.
             List<School> schools = allDivisions
-                    ? schoolDAO.getAllSchools()
-                    : schoolDAO.getSchoolsByDivision(divisionParam);
+                    ? schoolDAO.getSchoolsWithStudents()
+                    : schoolDAO.getSchoolsWithStudents(divisionParam);
 
             Map<String, Map<String, Object>> districtData = new LinkedHashMap<>();
             Map<String, Map<String, Object>> schoolData = new LinkedHashMap<>();
@@ -90,7 +95,12 @@ public class SuperDivisionPhaseStatisticsServlet extends HttpServlet {
                     districts.add(districtName);
                 }
 
-                Map<String, Object> schoolStats = studentDAO.getPhaseWiseSubjectCounts(udiseNo, filterClass);
+                // Scope the counts to the division too. One student from the division is
+                // enough to list a UDISE, but a school serving more than one division would
+                // otherwise report all of them. In ALL mode there is nothing to scope to.
+                Map<String, Object> schoolStats = allDivisions
+                        ? studentDAO.getPhaseWiseSubjectCounts(udiseNo, filterClass)
+                        : studentDAO.getPhaseWiseSubjectCounts(udiseNo, filterClass, divisionParam);
 
                 Map<String, Object> schoolInfo = new LinkedHashMap<>();
                 schoolInfo.put("udiseNo", udiseNo);
@@ -136,15 +146,15 @@ public class SuperDivisionPhaseStatisticsServlet extends HttpServlet {
 
         for (int phase = 1; phase <= 4; phase++) {
             Map<Integer, Integer> marathiCounts = new LinkedHashMap<>();
-            for (int i = 0; i <= 6; i++) { marathiCounts.put(i, 0); }
+            for (int i = NOT_RECORDED; i <= 6; i++) { marathiCounts.put(i, 0); }
             summary.put("phase" + phase + "_marathi", marathiCounts);
 
             Map<Integer, Integer> mathCounts = new LinkedHashMap<>();
-            for (int i = 0; i <= 8; i++) { mathCounts.put(i, 0); }
+            for (int i = NOT_RECORDED; i <= 8; i++) { mathCounts.put(i, 0); }
             summary.put("phase" + phase + "_math", mathCounts);
 
             Map<Integer, Integer> englishCounts = new LinkedHashMap<>();
-            for (int i = 0; i <= 6; i++) { englishCounts.put(i, 0); }
+            for (int i = NOT_RECORDED; i <= 6; i++) { englishCounts.put(i, 0); }
             summary.put("phase" + phase + "_english", englishCounts);
         }
 

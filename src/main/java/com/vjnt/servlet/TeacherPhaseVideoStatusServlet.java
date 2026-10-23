@@ -108,7 +108,7 @@ public class TeacherPhaseVideoStatusServlet extends HttpServlet {
                     if (i > 0) placeholders.append(",");
                     placeholders.append("?");
                 }
-                String vSql = "SELECT video_id, student_id, phase_number, approval_status, rejection_reason, " +
+                String vSql = "SELECT video_id, student_id, phase_number, subject, approval_status, rejection_reason, " +
                              "upload_date, original_file_name, file_path, thumbnail_url " +
                              "FROM student_videos WHERE student_id IN (" + placeholders + ") AND phase_number IS NOT NULL";
                 try (PreparedStatement ps = conn.prepareStatement(vSql)) {
@@ -117,8 +117,15 @@ public class TeacherPhaseVideoStatusServlet extends HttpServlet {
                     }
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
+                            // Phase videos are per SUBJECT: a मराठी video must only
+                            // surface for the मराठी teacher/subject, not for the same
+                            // student's गणित / इंग्रजी view. Bucket by subject key.
+                            String subjKey = canonicalSubjectKey(rs.getString("subject"));
+                            if (subjKey == null) continue;   // untagged / non-FLN -> shown to nobody
+
                             String studentKey = String.valueOf(rs.getInt("student_id"));
-                            JSONObject studentPhases = videos.has(studentKey) ? videos.getJSONObject(studentKey) : new JSONObject();
+                            JSONObject studentObj = videos.has(studentKey) ? videos.getJSONObject(studentKey) : new JSONObject();
+                            JSONObject subjObj = studentObj.has(subjKey) ? studentObj.getJSONObject(subjKey) : new JSONObject();
 
                             JSONObject v = new JSONObject();
                             v.put("videoId", rs.getInt("video_id"));
@@ -129,8 +136,9 @@ public class TeacherPhaseVideoStatusServlet extends HttpServlet {
                             v.put("filePath", rs.getString("file_path"));
                             v.put("thumbnailUrl", rs.getString("thumbnail_url"));
 
-                            studentPhases.put(String.valueOf(rs.getInt("phase_number")), v);
-                            videos.put(studentKey, studentPhases);
+                            subjObj.put(String.valueOf(rs.getInt("phase_number")), v);
+                            studentObj.put(subjKey, subjObj);
+                            videos.put(studentKey, studentObj);
                         }
                     }
                 }
@@ -144,5 +152,20 @@ public class TeacherPhaseVideoStatusServlet extends HttpServlet {
 
         out.print(result.toString());
         out.flush();
+    }
+
+    /**
+     * Canonical key for one of the three FLN subjects (either spelling).
+     * Must match subjectKey() in teacher-dashboard.jsp.
+     * Returns null for a blank / unrecognised subject.
+     */
+    static String canonicalSubjectKey(String subject) {
+        if (subject == null) return null;
+        String s = subject.trim().toLowerCase();
+        if (s.isEmpty()) return null;
+        if (s.contains("marathi") || s.contains("मराठी")) return "marathi";
+        if (s.contains("math") || s.contains("गणित")) return "math";
+        if (s.contains("english") || s.contains("इंग्रजी") || s.contains("इंग्लिश")) return "english";
+        return null;
     }
 }

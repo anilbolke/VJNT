@@ -236,7 +236,35 @@ public class UserDAO {
             return false;
         }
     }
-    
+
+    /**
+     * Set a system-generated password (already hashed by the caller) and force a
+     * change at next login. Distinct from {@link #updatePassword}, which is for a
+     * user deliberately setting their own new password (must_change_password
+     * cleared) — this is for an admin reset or a self-service "forgot password"
+     * temp credential, where the value handed to the user is meant to be used
+     * exactly once.
+     */
+    public boolean resetPasswordForceChange(int userId, String hashedPassword) {
+        String sql = "UPDATE users SET password = ?, password_changed_date = ?, " +
+                    "must_change_password = TRUE " +
+                    "WHERE user_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, hashedPassword);
+            pstmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            pstmt.setInt(3, userId);
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error resetting password: " + e.getMessage());
+            return false;
+        }
+    }
+
     /**
      * Update last login time
      */
@@ -1126,8 +1154,15 @@ public class UserDAO {
             
             int rowsAffected = pstmt.executeUpdate();
             
-            // Update password if provided
-            if (user.getPassword() != null && !user.getPassword().trim().isEmpty()) {
+            // Update password only if a NEW plaintext value was set on this object.
+            // Callers commonly fetch a User (getUserById), edit a few fields and pass
+            // the same object back here without touching the password — at that point
+            // user.getPassword() is still the value that came out of the DB, i.e.
+            // already a BCrypt hash. Hashing that again would silently lock the account
+            // out (bcrypt(bcrypt(x)) never matches what the user types), so anything
+            // that already looks like a BCrypt hash is left alone.
+            if (user.getPassword() != null && !user.getPassword().trim().isEmpty()
+                    && !PasswordUtil.isBcryptHash(user.getPassword())) {
                 String passwordSql = "UPDATE users SET password = ? WHERE user_id = ?";
                 try (PreparedStatement psPwd = conn.prepareStatement(passwordSql)) {
                     psPwd.setString(1, PasswordUtil.hashPassword(user.getPassword()));

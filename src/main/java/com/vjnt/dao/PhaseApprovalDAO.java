@@ -310,7 +310,16 @@ public class PhaseApprovalDAO {
                      "FROM schools s " +
                      "LEFT JOIN school_contacts sc_hm ON s.udise_no COLLATE utf8mb4_unicode_ci = sc_hm.udise_no COLLATE utf8mb4_unicode_ci AND sc_hm.contact_type = 'Head Master' " +
                      "LEFT JOIN phase_approvals pa ON s.udise_no COLLATE utf8mb4_unicode_ci = pa.udise_no COLLATE utf8mb4_unicode_ci " +
+                     // is_active = 1 belongs in the JOIN condition, not the WHERE clause: on a
+                     // LEFT JOIN a WHERE filter would drop schools with no active students, and
+                     // after promotion those are exactly the schools a district needs to see.
+                     //
+                     // Without it this counted last year's graduates. Promotion sets is_active = 0
+                     // on the graduating class but never clears their phase columns, so their
+                     // phase1_date..phase4_date stay populated forever and the phase kept reporting
+                     // as already completed for the new academic year.
                      "LEFT JOIN students st ON s.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no COLLATE utf8mb4_unicode_ci " +
+                     "     AND st.is_active = 1 " +
                      "WHERE s.district_name COLLATE utf8mb4_unicode_ci = ? COLLATE utf8mb4_unicode_ci " +
                      "GROUP BY s.udise_no, s.school_name, sc_hm.full_name, sc_hm.mobile, sc_hm.whatsapp_number " +
                      "ORDER BY s.school_name";

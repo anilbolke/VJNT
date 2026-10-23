@@ -108,7 +108,7 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             String schoolSql = "SELECT DISTINCT s.udise_no, s.school_name " +
                               "FROM students st " +
                               "LEFT JOIN schools s ON st.udise_no = s.udise_no COLLATE utf8mb4_unicode_ci " +
-                              "WHERE st.district = ?";
+                              "WHERE st.district = ? AND st.is_active = 1";
             PreparedStatement schoolPs = conn.prepareStatement(schoolSql);
             schoolPs.setString(1, districtName);
             ResultSet schoolRs = schoolPs.executeQuery();
@@ -208,7 +208,9 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             sql.append("COUNT(*) as unique_activities ");
             sql.append("FROM student_weekly_activities swa ");
             sql.append("INNER JOIN students s ON swa.student_id = s.student_id ");
-            sql.append("WHERE s.district = ? ");
+            // Current cohort only: without this, activity records belonging to last year's
+            // graduates keep counting toward this year's participation figures.
+            sql.append("WHERE s.district = ? AND s.is_active = 1 ");
             
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 sql.append("AND swa.assigned_date BETWEEN ? AND ? ");
@@ -283,7 +285,7 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             sql.append("SUM(CASE WHEN english_level IS NOT NULL THEN 1 ELSE 0 END) as english_count, ");
             sql.append("marathi_level, math_level, english_level, udise_no ");
             sql.append("FROM students ");
-            sql.append("WHERE district = ? ");
+            sql.append("WHERE district = ? AND is_active = 1 ");
             
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 sql.append("AND created_date BETWEEN ? AND ? ");
@@ -357,7 +359,11 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             sql.append("COUNT(*) as student_count ");
             sql.append("FROM students st ");
             sql.append("LEFT JOIN schools s ON st.udise_no = s.udise_no COLLATE utf8mb4_unicode_ci ");
-            sql.append("WHERE st.district = ? ");
+            // Analytics report on the current cohort only. Without is_active, last year's
+            // graduates stay in the figures: they inflate the counts and, because they finished
+            // at high levels, drag the averages upward and mask a real drop in the new intake.
+            // Safe in the WHERE here -- students is the driving table; the LEFT JOIN is to schools.
+            sql.append("WHERE st.district = ? AND st.is_active = 1 ");
             
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 sql.append("AND st.created_date BETWEEN ? AND ? ");
@@ -531,12 +537,13 @@ public class DistrictAnalyticsServlet extends HttpServlet {
             sql.append("MAX(st.created_date) as last_student_date ");
             sql.append("FROM students st ");
             sql.append("LEFT JOIN schools s ON st.udise_no = s.udise_no COLLATE utf8mb4_unicode_ci ");
-            sql.append("WHERE st.district = ? ");
-            
+            // Current cohort only — see the note on the level-average query above.
+            sql.append("WHERE st.district = ? AND st.is_active = 1 ");
+
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 sql.append("AND st.created_date BETWEEN ? AND ? ");
             }
-            
+
             sql.append("GROUP BY s.udise_no, s.school_name ");
             sql.append("ORDER BY student_count DESC, s.school_name");
             

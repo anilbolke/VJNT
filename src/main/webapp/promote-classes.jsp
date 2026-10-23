@@ -125,20 +125,49 @@
       </div>
       <div class="chip">
         <div class="num" id="chipPromote" style="color:#38a169;">—</div>
-        <div class="lbl">To Be Promoted (Class 1–8)</div>
+        <div class="lbl">To Be Promoted</div>
       </div>
       <div class="chip grad">
         <div class="num" id="chipGrad">—</div>
-        <div class="lbl">To Graduate (Class 9)</div>
+        <div class="lbl">To Graduate (school terminal class)</div>
+      </div>
+    </div>
+
+    <!-- Terminal class configuration — surfaces a wrong max_class BEFORE the button is pressed -->
+    <div class="card">
+      <h2>🏫 Schools by Terminal Class</h2>
+      <p style="font-size:13px;color:#718096;margin-bottom:12px;">
+        Each school graduates its own last class, taken from <code>schools.max_class</code> where set,
+        otherwise the highest class it currently has students in.
+        <strong>Check this before promoting</strong> — a school listed under the wrong last class will
+        graduate the wrong students.
+        <a href="<%= request.getContextPath() %>/school-max-class.jsp"
+           style="color:#667eea;font-weight:700;margin-left:4px;">→ Manage terminal classes</a>
+      </p>
+      <table>
+        <thead><tr><th>Terminal Class</th><th>Schools</th></tr></thead>
+        <tbody id="terminalBody"></tbody>
+      </table>
+      <div class="warn-box" id="belowIXWarn"
+           style="display:none;margin-top:14px;background:#fffbeb;border-color:#f6ad55;color:#744210;">
+        ⚠️
+        <div>
+          <strong><span id="belowIXCount">0</span> school(s) end below Class IX.</strong>
+          Their top class will graduate rather than advance. If any of these actually run to Class IX,
+          set the correct value before promoting.
+        </div>
       </div>
     </div>
 
     <!-- Preview table -->
     <div class="card">
       <h2>📋 Class-wise Breakdown</h2>
+      <p style="font-size:13px;color:#718096;margin-bottom:12px;">
+        A class can appear twice — advancing in schools that continue past it, graduating in schools that end there.
+      </p>
       <table id="previewTable">
         <thead>
-          <tr><th>Current Class</th><th>Students</th><th>Action</th></tr>
+          <tr><th>Current Class</th><th>Students</th><th>Schools</th><th>Action</th></tr>
         </thead>
         <tbody id="previewBody"></tbody>
       </table>
@@ -164,20 +193,11 @@
       </div>
     </div>
 
-    <!-- Incomplete phases warning — shown only if some schools haven't finished Phase 4 -->
-    <div class="warn-box" id="incompleteWarn" style="display:none;background:#fff5f5;border-color:#feb2b2;color:#742a2a;">
-      ⚠️
-      <div>
-        <strong><span id="incompleteCount">0</span> students across <span id="incompleteSchools">0</span> school(s) have not completed all 4 phases.</strong>
-        Their Phase 1 baseline for the new year will be seeded from the last phase they did complete. Promotion can still proceed safely.
-      </div>
-    </div>
-
     <div class="warn-box">
       ⚠️
       <div>
         <strong>This action covers ALL schools across ALL districts.</strong>
-        All phase data will be archived before changes are made. Class 9 students will be moved permanently to the Graduated Students record and marked inactive.
+        All phase data will be archived before changes are made. Each school's terminal-class students will be moved permanently to the Graduated Students record and marked inactive.
       </div>
     </div>
 
@@ -259,17 +279,38 @@
       // Fill table
       const tbody = document.getElementById('previewBody');
       (data.preview || []).forEach(row => {
-        const isGrad = row.action === '→ GRADUATE';
+        const isGrad = row.isTerminal === true;
         const tr = document.createElement('tr');
         if (isGrad) tr.classList.add('grad-row');
         tr.innerHTML =
           '<td>' + (isGrad ? '🎓 ' : '') + 'Class ' + row.class + '</td>' +
           '<td><strong>' + row.count.toLocaleString() + '</strong></td>' +
+          '<td>' + (row.schools || 0).toLocaleString() + '</td>' +
           '<td><span class="action-badge ' + (isGrad ? 'action-graduate' : 'action-promote') + '">' +
-            (isGrad ? '🏁 Graduate → Exit System' : row.action) +
+            (isGrad ? '🏁 Graduate (school terminal) → Exit System' : row.action) +
           '</span></td>';
         tbody.appendChild(tr);
       });
+
+      // Schools by terminal class
+      const tb = document.getElementById('terminalBody');
+      tb.innerHTML = '';
+      (data.terminals || []).forEach(t => {
+        const below = t.terminalRank > 0 && t.terminalRank < 9;
+        const tr = document.createElement('tr');
+        if (below) tr.classList.add('grad-row');
+        tr.innerHTML =
+          '<td>' + (t.terminalRank > 0 ? 'Class ' + t.terminalClass : '<em>unknown</em>') +
+            (below ? ' <span class="action-badge action-graduate">ends early</span>' : '') + '</td>' +
+          '<td><strong>' + (t.schools || 0).toLocaleString() + '</strong></td>';
+        tb.appendChild(tr);
+      });
+      if (data.schoolsBelowIX > 0) {
+        document.getElementById('belowIXCount').textContent = data.schoolsBelowIX.toLocaleString();
+        document.getElementById('belowIXWarn').style.display = 'flex';
+      } else {
+        document.getElementById('belowIXWarn').style.display = 'none';
+      }
 
       // Auto-fill academic year
       const now = new Date();

@@ -2,6 +2,7 @@ package com.vjnt.servlet;
 
 import com.vjnt.dao.UserDAO;
 import com.vjnt.model.User;
+import com.vjnt.util.PasswordUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -144,8 +145,8 @@ public class DistrictCredentialsServlet extends HttpServlet {
                 return;
             }
             
-            // Update password
-            boolean success = userDAO.updatePassword(userId, newPassword);
+            // Update password (hash before it ever reaches the DB — updatePassword stores as-is)
+            boolean success = userDAO.updatePassword(userId, PasswordUtil.hashPassword(newPassword));
             
             if (success) {
                 request.setAttribute("successMessage", 

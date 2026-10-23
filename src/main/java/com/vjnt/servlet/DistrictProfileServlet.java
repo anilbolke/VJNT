@@ -95,7 +95,7 @@ public class DistrictProfileServlet extends HttpServlet {
         }
         
         // Verify current password
-        if (!user.getPassword().equals(PasswordUtil.hashPassword(currentPassword))) {
+        if (!PasswordUtil.verifyPassword(currentPassword, user.getPassword())) {
             request.setAttribute("errorMessage", "Current password is incorrect");
             request.getRequestDispatcher("/district-profile.jsp").forward(request, response);
             return;
@@ -123,8 +123,8 @@ public class DistrictProfileServlet extends HttpServlet {
             return;
         }
         
-        // Update password
-        boolean success = userDAO.updatePassword(user.getUserId(), newPassword);
+        // Update password (hash before it ever reaches the DB — updatePassword stores as-is)
+        boolean success = userDAO.updatePassword(user.getUserId(), PasswordUtil.hashPassword(newPassword));
         
         if (success) {
             // Update user object in session

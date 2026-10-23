@@ -28,12 +28,15 @@
     
     try {
         conn = DatabaseConnection.getConnection();
-        String sql = "SELECT teacher_id, teacher_name, mobile_number, subjects_taught, description, created_date " +
-                     "FROM teachers WHERE udise_code = ? AND is_active = 1 ORDER BY teacher_name";
+        String sql = "SELECT t.teacher_id, t.teacher_name, t.mobile_number, t.subjects_taught, t.description, t.created_date, " +
+                     "(u.user_id IS NOT NULL) AS has_login, COALESCE(u.is_active, 0) AS login_active " +
+                     "FROM teachers t " +
+                     "LEFT JOIN users u ON u.username COLLATE utf8mb4_unicode_ci = t.mobile_number AND u.user_type = 'TEACHER' " +
+                     "WHERE t.udise_code = ? AND t.is_active = 1 ORDER BY t.teacher_name";
         pstmt = conn.prepareStatement(sql);
         pstmt.setString(1, udiseCode);
         rs = pstmt.executeQuery();
-        
+
         while (rs.next()) {
             Map<String, Object> teacher = new HashMap<>();
             teacher.put("id", rs.getInt("teacher_id"));
@@ -42,6 +45,8 @@
             teacher.put("subjects", rs.getString("subjects_taught"));
             teacher.put("description", rs.getString("description"));
             teacher.put("createdDate", rs.getTimestamp("created_date"));
+            teacher.put("hasLogin", rs.getBoolean("has_login"));
+            teacher.put("loginActive", rs.getBoolean("login_active"));
             teachers.add(teacher);
         }
     } catch (Exception e) {
@@ -397,6 +402,7 @@
                             <th>Mobile Number</th>
                             <th>Subjects</th>
                             <th>Description</th>
+                            <th>Login</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -415,6 +421,28 @@
                                 <% } %>
                             </td>
                             <td><%= teacher.get("description") != null ? teacher.get("description") : "-" %></td>
+                            <td id="loginCell<%= teacher.get("id") %>">
+                                <% boolean hasLogin = Boolean.TRUE.equals(teacher.get("hasLogin"));
+                                   boolean loginActive = Boolean.TRUE.equals(teacher.get("loginActive"));
+                                   if (!hasLogin) { %>
+                                    <button class="btn btn-small" style="background:#667eea; color:white; white-space:nowrap;"
+                                            onclick="createTeacherLogin(<%= teacher.get("id") %>, '<%= teacher.get("name") %>', this)">
+                                        🔑 Create Login
+                                    </button>
+                                <% } else if (loginActive) { %>
+                                    <span style="display:inline-block; background:#e8f5e9; color:#2e7d32; padding:5px 12px; border-radius:12px; font-size:12px; font-weight:600; white-space:nowrap;">✔ Login Active</span><br>
+                                    <button class="btn btn-small" style="background:#ef5350; color:white; white-space:nowrap; margin-top:5px;"
+                                            onclick="toggleTeacherLogin(<%= teacher.get("id") %>, '<%= teacher.get("name") %>', false, this)">
+                                        🚫 Disable
+                                    </button>
+                                <% } else { %>
+                                    <span style="display:inline-block; background:#ffebee; color:#c62828; padding:5px 12px; border-radius:12px; font-size:12px; font-weight:600; white-space:nowrap;">✖ Login Disabled</span><br>
+                                    <button class="btn btn-small" style="background:#43a047; color:white; white-space:nowrap; margin-top:5px;"
+                                            onclick="toggleTeacherLogin(<%= teacher.get("id") %>, '<%= teacher.get("name") %>', true, this)">
+                                        ✅ Enable
+                                    </button>
+                                <% } %>
+                            </td>
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-success btn-small" onclick="editTeacher(<%= teacher.get("id") %>)">
@@ -723,6 +751,96 @@
             });
         }
         
+        // Create portal login for an existing teacher (username = mobile,
+        // default password, must change on first login)
+        function createTeacherLogin(teacherId, teacherName, btn) {
+            if (!confirm('Create portal login for teacher "' + teacherName + '"?\n\n' +
+                         'Username will be the teacher\'s mobile number with the default password.')) {
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Creating...';
+
+            const formData = new URLSearchParams();
+            formData.append('teacherId', teacherId);
+
+            fetch('<%= request.getContextPath() %>/create-teacher-login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✓ Login created for "' + teacherName + '"\n\n' +
+                          'Username: ' + data.username + '\n' +
+                          'Password: ' + data.password + '\n\n' +
+                          'The teacher must change the password on first login.\n' +
+                          'Please share these details with the teacher.');
+                    document.getElementById('loginCell' + teacherId).innerHTML =
+                        '<span style="display:inline-block; background:#e8f5e9; color:#2e7d32; padding:5px 12px; border-radius:12px; font-size:12px; font-weight:600; white-space:nowrap;">✔ Login Active</span>';
+                } else if (data.alreadyExists) {
+                    alert('ℹ ' + data.message);
+                    document.getElementById('loginCell' + teacherId).innerHTML =
+                        '<span style="display:inline-block; background:#e8f5e9; color:#2e7d32; padding:5px 12px; border-radius:12px; font-size:12px; font-weight:600; white-space:nowrap;">✔ Login Active</span>';
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = '🔑 Create Login';
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.disabled = false;
+                btn.textContent = '🔑 Create Login';
+                alert('Error creating login');
+            });
+        }
+
+        // Enable / disable an existing teacher's portal login
+        function toggleTeacherLogin(teacherId, teacherName, enable, btn) {
+            if (!confirm((enable ? 'Enable' : 'Disable') + ' portal login for teacher "' + teacherName + '"?' +
+                         (enable ? '' : '\n\nThe teacher will not be able to log in until it is re-enabled.'))) {
+                return;
+            }
+
+            var original = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⏳ ...';
+
+            const formData = new URLSearchParams();
+            formData.append('teacherId', teacherId);
+            formData.append('enable', enable ? 'true' : 'false');
+
+            fetch('<%= request.getContextPath() %>/toggle-teacher-login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✓ Login ' + (enable ? 'enabled' : 'disabled') + ' for "' + teacherName + '"');
+                    location.reload();
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = original;
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.disabled = false;
+                btn.textContent = original;
+                alert('Error updating login');
+            });
+        }
+
         // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('editModal');

@@ -280,7 +280,44 @@
             } catch (Exception e) {}
         }
     }
-    
+
+    // Get pending VidnyanSetu activities count for Head Master approval
+    int pendingVidnyanSetuCount = 0;
+    if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        try (Connection vsConn = DatabaseConnection.getConnection();
+             PreparedStatement vsPstmt = vsConn.prepareStatement(
+                 "SELECT COUNT(*) as count FROM vidnyansetu_activities WHERE udise_no = ? AND approval_status = 'PENDING'")) {
+            vsPstmt.setString(1, udiseNo);
+            try (ResultSet vsRs = vsPstmt.executeQuery()) {
+                if (vsRs.next()) pendingVidnyanSetuCount = vsRs.getInt("count");
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting pending VidnyanSetu activities count: " + e.getMessage());
+        }
+    }
+
+    // Get pending VidnyanSetu 2 (STEM, VI-IX) activities count for Head Master approval
+    int pendingVidnyanSetu2Count = 0;
+    if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        com.vjnt.dao.VidnyanSetu2ActivityDAO.ensureSchema();
+        try (Connection vsConn = DatabaseConnection.getConnection();
+             PreparedStatement vsPstmt = vsConn.prepareStatement(
+                 "SELECT COUNT(*) as count FROM vidnyansetu2_activities WHERE udise_no = ? AND approval_status = 'PENDING' AND archived_promotion_id IS NULL")) {
+            vsPstmt.setString(1, udiseNo);
+            try (ResultSet vsRs = vsPstmt.executeQuery()) {
+                if (vsRs.next()) pendingVidnyanSetu2Count = vsRs.getInt("count");
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting pending VidnyanSetu 2 activities count: " + e.getMessage());
+        }
+    }
+
+    // Get pending VidnyanSetu phase approvals count for Head Master
+    int pendingVidnyanSetuPhaseCount = 0;
+    if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        pendingVidnyanSetuPhaseCount = new com.vjnt.dao.VidnyanSetuPhaseApprovalDAO().getPendingApprovalCount(udiseNo);
+    }
+
     // Separate students by phase completion status
     Map<Integer, List<com.vjnt.model.Student>> phaseCompletedStudents = new HashMap<>();
     Map<Integer, List<com.vjnt.model.Student>> phasePendingStudents = new HashMap<>();
@@ -2828,7 +2865,7 @@
                                 <span>⚡</span>
                                 <span>Quick Actions</span>
                                 <% 
-                                    int totalPending = pendingApprovalsCount + palakMelavaPendingCount + pendingVideosCount;
+                                    int totalPending = pendingApprovalsCount + palakMelavaPendingCount + pendingVideosCount + pendingVidnyanSetuCount + pendingVidnyanSetu2Count + pendingVidnyanSetuPhaseCount;
                                     if (totalPending > 0) { 
                                 %>
                                     <span class="badge"><%= totalPending %></span>
@@ -2868,14 +2905,47 @@
                                             <span class="item-badge"><%= pendingVideosCount %></span>
                                         <% } %>
                                     </a>
+
+                                    <a href="<%= request.getContextPath() %>/vidnyansetu-activity-approval.jsp" class="dropdown-item" title="Approve VidnyanSetu activities">
+                                        <div class="dropdown-item-content">
+                                            <span>🔬</span>
+                                            <span>VidnyanSetu Activities</span>
+                                        </div>
+                                        <% if (pendingVidnyanSetuCount > 0) { %>
+                                            <span class="item-badge"><%= pendingVidnyanSetuCount %></span>
+                                        <% } %>
+                                    </a>
+
+                                    <a href="<%= request.getContextPath() %>/vidnyansetu2-activity-approval.jsp" class="dropdown-item" title="Approve VidnyanSetu 2 (STEM, VI-IX) activities">
+                                        <div class="dropdown-item-content">
+                                            <span>🧪</span>
+                                            <span>VidnyanSetu 2 Activities</span>
+                                        </div>
+                                        <% if (pendingVidnyanSetu2Count > 0) { %>
+                                            <span class="item-badge"><%= pendingVidnyanSetu2Count %></span>
+                                        <% } %>
+                                    </a>
+
+                                    <a href="<%= request.getContextPath() %>/vidnyansetu-phase-approvals.jsp" class="dropdown-item" title="Approve VidnyanSetu phase completions">
+                                        <div class="dropdown-item-content">
+                                            <span>📋</span>
+                                            <span>VidnyanSetu Phase Approvals</span>
+                                        </div>
+                                        <% if (pendingVidnyanSetuPhaseCount > 0) { %>
+                                            <span class="item-badge"><%= pendingVidnyanSetuPhaseCount %></span>
+                                        <% } %>
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     <% } %>
-                    
+
                     <!-- Account Actions -->
-                    <a href="<%= request.getContextPath() %>/raise-ticket.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#43A047,#66BB6A);" title="Raise a support ticket to the Division office">
+                    <a href="<%= request.getContextPath() %>/raise-ticket.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#43A047,#66BB6A);" title="Raise a support ticket">
                         🎫 तिकीट
+                    </a>
+                    <a href="<%= request.getContextPath() %>/school-tickets.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#00897B,#26A69A);" title="View and act on tickets raised by teachers of your school">
+                        📥 शिक्षक तिकिटे
                     </a>
                     <a href="<%= request.getContextPath() %>/helpdesk.jsp" class="btn btn-change-password" style="background:linear-gradient(135deg,#667eea,#764ba2);">
                         🙋 मदत केंद्र
@@ -3086,6 +3156,16 @@
                 </a>
                 <% } %>
 
+                <!-- Upload Student Excel for Admin Review -->
+                <% if (!hiddenActivities.contains("UPLOAD_STUDENT_EXCEL")) { %>
+                <a href="javascript:void(0);" onclick="openStudentExcelUploadModal()" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📤</div>
+                    <div class="quick-action-title">Upload Student Excel</div>
+                    <div class="quick-action-subtitle">विद्यार्थी एक्सेल पाठवा (पडताळणीसाठी)</div>
+                    <div class="quick-action-desc">Send a student data Excel sheet to Admin for manual review. It is not loaded into the system automatically - Admin verifies it before uploading.</div>
+                </a>
+                <% } %>
+
                 <!-- 6. Edit Student - DISABLED -->
                 <% if (!hiddenActivities.contains("EDIT_STUDENT")) { %>
                <a href="<%= request.getContextPath() %>/select-student-to-edit.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
@@ -3154,6 +3234,14 @@
                     <div class="quick-action-title">विद्यार्थी उपक्रम</div>
                     <div class="quick-action-subtitle">Student Activities</div>
                     <div class="quick-action-desc">विद्यार्थ्यांचे क्रीडा, सांस्कृतिक, शैक्षणिक, विज्ञान उपक्रम व कामगिरी नोंदवा. फोटोसह.</div>
+                </a>
+                <% } %>
+                <% if (!hiddenActivities.contains("VIDNYANSETU_ACTIVITY")) { %>
+                <a href="<%= request.getContextPath() %>/vidnyansetu-activity.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">🔬</div>
+                    <div class="quick-action-title">विज्ञानसेतू उपक्रम</div>
+                    <div class="quick-action-subtitle">VidnyanSetu Activity</div>
+                    <div class="quick-action-desc">इयत्ता, आठवडा व दिवसानुसार कृतीतून संकल्पनेकडे उपक्रम नोंदवा.</div>
                 </a>
                 <% } %>
                 <% if (!hiddenActivities.contains("GRADUATED_STUDENTS")) { %>
@@ -3250,6 +3338,13 @@
                     <div class="quick-action-title">Approve School Activities</div>
                     <div class="quick-action-subtitle">शालेय उपक्रम मंजूर करा</div>
                     <div class="quick-action-desc">Review and approve pending other school activities submitted by coordinator. View details, photos and approve or reject.</div>
+                </a>
+                <!-- View Uploaded Videos (Headmaster Only) - ENABLED -->
+                <a href="<%= request.getContextPath() %>/view-videos.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
+                    <div class="quick-action-icon">📹</div>
+                    <div class="quick-action-title">View Uploaded Videos</div>
+                    <div class="quick-action-subtitle">अपलोड केलेले व्हिडिओ पहा</div>
+                    <div class="quick-action-desc">View all student progress videos uploaded for this school, including pending, approved and rejected.</div>
                 </a>
                 <a href="<%= request.getContextPath() %>/fln-completed-students.jsp" class="quick-action-card" style="text-decoration: none; color: inherit;">
                     <div class="quick-action-icon">🏆</div>
@@ -4005,8 +4100,112 @@
             </div>
         </div>
         
+        <!-- Upload Student Excel Modal (School Coordinator) -->
+        <div id="studentExcelUploadModal" class="modal">
+            <div class="modal-content" style="max-width: 550px;">
+                <div class="modal-header">
+                    <h2>📤 Upload Student Excel / विद्यार्थी एक्सेल पाठवा</h2>
+                    <span class="close" onclick="closeStudentExcelUploadModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                        ही फाईल थेट सिस्टीममध्ये अपलोड होत नाही. Admin ती डाउनलोड करून तपासतील आणि नंतर स्वतः अपलोड करतील.<br>
+                        This file is NOT loaded into the system automatically. Admin will download, verify it manually, and then upload it themselves.
+                    </p>
+                    <form id="studentExcelUploadForm" onsubmit="submitStudentExcelUpload(event)">
+                        <div style="border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 15px;">
+                            <input type="file" id="studentExcelFile" name="excelFile" accept=".xlsx,.xls" required
+                                   style="width: 100%;">
+                            <div style="color: #666; margin-top: 8px; font-size: 12px;">Supported formats: .xlsx, .xls</div>
+                        </div>
+                        <div id="studentExcelUploadMsg" style="font-size: 13px; margin-bottom: 10px;"></div>
+                        <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                            <button type="button" onclick="closeStudentExcelUploadModal()"
+                                    style="padding: 12px 30px; border: 2px solid #e0e0e0; background: white; color: #666; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                Cancel
+                            </button>
+                            <button type="submit" id="studentExcelUploadBtn"
+                                    style="padding: 12px 30px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                📤 Send to Admin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function openStudentExcelUploadModal() {
+                const modal = document.getElementById('studentExcelUploadModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                }
+            }
+
+            function closeStudentExcelUploadModal() {
+                const modal = document.getElementById('studentExcelUploadModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                }
+                document.getElementById('studentExcelUploadForm').reset();
+                document.getElementById('studentExcelUploadMsg').textContent = '';
+            }
+
+            function submitStudentExcelUpload(event) {
+                event.preventDefault();
+                const fileInput = document.getElementById('studentExcelFile');
+                const msg = document.getElementById('studentExcelUploadMsg');
+                const btn = document.getElementById('studentExcelUploadBtn');
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    msg.style.color = '#c62828';
+                    msg.textContent = 'Please select a file first.';
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('excelFile', fileInput.files[0]);
+                formData.append('schoolName', '<%= schoolName != null ? schoolName.replace("'", "") : "" %>');
+
+                btn.disabled = true;
+                msg.style.color = '#666';
+                msg.textContent = 'Uploading...';
+
+                fetch('<%= request.getContextPath() %>/pending-student-upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    btn.disabled = false;
+                    if (data.success) {
+                        msg.style.color = '#2e7d32';
+                        msg.textContent = '✔ ' + data.message;
+                        setTimeout(closeStudentExcelUploadModal, 1500);
+                    } else {
+                        msg.style.color = '#c62828';
+                        msg.textContent = data.message || 'Upload failed';
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    msg.style.color = '#c62828';
+                    msg.textContent = 'Upload failed: ' + err;
+                });
+            }
+
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('studentExcelUploadModal');
+                if (event.target === modal) {
+                    closeStudentExcelUploadModal();
+                }
+            });
+        </script>
+
         <!-- Test button for debugging -->
-        
+
         <script>
             // Prepare student data for each phase
             <% 

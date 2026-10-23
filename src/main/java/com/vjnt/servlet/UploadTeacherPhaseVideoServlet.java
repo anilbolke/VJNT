@@ -37,9 +37,9 @@ import com.vjnt.util.DatabaseConnection;
  */
 @WebServlet("/upload-phase-video")
 @MultipartConfig(
-    fileSizeThreshold = 1024 * 1024 * 5,   // 5 MB
-    maxFileSize = 1024 * 1024 * 15,        // 15 MB
-    maxRequestSize = 1024 * 1024 * 20      // 20 MB
+    fileSizeThreshold = 1024 * 1024 * 10,   // 10 MB
+    maxFileSize = 1024 * 1024 * 100,        // 100 MB
+    maxRequestSize = 1024 * 1024 * 110      // 110 MB
 )
 public class UploadTeacherPhaseVideoServlet extends HttpServlet {
 
@@ -70,6 +70,9 @@ public class UploadTeacherPhaseVideoServlet extends HttpServlet {
 
             String studentIdStr = request.getParameter("studentId");
             String phaseStr = request.getParameter("phaseNumber");
+            String subject = request.getParameter("subject");
+            if (subject != null) subject = subject.trim();
+            if (subject == null || subject.isEmpty()) subject = null;
 
             if (studentIdStr == null || phaseStr == null) {
                 out.print("{\"success\": false, \"message\": \"Missing studentId or phaseNumber\"}");
@@ -108,17 +111,26 @@ public class UploadTeacherPhaseVideoServlet extends HttpServlet {
                     return;
                 }
 
-                // 3. Check for an existing video for this student+phase.
+                // 3. Check for an existing video for this student + phase + SUBJECT.
+                //    "One video per phase" is per subject — a मराठी Phase-1 video
+                //    must not block a गणित Phase-1 upload for the same student.
                 Integer existingVideoId = null;
                 String existingStatus = null;
-                String vSql = "SELECT video_id, approval_status FROM student_videos WHERE student_id = ? AND phase_number = ?";
+                String wantedKey = TeacherPhaseVideoStatusServlet.canonicalSubjectKey(subject);
+                String vSql = "SELECT video_id, subject, approval_status FROM student_videos WHERE student_id = ? AND phase_number = ?";
                 try (PreparedStatement ps = conn.prepareStatement(vSql)) {
                     ps.setInt(1, studentId);
                     ps.setInt(2, phaseNumber);
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            existingVideoId = rs.getInt("video_id");
-                            existingStatus = rs.getString("approval_status");
+                        while (rs.next()) {
+                            String rowKey = TeacherPhaseVideoStatusServlet.canonicalSubjectKey(rs.getString("subject"));
+                            boolean sameSubject = (wantedKey == null && rowKey == null)
+                                    || (wantedKey != null && wantedKey.equals(rowKey));
+                            if (sameSubject) {
+                                existingVideoId = rs.getInt("video_id");
+                                existingStatus = rs.getString("approval_status");
+                                break;
+                            }
                         }
                     }
                 }
@@ -150,14 +162,14 @@ public class UploadTeacherPhaseVideoServlet extends HttpServlet {
 
                 long fileSize = filePart.getSize();
                 long minFileSize = 100 * 1024;
-                long maxFileSize = 15 * 1024 * 1024;
+                long maxFileSize = 100 * 1024 * 1024;
 
                 if (fileSize < minFileSize) {
                     out.print("{\"success\": false, \"message\": \"Video file is too small. Minimum required: 100 KB.\"}");
                     return;
                 }
                 if (fileSize > maxFileSize) {
-                    out.print("{\"success\": false, \"message\": \"Video file is too large. Maximum allowed: 15 MB.\"}");
+                    out.print("{\"success\": false, \"message\": \"Video file is too large. Maximum allowed: 100 MB.\"}");
                     return;
                 }
 
@@ -190,10 +202,10 @@ public class UploadTeacherPhaseVideoServlet extends HttpServlet {
                 if (existingVideoId != null) {
                     // Re-upload after rejection: replace the rejected row.
                     saved = updateRejectedVideo(conn, existingVideoId, cdnUrl, fileName, fileSize,
-                            user.getUserId(), user.getUsername(), thumbnailUrl, approvalStatus, isVisible);
+                            user.getUserId(), user.getUsername(), thumbnailUrl, approvalStatus, isVisible, subject);
                 } else {
                     saved = insertPhaseVideo(conn, studentId, phaseNumber, cdnUrl, fileName, fileSize,
-                            user.getUserId(), user.getUsername(), udiseNo, thumbnailUrl, approvalStatus, isVisible);
+                            user.getUserId(), user.getUsername(), udiseNo, thumbnailUrl, approvalStatus, isVisible, subject);
                 }
 
                 if (saved) {
@@ -257,35 +269,36 @@ public class UploadTeacherPhaseVideoServlet extends HttpServlet {
 
     private boolean insertPhaseVideo(Connection conn, int studentId, int phaseNumber, String cdnUrl,
             String fileName, long fileSize, int uploadedBy, String uploadedByName, String udiseNo,
-            String thumbnailUrl, String approvalStatus, boolean isVisible) throws SQLException {
+            String thumbnailUrl, String approvalStatus, boolean isVisible, String subject) throws SQLException {
 
-        String sql = "INSERT INTO student_videos (student_id, phase_number, file_path, original_file_name, " +
+        String sql = "INSERT INTO student_videos (student_id, phase_number, subject, file_path, original_file_name, " +
                      "file_size, uploaded_by, uploaded_by_name, udise_no, thumbnail_url, upload_date, " +
                      "approval_status, is_visible) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)";
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, studentId);
             ps.setInt(2, phaseNumber);
-            ps.setString(3, cdnUrl);
-            ps.setString(4, fileName);
-            ps.setLong(5, fileSize);
-            ps.setInt(6, uploadedBy);
-            ps.setString(7, uploadedByName);
-            ps.setString(8, udiseNo);
-            ps.setString(9, thumbnailUrl);
-            ps.setString(10, approvalStatus);
-            ps.setBoolean(11, isVisible);
+            ps.setString(3, subject);
+            ps.setString(4, cdnUrl);
+            ps.setString(5, fileName);
+            ps.setLong(6, fileSize);
+            ps.setInt(7, uploadedBy);
+            ps.setString(8, uploadedByName);
+            ps.setString(9, udiseNo);
+            ps.setString(10, thumbnailUrl);
+            ps.setString(11, approvalStatus);
+            ps.setBoolean(12, isVisible);
             return ps.executeUpdate() > 0;
         }
     }
 
     private boolean updateRejectedVideo(Connection conn, int videoId, String cdnUrl, String fileName,
             long fileSize, int uploadedBy, String uploadedByName, String thumbnailUrl,
-            String approvalStatus, boolean isVisible) throws SQLException {
+            String approvalStatus, boolean isVisible, String subject) throws SQLException {
 
         String sql = "UPDATE student_videos SET file_path = ?, original_file_name = ?, file_size = ?, " +
                      "uploaded_by = ?, uploaded_by_name = ?, thumbnail_url = ?, upload_date = NOW(), " +
-                     "approval_status = ?, is_visible = ?, approved_by = NULL, approved_by_name = NULL, " +
+                     "approval_status = ?, is_visible = ?, subject = ?, approved_by = NULL, approved_by_name = NULL, " +
                      "approval_date = NULL, rejection_reason = NULL " +
                      "WHERE video_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -297,7 +310,8 @@ public class UploadTeacherPhaseVideoServlet extends HttpServlet {
             ps.setString(6, thumbnailUrl);
             ps.setString(7, approvalStatus);
             ps.setBoolean(8, isVisible);
-            ps.setInt(9, videoId);
+            ps.setString(9, subject);
+            ps.setInt(10, videoId);
             return ps.executeUpdate() > 0;
         }
     }

@@ -40,7 +40,17 @@ public class GetDivisionDistrictsServlet extends HttpServlet {
             
             String sql;
             if (division != null && !division.isEmpty()) {
-                sql = "SELECT DISTINCT sch.district_name FROM schools sch INNER JOIN students st ON sch.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no WHERE st.division = ? ORDER BY sch.district_name";
+                // Driven from students: this list is the district dropdown, and it must offer
+                // exactly the districts that have students the pages will actually show.
+                // is_active was missing entirely, so districts whose students are all
+                // deactivated (chiefly last year's graduates) were still being offered.
+                sql = "SELECT DISTINCT COALESCE(sch.district_name, st.district) AS district_name " +
+                      "FROM students st " +
+                      "LEFT JOIN schools sch ON sch.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no " +
+                      "WHERE st.division = ? AND st.is_active = 1 " +
+                      "AND TRIM(st.class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
+                      "AND COALESCE(sch.district_name, st.district) IS NOT NULL " +
+                      "ORDER BY district_name";
                 pstmt = conn.prepareStatement(sql);
                 pstmt.setString(1, division);
             } else {
@@ -50,7 +60,13 @@ public class GetDivisionDistrictsServlet extends HttpServlet {
                     response.getWriter().write(new com.google.gson.Gson().toJson(districts));
                     return;
                 }
-                sql = "SELECT DISTINCT sch.district_name FROM schools sch ORDER BY sch.district_name";
+                sql = "SELECT DISTINCT COALESCE(sch.district_name, st.district) AS district_name " +
+                      "FROM students st " +
+                      "LEFT JOIN schools sch ON sch.udise_no COLLATE utf8mb4_unicode_ci = st.udise_no " +
+                      "WHERE st.is_active = 1 " +
+                      "AND TRIM(st.class) IN " + com.vjnt.dao.StudentDAO.CLASS_I_TO_IX + " " +
+                      "AND COALESCE(sch.district_name, st.district) IS NOT NULL " +
+                      "ORDER BY district_name";
                 pstmt = conn.prepareStatement(sql);
             }
             rs = pstmt.executeQuery();

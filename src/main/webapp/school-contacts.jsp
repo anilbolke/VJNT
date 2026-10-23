@@ -540,6 +540,17 @@
                             </select>
                         </div>
                         
+                        <!-- UDISE Number Filter -->
+                        <div class="form-group" style="margin: 0;">
+                            <label for="filterUdise" style="margin-bottom: 8px;">UDISE Number</label>
+                            <input type="text"
+                                   id="filterUdise"
+                                   placeholder="Type UDISE number..."
+                                   inputmode="numeric"
+                                   autocomplete="off"
+                                   style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; width: 100%;">
+                        </div>
+
                         <!-- Contact Type Filter -->
                         <div class="form-group" style="margin: 0;">
                             <label for="filterType" style="margin-bottom: 8px;">Contact Type</label>
@@ -874,6 +885,7 @@
         
         function applyFilters() {
             const filterSchool = document.getElementById('filterSchool').value.toLowerCase();
+            const filterUdise = document.getElementById('filterUdise').value.toLowerCase().trim();
             const filterType = document.getElementById('filterType').value.toLowerCase();
             const filterSearch = document.getElementById('filterSearch').value.toLowerCase();
             
@@ -905,6 +917,11 @@
                     showRow = false;
                 }
                 
+                // UDISE number filter - matches UDISE column only
+                if (filterUdise && !udise.includes(filterUdise)) {
+                    showRow = false;
+                }
+
                 // Contact type filter
                 if (filterType && !contactType.includes(filterType)) {
                     showRow = false;
@@ -930,7 +947,7 @@
             
             // Show filter result message
             const resultText = document.getElementById('filterResultText');
-            if (filterSchool || filterType || filterSearch) {
+            if (filterSchool || filterUdise || filterType || filterSearch) {
                 resultText.textContent = `Showing ${visibleCount} of ${totalContactsInTable} contacts`;
             } else {
                 resultText.textContent = '';
@@ -940,6 +957,7 @@
         // Reset all filters
         function resetFilters() {
             document.getElementById('filterSchool').value = '';
+            document.getElementById('filterUdise').value = '';
             document.getElementById('filterType').value = '';
             document.getElementById('filterSearch').value = '';
             
@@ -961,6 +979,13 @@
         
         // Apply filters on Enter key in search box
         document.getElementById('filterSearch').addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+
+        // Apply filters on Enter key in UDISE box
+        document.getElementById('filterUdise').addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 applyFilters();
             }

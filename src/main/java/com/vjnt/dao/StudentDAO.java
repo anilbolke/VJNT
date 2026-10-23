@@ -2,6 +2,7 @@ package com.vjnt.dao;
 
 import com.vjnt.model.Student;
 import com.vjnt.util.DatabaseConnection;
+import com.vjnt.util.PhaseRosterSql;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -15,7 +16,43 @@ import java.util.Map;
  * Handles all database operations for Student entity
  */
 public class StudentDAO {
-    
+
+    /** Prefix for placeholder PENs, used until the real government PEN is known. */
+    private static final String PEN_PREFIX   = "TEMP";
+    /** Row key in pen_sequence that hands out placeholder PEN numbers. */
+    private static final String PEN_SEQ_NAME = "TEMP";
+
+    /** Marathi level that counts as 100% FLN. */
+    public static final int FLN_MARATHI_LEVEL = 6;
+    /** Math level that counts as 100% FLN. */
+    public static final int FLN_MATH_LEVEL    = 8;
+    /** English level that counts as 100% FLN. */
+    public static final int FLN_ENGLISH_LEVEL = 6;
+
+    /**
+     * SQL predicate for "this student's levels actually meet 100% FLN".
+     *
+     * Kept in one place so the FLN-completed list and the fln_completed flag cannot drift apart.
+     * COALESCE is deliberate: a NULL level must read as "not met", and a bare
+     * {@code NOT (a=6 AND ...)} would evaluate to NULL and silently pass such rows through.
+     */
+    public static final String FLN_LEVELS_MET =
+        "(COALESCE(marathi_akshara_level,-1) = " + FLN_MARATHI_LEVEL +
+        " AND COALESCE(math_akshara_level,-1) = " + FLN_MATH_LEVEL +
+        " AND COALESCE(english_akshara_level,-1) = " + FLN_ENGLISH_LEVEL + ")";
+
+    /**
+     * SQL predicate for "still to be assessed", i.e. not yet flagged FLN complete.
+     *
+     * Kept in one place because manage-students shows this set twice — once paginated from
+     * the server, once rebuilt client-side by the filter. When the two used different
+     * predicates, FLN-completed students stayed hidden while paging but reappeared as soon
+     * as a filter was typed.
+     *
+     * Now delegates to {@link PhaseRosterSql}, which every other phase-progress screen shares.
+     */
+    public static final String NOT_FLN_COMPLETED = PhaseRosterSql.notFlnCompleted(null);
+
     /**
      * Create a new student
      */
@@ -289,6 +326,35 @@ public class StudentDAO {
     }
     
     /**
+     * Active class I-IX students in a division - the population the FLN programme actually
+     * tracks, and what the division dashboard reports on.
+     *
+     * Differs from {@link #getStudentsByDivision(String)}, which returns every active student
+     * in the division regardless of class, including classes outside the programme.
+     */
+    public List<Student> getFlnStudentsByDivision(String division) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE division = ? AND is_active = 1 " +
+                     "AND TRIM(class) IN " + CLASS_I_TO_IX + " " +
+                     "ORDER BY district, udise_no, class, section, student_name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, division);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting FLN students by division: " + e.getMessage());
+        }
+        return students;
+    }
+
+    /**
      * Get students by division
      */
     public List<Student> getStudentsByDivision(String division) {
@@ -432,7 +498,12 @@ public class StudentDAO {
      */
     public List<Student> getFlnCompletedStudentsByUdise(String udiseNo) {
         List<Student> students = new ArrayList<>();
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND fln_completed = 1 AND is_active = 1  ORDER BY class, section, student_name";
+        // The stored flag alone is not trusted here: historic rows were flagged by the old
+        // write-once code path and can no longer be cleared by re-assessment. Requiring the
+        // levels as well means a stale flag cannot show up as an achievement.
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND fln_completed = 1 " +
+                     "AND is_active = 1 AND " + FLN_LEVELS_MET +
+                     " ORDER BY class, section, student_name";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -536,12 +607,43 @@ public class StudentDAO {
     }
     
     /**
+     * Get every student still awaiting assessment — the same set
+     * {@link #getStudentsByUdiseWithPagination} pages through, without the page window.
+     *
+     * Why it exists: manage-students.jsp hands this list to the browser so its PEN/name/class/
+     * section filters can rebuild the table client-side. It must therefore apply exactly the
+     * same FLN exclusion as the paginated query; using the unfiltered getStudentsByUdise()
+     * made FLN-completed students reappear the moment any filter was typed.
+     */
+    public List<Student> getPendingStudentsByUdise(String udiseNo) {
+        List<Student> students = new ArrayList<>();
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND " + NOT_FLN_COMPLETED +
+                     " ORDER BY class, section, student_name";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting pending students by UDISE: " + e.getMessage());
+        }
+        return students;
+    }
+
+    /**
      * Get students by UDISE with pagination
      */
     public List<Student> getStudentsByUdiseWithPagination(String udiseNo, int page, int pageSize) {
         List<Student> students = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE)  ORDER BY class, section, student_name LIMIT ? OFFSET ?";
+        String sql = "SELECT * FROM students WHERE udise_no = ? AND is_active = 1 AND " + NOT_FLN_COMPLETED +
+                     " ORDER BY class, section, student_name LIMIT ? OFFSET ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -565,20 +667,173 @@ public class StudentDAO {
      * Get total count of students by UDISE
      */
     public int getStudentCountByUdise(String udiseNo) {
-        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ? AND is_active = 1 AND (fln_completed IS NULL OR fln_completed = FALSE)";
-        
+        String sql = "SELECT COUNT(*) FROM students WHERE udise_no = ? AND is_active = 1 AND " + NOT_FLN_COMPLETED;
+
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
+
             pstmt.setString(1, udiseNo);
             ResultSet rs = pstmt.executeQuery();
-            
+
             if (rs.next()) {
                 return rs.getInt(1);
             }
-            
+
         } catch (SQLException e) {
             System.err.println("Error getting student count by UDISE: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    // ------------------------------------------------------------------
+    // Phase aware roster - used by manage-students.jsp
+    // ------------------------------------------------------------------
+
+    /**
+     * Roster a coordinator has to work through for one phase: the NOT_FLN_COMPLETED
+     * set PLUS anyone already saved for this phase.
+     *
+     * Why the extra term: saving a student at Marathi 6 / Math 8 / English 6 sets
+     * fln_completed = 1 straight away (see updatePhaseLanguageLevels), which dropped
+     * them out of the list mid-session. Because the list is paged with LIMIT/OFFSET,
+     * every drop-out pulled the students after them one position up, so anyone who
+     * crossed a page boundary the coordinator had already passed was never shown
+     * again - they stayed unsaved and the phase completion percentage could not
+     * reach 100%. Holding them in place keeps the offsets steady for the whole
+     * phase; they leave the roster when the next phase starts.
+     */
+    private String phaseRosterWhereClause(int phase) {
+        return "WHERE udise_no = ? " +
+               "AND is_active = 1 " +
+               "AND " + PhaseRosterSql.rosterPredicate(null, phase);
+    }
+
+    /**
+     * Roster size and saved count for one phase, i.e. the two numbers behind the
+     * चरण अहवाल card. Returns {total, saved}.
+     *
+     * Both numbers are read off exactly what manage-students shows, so the card can
+     * never disagree with the list the coordinator worked through:
+     *
+     *   total - the same roster as {@link #phaseRosterWhereClause}, so a student the
+     *           coordinator was never shown cannot hold the percentage down.
+     *   saved - phase{N}_date IS NOT NULL, i.e. Save was clicked for that student in
+     *           this phase. The same fact the row's "✓ Saved" action reports.
+     *
+     * Deliberately NOT "all three subject levels present": selecting a subject stopped
+     * being mandatory, and updatePhaseLanguageLevels writes only the subjects actually
+     * picked, leaving the rest NULL. Requiring all three therefore excluded students the
+     * coordinator had genuinely dealt with, which is what stalled schools below 100%.
+     */
+    private int[] getPhaseRosterAndSavedCount(String udiseNo, int phase) {
+        validatePhase(phase);
+        // Same predicate as the roster, except udise_no carries the COLLATE the school
+        // dashboard has always used here (see isPhaseComplete) - UDISE values are digits,
+        // so it selects the same rows either way.
+        String sql = "SELECT COUNT(*) AS total_students, " +
+                     PhaseRosterSql.savedCount(null, phase, "saved_students") + " " +
+                     "FROM students " +
+                     "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
+                     "AND is_active = 1 " +
+                     "AND " + PhaseRosterSql.rosterPredicate(null, phase);
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return new int[] { rs.getInt("total_students"), rs.getInt("saved_students") };
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting phase roster counts: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return new int[] { 0, 0 };
+    }
+
+    /** Phase must be 1-4 - it is concatenated into the SQL. */
+    private int validatePhase(int phase) {
+        if (phase < 1 || phase > 4) {
+            throw new IllegalArgumentException("Invalid phase: " + phase);
+        }
+        return phase;
+    }
+
+    /**
+     * Full phase roster without the page window - drives the client side filters,
+     * so filtering and paging show the same students (same reason as
+     * {@link #getPendingStudentsByUdise}, but phase aware).
+     */
+    public List<Student> getStudentsByUdiseForPhase(String udiseNo, int phase) {
+        validatePhase(phase);
+        List<Student> students = new ArrayList<>();
+        // student_id breaks ties so the order is stable across page loads
+        String sql = "SELECT * FROM students " + phaseRosterWhereClause(phase) +
+                     " ORDER BY class, section, student_name, student_id";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting phase roster by UDISE: " + e.getMessage());
+        }
+        return students;
+    }
+
+    /** One page of the phase roster. */
+    public List<Student> getStudentsByUdiseForPhaseWithPagination(String udiseNo, int phase,
+                                                                  int page, int pageSize) {
+        validatePhase(phase);
+        List<Student> students = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+        String sql = "SELECT * FROM students " + phaseRosterWhereClause(phase) +
+                     " ORDER BY class, section, student_name, student_id LIMIT ? OFFSET ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, udiseNo);
+            pstmt.setInt(2, pageSize);
+            pstmt.setInt(3, offset);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                students.add(extractStudentFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting paged phase roster by UDISE: " + e.getMessage());
+        }
+        return students;
+    }
+
+    /** Size of the phase roster - must match the paged query above. */
+    public int getStudentCountByUdiseForPhase(String udiseNo, int phase) {
+        validatePhase(phase);
+        String sql = "SELECT COUNT(*) FROM students " + phaseRosterWhereClause(phase);
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, udiseNo);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error getting phase roster count by UDISE: " + e.getMessage());
         }
         return 0;
     }
@@ -659,58 +914,19 @@ public class StudentDAO {
     }
     
     /**
-     * Check if a phase is complete for a school
-     * Phase is complete when ALL ACTIVE students have their assessments saved (phase_date is set)
-     * Note: Only counts students where is_active = 1
+     * Check if a phase is complete for a school.
+     *
+     * Complete = every student manage-students lists for this phase has had Save clicked
+     * (phase{N}_date set). Shares getPhaseRosterAndSavedCount() with
+     * getPhaseCompletionPercentage() so "✓ Completed - Ready to Submit" and "100%" always
+     * appear together - they used to be computed from two separately maintained queries.
      */
     public boolean isPhaseComplete(String udiseNo, int phase) {
-        // Phase is complete only when EVERY active (non-FLN) student in the school
-        // has the phase{N}_date set, AND (for phases 1-3) all three subject levels.
-        // The subject-level + date filter belongs INSIDE the CASE so the denominator
-        // (total_students) counts the full school roster, not just the saved rows.
-        String phaseColumn = "phase" + phase + "_date";
-        String marathiCol = "phase" + phase + "_marathi";
-        String mathCol = "phase" + phase + "_math";
-        String englishCol = "phase" + phase + "_english";
+        int[] counts = getPhaseRosterAndSavedCount(udiseNo, phase);
+        int totalStudents = counts[0];
+        int savedStudents = counts[1];
 
-        String completedCondition = phaseColumn + " IS NOT NULL";
-        if (phase >= 1 && phase <= 3) {
-            completedCondition += " AND " + marathiCol + " IS NOT NULL" +
-                                  " AND " + mathCol + " IS NOT NULL" +
-                                  " AND " + englishCol + " IS NOT NULL";
-        }
-
-        String sql = "SELECT " +
-                     "COUNT(*) as total_students, " +
-                     "SUM(CASE WHEN " + completedCondition + " THEN 1 ELSE 0 END) as completed_students " +
-                     "FROM students " +
-                     "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
-                     "AND is_active = 1 " +
-                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
-        
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setString(1, udiseNo);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                int totalStudents = rs.getInt("total_students");
-                int completedStudents = rs.getInt("completed_students");
-                
-                // Phase is complete if there are students and all have completed
-                boolean isComplete = totalStudents > 0 && totalStudents == completedStudents;
-                
-             
-                
-                return isComplete;
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Error checking phase completion: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+        return totalStudents > 0 && totalStudents == savedStudents;
     }
     
     /**
@@ -740,51 +956,80 @@ public class StudentDAO {
     }
     
     /**
-     * Update language levels for a specific phase
+     * Update language levels for a specific phase.
+     *
+     * A null level means "the teacher did not assess this subject" and leaves that subject's
+     * columns untouched. Writing all three unconditionally used to wipe the other two subjects
+     * every time a teacher saved a single-subject assessment.
+     *
+     * Supplying no subject at all is valid - the row is still stamped with phase{N}_date,
+     * which is what the चरण अहवाल card counts.
+     *
+     * @return false if the update matched no row
      */
-    public boolean updatePhaseLanguageLevels(int studentId, int phase, 
-                                            int marathiLevel, int mathLevel, int englishLevel,
+    public boolean updatePhaseLanguageLevels(int studentId, int phase,
+                                            Integer marathiLevel, Integer mathLevel, Integer englishLevel,
                                             String updatedBy) {
+        // All three levels may be null — selecting a subject is not mandatory. The statement then
+        // sets only the date columns below, which still records that the phase was saved for this
+        // student without inventing levels for subjects nobody assessed.
+
         // Update both phase-specific columns AND the main akshara_level columns
         String columnPrefix = "phase" + phase + "_";
-        String sql = "UPDATE students SET " +
-                     columnPrefix + "marathi = ?, " +
-                     columnPrefix + "math = ?, " +
-                     columnPrefix + "english = ?, " +
-                     columnPrefix + "date = NOW(), " +
-                     "marathi_akshara_level = ?, " +
-                     "math_akshara_level = ?, " +
-                     "english_akshara_level = ?, " +
-                     "updated_date = NOW(), " +
-                     "updated_by = ? " +
-                     "WHERE student_id = ?";
-        
+        StringBuilder sql = new StringBuilder("UPDATE students SET ");
+        List<Integer> levelParams = new ArrayList<>();
+
+        if (marathiLevel != null) {
+            sql.append(columnPrefix).append("marathi = ?, marathi_akshara_level = ?, ");
+            levelParams.add(marathiLevel);
+            levelParams.add(marathiLevel);
+        }
+        if (mathLevel != null) {
+            sql.append(columnPrefix).append("math = ?, math_akshara_level = ?, ");
+            levelParams.add(mathLevel);
+            levelParams.add(mathLevel);
+        }
+        if (englishLevel != null) {
+            sql.append(columnPrefix).append("english = ?, english_akshara_level = ?, ");
+            levelParams.add(englishLevel);
+            levelParams.add(englishLevel);
+        }
+
+        sql.append(columnPrefix).append("date = NOW(), ")
+           .append("updated_date = NOW(), ")
+           .append("updated_by = ? ")
+           .append("WHERE student_id = ?");
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, marathiLevel);
-            pstmt.setInt(2, mathLevel);
-            pstmt.setInt(3, englishLevel);
-            pstmt.setInt(4, marathiLevel);  // Also update main columns
-            pstmt.setInt(5, mathLevel);
-            pstmt.setInt(6, englishLevel);
-            pstmt.setString(7, updatedBy);
-            pstmt.setInt(8, studentId);
-            
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+
+            int idx = 1;
+            for (Integer level : levelParams) {
+                pstmt.setInt(idx++, level);
+            }
+            pstmt.setString(idx++, updatedBy);
+            pstmt.setInt(idx, studentId);
+
             int rows = pstmt.executeUpdate();
-            
+
             // Create audit entry
             if (rows > 0) {
-                auditPhaseChange(studentId, phase, marathiLevel, mathLevel, englishLevel, updatedBy);
-                
+                // Audit the resulting state, not just the subjects sent in this request —
+                // otherwise a single-subject save would record the other two as 0.
+                int[] effective = readPhaseLevels(conn, studentId, phase);
+                auditPhaseChange(studentId, phase, effective[0], effective[1], effective[2], updatedBy);
+
                 // Check FLN completion after ANY phase (1, 2, 3, or 4)
                 // If student achieves Marathi=6, Math=8, English=6 in ANY phase, mark as FLN completed
                 boolean flnComplete = checkFlnCompletion(studentId);
-                
-                if (flnComplete) {
-                    // ✓ Student achieved 100% FLN - mark as completed immediately
-                    updateFlnCompletionStatus(studentId, true);
-                }
+
+                // Write the flag BOTH ways. This used to be "if (flnComplete) set true" with no
+                // else, which made fln_completed a write-once latch: a teacher who picked 6/8/6 by
+                // mistake could never undo it, and because the manage-students queries exclude
+                // fln_completed=1 the student then vanished from the list and became uneditable.
+                // Passing the boolean means lowering a level clears the flag and the student
+                // reappears for correction.
+                updateFlnCompletionStatus(studentId, flnComplete);
                 // NOTE: Removed automatic phase restart on save
                 // Phase restart should only happen after admin approval, not on every save!
                 // The restart logic causes Phase 4 data to be cleared prematurely.
@@ -800,9 +1045,31 @@ public class StudentDAO {
     }
     
     /**
+     * Read the stored marathi/math/english levels for a phase, treating SQL NULL as 0.
+     * Shares the caller's connection so it sees the update that just ran.
+     */
+    private int[] readPhaseLevels(Connection conn, int studentId, int phase) throws SQLException {
+        String columnPrefix = "phase" + phase + "_";
+        String sql = "SELECT " + columnPrefix + "marathi, " +
+                                 columnPrefix + "math, " +
+                                 columnPrefix + "english " +
+                     "FROM students WHERE student_id = ?";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, studentId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new int[] { rs.getInt(1), rs.getInt(2), rs.getInt(3) };
+                }
+            }
+        }
+        return new int[] { 0, 0, 0 };
+    }
+
+    /**
      * Create audit entry for phase changes
      */
-    private void auditPhaseChange(int studentId, int phase, int marathiLevel, 
+    private void auditPhaseChange(int studentId, int phase, int marathiLevel,
                                  int mathLevel, int englishLevel, String changedBy) {
         String sql = "INSERT INTO student_phase_audit (student_id, phase, marathi_level, " +
                      "math_level, english_level, changed_by, action_type) " +
@@ -877,58 +1144,22 @@ public class StudentDAO {
     }
     
     /**
-     * Get phase completion percentage for a school
-     * Phase is complete ONLY if approved by Head Master
+     * Progress shown on the चरण अहवाल card: of the students manage-students lists for this
+     * phase, how many have had Save clicked.
+     *
+     * Both numbers come from getPhaseRosterAndSavedCount(), so a coordinator who works
+     * through every row in the list reaches 100% - regardless of how many subjects were
+     * picked on the way, since choosing a subject is optional.
      */
     public int getPhaseCompletionPercentage(String udiseNo, int phase) {
-        // Percentage is over the full active (non-FLN) roster. The subject-level +
-        // date filter belongs INSIDE the CASE so the denominator counts the whole
-        // school, not just rows already saved for this phase.
-        String phaseColumn = "phase" + phase + "_date";
-        String marathiCol = "phase" + phase + "_marathi";
-        String mathCol = "phase" + phase + "_math";
-        String englishCol = "phase" + phase + "_english";
+        int[] counts = getPhaseRosterAndSavedCount(udiseNo, phase);
+        int totalStudents = counts[0];
+        int savedStudents = counts[1];
 
-        String completedCondition = phaseColumn + " IS NOT NULL";
-        if (phase >= 1 && phase <= 3) {
-            completedCondition += " AND " + marathiCol + " IS NOT NULL" +
-                                  " AND " + mathCol + " IS NOT NULL" +
-                                  " AND " + englishCol + " IS NOT NULL";
+        if (totalStudents == 0) {
+            return 0;
         }
-
-        String sql = "SELECT " +
-                     "COUNT(*) as total_students, " +
-                     "SUM(CASE WHEN " + completedCondition + " THEN 1 ELSE 0 END) as completed_students " +
-                     "FROM students " +
-                     "WHERE udise_no COLLATE utf8mb4_unicode_ci = ? " +
-                     "AND is_active = 1 " +
-                     "AND (fln_completed IS NULL OR fln_completed = FALSE)";
-        
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setString(1, udiseNo);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                int totalStudents = rs.getInt("total_students");
-                int completedStudents = rs.getInt("completed_students");
-                
-                if (totalStudents == 0) {
-                    return 0;
-                }
-                
-                // Calculate percentage
-                int percentage = (int) Math.round((completedStudents * 100.0) / totalStudents);
-                
-                
-                return percentage;
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Error getting phase completion percentage: " + e.getMessage());
-        }
-        return 0;
+        return (int) Math.round((savedStudents * 100.0) / totalStudents);
     }
     
     /**
@@ -1012,7 +1243,35 @@ public class StudentDAO {
      * @param udiseNo School UDISE number
      * @param studentClass Optional class filter (e.g., "1", "2", "3", etc.)
      */
+    /**
+     * The FLN programme covers classes I-IX only. Anything else on a student row (X, a blank,
+     * a NULL, an import artefact) is out of scope and must not reach any level statistic,
+     * otherwise the totals count students the programme does not track.
+     *
+     * Both spellings are listed because the class column genuinely holds both - see
+     * {@link #PROMOTE_IN} and {@link #CLASS_NEXT_CASE}, which have always handled Roman and
+     * Arabic side by side. Matching only Roman here would quietly drop every Arabic-stored
+     * student from the statistics.
+     */
+    public static final String CLASS_I_TO_IX = com.vjnt.util.PhaseRosterSql.CLASS_I_TO_IX;
+
     public java.util.Map<String, Object> getPhaseWiseSubjectCounts(String udiseNo, String studentClass) {
+        return getPhaseWiseSubjectCounts(udiseNo, studentClass, null);
+    }
+
+    /**
+     * Get aggregate phase-wise subject counts by UDISE, with class and division filters.
+     * Without the division filter a UDISE that serves more than one division reports every
+     * active student at the school, so division totals come out too high.
+     * Level "-1" is the count of students whose level is NULL (never recorded) - distinct
+     * from level 0 ("star nishchit kela nahi"), which is a value someone actually stored.
+     * Levels -1..max therefore sum to totalStudents.
+     * Only active students in classes I-IX are counted - see {@link #CLASS_I_TO_IX}.
+     * @param udiseNo School UDISE number
+     * @param studentClass Optional class filter (e.g., "I", "II", "III", etc.)
+     * @param division Optional division filter (e.g., "Latur Division")
+     */
+    public java.util.Map<String, Object> getPhaseWiseSubjectCounts(String udiseNo, String studentClass, String division) {
         java.util.Map<String, Object> counts = new java.util.HashMap<>();
         
 
@@ -1121,17 +1380,37 @@ public class StudentDAO {
                      "SUM(CASE WHEN phase4_english = 4 THEN 1 ELSE 0 END) as p4_english_4, " +
                      "SUM(CASE WHEN phase4_english = 5 THEN 1 ELSE 0 END) as p4_english_5, " +
                      "SUM(CASE WHEN phase4_english = 6 THEN 1 ELSE 0 END) as p4_english_6, " +
+                     // Never-recorded levels. Without these the per-subject columns silently
+                     // drop NULL rows and no subject adds up to total_students.
+                     "SUM(CASE WHEN phase1_marathi IS NULL THEN 1 ELSE 0 END) as p1_marathi_null, " +
+                     "SUM(CASE WHEN phase1_math    IS NULL THEN 1 ELSE 0 END) as p1_math_null, " +
+                     "SUM(CASE WHEN phase1_english IS NULL THEN 1 ELSE 0 END) as p1_english_null, " +
+                     "SUM(CASE WHEN phase2_marathi IS NULL THEN 1 ELSE 0 END) as p2_marathi_null, " +
+                     "SUM(CASE WHEN phase2_math    IS NULL THEN 1 ELSE 0 END) as p2_math_null, " +
+                     "SUM(CASE WHEN phase2_english IS NULL THEN 1 ELSE 0 END) as p2_english_null, " +
+                     "SUM(CASE WHEN phase3_marathi IS NULL THEN 1 ELSE 0 END) as p3_marathi_null, " +
+                     "SUM(CASE WHEN phase3_math    IS NULL THEN 1 ELSE 0 END) as p3_math_null, " +
+                     "SUM(CASE WHEN phase3_english IS NULL THEN 1 ELSE 0 END) as p3_english_null, " +
+                     "SUM(CASE WHEN phase4_marathi IS NULL THEN 1 ELSE 0 END) as p4_marathi_null, " +
+                     "SUM(CASE WHEN phase4_math    IS NULL THEN 1 ELSE 0 END) as p4_math_null, " +
+                     "SUM(CASE WHEN phase4_english IS NULL THEN 1 ELSE 0 END) as p4_english_null, " +
                      "COUNT(*) as total_students " +
                      "FROM students " +
-                     "WHERE udise_no = ? AND is_active = 1" +
-                     (studentClass != null && !studentClass.isEmpty() ? " AND class = ?" : "");
+                     "WHERE udise_no = ? AND is_active = 1 " +
+                     "AND TRIM(class) IN " + CLASS_I_TO_IX +
+                     (studentClass != null && !studentClass.isEmpty() ? " AND TRIM(class) = ?" : "") +
+                     (division != null && !division.isEmpty() ? " AND division = ?" : "");
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, udiseNo);
+            int paramIndex = 1;
+            pstmt.setString(paramIndex++, udiseNo);
             if (studentClass != null && !studentClass.isEmpty()) {
-                pstmt.setString(2, studentClass);
+                pstmt.setString(paramIndex++, studentClass);
+            }
+            if (division != null && !division.isEmpty()) {
+                pstmt.setString(paramIndex++, division);
             }
             
             ResultSet rs = pstmt.executeQuery();
@@ -1143,6 +1422,7 @@ public class StudentDAO {
                 for (int phase = 1; phase <= 4; phase++) {
                     // Marathi counts (0-6)
                     java.util.Map<String, Integer> marathiCounts = new java.util.HashMap<>();
+                    marathiCounts.put("-1", rs.getInt("p" + phase + "_marathi_null"));
                     for (int level = 0; level <= 6; level++) {
                         String columnName = "p" + phase + "_marathi_" + level;
                         int count = rs.getInt(columnName);
@@ -1152,6 +1432,7 @@ public class StudentDAO {
                     
                     // Math counts (0-8)
                     java.util.Map<String, Integer> mathCounts = new java.util.HashMap<>();
+                    mathCounts.put("-1", rs.getInt("p" + phase + "_math_null"));
                     for (int level = 0; level <= 8; level++) {
                         String columnName = "p" + phase + "_math_" + level;
                         int count = rs.getInt(columnName);
@@ -1161,6 +1442,7 @@ public class StudentDAO {
                     
                     // English counts (0-6)
                     java.util.Map<String, Integer> englishCounts = new java.util.HashMap<>();
+                    englishCounts.put("-1", rs.getInt("p" + phase + "_english_null"));
                     for (int level = 0; level <= 6; level++) {
                         String columnName = "p" + phase + "_english_" + level;
                         int count = rs.getInt(columnName);
@@ -1187,58 +1469,84 @@ public class StudentDAO {
      */
     public String generateNextPenNumber() {
         int maxRetries = 10;
-        
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            String candidatePen = generateCandidatePenNumber();
-            
-            // Check if this PEN already exists
-            if (!isPenNumberExists(candidatePen)) {
-                return candidatePen;
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+
+            for (int attempt = 0; attempt < maxRetries; attempt++) {
+                String candidatePen;
+                try {
+                    candidatePen = String.format(PEN_PREFIX + "%05d", allocatePenNumber(conn));
+                } catch (SQLException seqError) {
+                    // pen_sequence missing or unseeded (ADD_PEN_SEQUENCE_2026-08-06.sql not run yet).
+                    // Degrade to a scan rather than fail the whole add-student page.
+                    System.err.println("PEN sequence unavailable (" + seqError.getMessage() +
+                                       "), falling back to scan. Run ADD_PEN_SEQUENCE_2026-08-06.sql.");
+                    return scanForNextPenNumber(conn);
+                }
+
+                // The counter can still land on a PEN that predates it (e.g. one typed in by hand
+                // or imported from Excel), so the existence check stays. No sleep: the sequence
+                // hands every caller a distinct number, so retrying is immediate.
+                if (!isPenNumberExists(candidatePen)) {
+                    return candidatePen;
+                }
             }
-            
-            
-            // Small delay to avoid rapid collision in concurrent scenarios
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+
+        } catch (SQLException e) {
+            System.err.println("Error generating PEN number: " + e.getMessage());
         }
-        
-        // Fallback: use timestamp-based PEN if we couldn't generate unique one after retries
-        String fallbackPen = "TEMP" + String.format("%05d", (int)(System.currentTimeMillis() % 100000));
+
+        // Last resort. Not sequential and not collision-proof — the caller must still verify.
+        String fallbackPen = PEN_PREFIX + String.format("%05d", System.currentTimeMillis() % 100000);
         System.err.println("⚠ Using fallback PEN after " + maxRetries + " attempts: " + fallbackPen);
         return fallbackPen;
     }
-    
+
     /**
-     * Generate a candidate PEN number based on the last used PEN
-     * @return Candidate PEN number
+     * Atomically take the next number from pen_sequence.
+     *
+     * UPDATE ... LAST_INSERT_ID(next_value) + 1 is the standard MySQL sequence idiom: the row is
+     * locked for the duration of the statement and LAST_INSERT_ID() is per-connection, so two
+     * concurrent callers can never receive the same number. Both statements must run on the SAME
+     * connection, which is why the connection is passed in.
+     *
+     * @return the number allocated to this caller, now owned by it
      */
-    private String generateCandidatePenNumber() {
-        String sql = "SELECT student_pen FROM students WHERE student_pen LIKE 'TEMP%' ORDER BY student_pen DESC LIMIT 1";
-        
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            
-            if (rs.next()) {
-                String lastPen = rs.getString("student_pen");
-                // Extract the numeric part (e.g., TEMP00123 -> 123)
-                String numericPart = lastPen.substring(4); // Remove "TEMP"
-                int nextNumber = Integer.parseInt(numericPart) + 1;
-                // Format with leading zeros (5 digits)
-                return String.format("TEMP%05d", nextNumber);
-            } else {
-                // No existing TEMP PEN numbers, start from TEMP00001
-                return "TEMP00001";
+    private long allocatePenNumber(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            int rows = st.executeUpdate(
+                "UPDATE pen_sequence SET next_value = LAST_INSERT_ID(next_value) + 1, " +
+                "updated_at = NOW() WHERE seq_name = '" + PEN_SEQ_NAME + "'");
+            if (rows == 0) {
+                throw new SQLException("pen_sequence has no '" + PEN_SEQ_NAME + "' row");
             }
-            
-        } catch (SQLException | NumberFormatException e) {
-            System.err.println("Error generating candidate PEN number: " + e.getMessage());
-            // Fallback: use timestamp-based PEN
-            return "TEMP" + String.format("%05d", (int)(System.currentTimeMillis() % 100000));
+            try (ResultSet rs = st.executeQuery("SELECT LAST_INSERT_ID()")) {
+                if (rs.next()) return rs.getLong(1);
+            }
         }
+        throw new SQLException("Could not read the allocated PEN sequence value");
+    }
+
+    /**
+     * Degraded generator used only when pen_sequence is unavailable.
+     *
+     * Sorts numerically, unlike the original which used ORDER BY student_pen DESC — a lexical
+     * sort that ranks 'TEMP99999' above 'TEMP100000' and so stalls above 99999. It still resets
+     * if every TEMP PEN has been renamed to a real one, which is precisely why pen_sequence
+     * exists; this is a stopgap, not a substitute.
+     */
+    private String scanForNextPenNumber(Connection conn) {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING(student_pen, 5) AS UNSIGNED)), 0) + 1 AS next_num " +
+                     "FROM students WHERE student_pen REGEXP '^" + PEN_PREFIX + "[0-9]+$'";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            if (rs.next()) {
+                return String.format(PEN_PREFIX + "%05d", rs.getLong("next_num"));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error scanning for next PEN number: " + e.getMessage());
+        }
+        return PEN_PREFIX + String.format("%05d", System.currentTimeMillis() % 100000);
     }
     
     /**
@@ -1312,7 +1620,9 @@ public class StudentDAO {
                 int mathLevel = rs.getInt("math_akshara_level");
                 int englishLevel = rs.getInt("english_akshara_level");
                 
-                return marathiLevel == 6 && mathLevel == 8 && englishLevel == 6;
+                return marathiLevel == FLN_MARATHI_LEVEL
+                    && mathLevel    == FLN_MATH_LEVEL
+                    && englishLevel == FLN_ENGLISH_LEVEL;
             }
             
         } catch (SQLException e) {

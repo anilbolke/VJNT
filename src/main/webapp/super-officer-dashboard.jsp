@@ -782,11 +782,19 @@
                                     <span>🎓</span>
                                     <span>उत्तीर्ण विद्यार्थी</span>
                                 </a>
+                                <a href="<%= request.getContextPath() %>/view-videos.jsp" class="dropdown-item" title="View all student progress videos uploaded across all divisions and schools">
+                                    <span>📹</span>
+                                    <span>View Uploaded Videos</span>
+                                </a>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Account Actions -->
+                    <a href="<%= request.getContextPath() %>/division-tickets.jsp" class="btn btn-change-password" title="View and act on all support tickets (all divisions, all levels)" style="background:linear-gradient(135deg,#43A047,#66BB6A);">
+                        <span>🎫</span>
+                        <span>Tickets</span>
+                    </a>
                     <a href="<%= request.getContextPath() %>/helpdesk.jsp" class="btn btn-change-password" title="मदत केंद्र" style="background:linear-gradient(135deg,#667eea,#764ba2);">
                         <span>🙋</span>
                         <span>मदत केंद्र</span>
