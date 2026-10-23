@@ -1,0 +1,98 @@
+-- VidnyanSetu 2 — STEM activities for classes VI..IX (vidnyansetu2-activity.jsp).
+-- VidnyanSetu2ActivityDAO.ensureSchema() creates these tables and seeds the
+-- master list on first use (with the table collation matched to
+-- schools.udise_no), so running this script is optional. MariaDB 5.5 safe.
+-- If schools.udise_no is not utf8mb4_0900_ai_ci on this server, add
+-- COLLATE=<that collation> to both CREATE TABLEs before running.
+
+CREATE TABLE IF NOT EXISTS vidnyansetu2_activity_master (
+  activity_no INT NOT NULL,
+  activity_name VARCHAR(255) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (activity_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS vidnyansetu2_activities (
+  activity_id INT NOT NULL AUTO_INCREMENT,
+  udise_no VARCHAR(20) NOT NULL,
+  student_class VARCHAR(5) NOT NULL,
+  student_section VARCHAR(10) DEFAULT NULL,
+  activity_no INT NOT NULL,
+  activity_name VARCHAR(255) NOT NULL COMMENT 'snapshot of vidnyansetu2_activity_master.activity_name',
+  activity_date DATE NOT NULL,
+  description TEXT,
+  created_by VARCHAR(100) DEFAULT NULL,
+  created_date TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  video_url VARCHAR(500) DEFAULT NULL,
+  video_filename VARCHAR(255) DEFAULT NULL,
+  video_size BIGINT DEFAULT NULL,
+  video_thumbnail_url VARCHAR(500) DEFAULT NULL,
+  approval_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  is_visible TINYINT(1) NOT NULL DEFAULT 0,
+  approved_by INT DEFAULT NULL,
+  approved_by_name VARCHAR(100) DEFAULT NULL,
+  approval_date TIMESTAMP NULL DEFAULT NULL,
+  rejection_reason VARCHAR(500) DEFAULT NULL,
+  archived_promotion_id INT DEFAULT NULL COMMENT 'class_promotion_log.promotion_id that archived this activity; NULL = current year',
+  PRIMARY KEY (activity_id),
+  KEY idx_vs2_school_class (udise_no, student_class),
+  KEY idx_vs2_approval_status (udise_no, approval_status),
+  KEY idx_vs2_archived (archived_promotion_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Source: Document/STEM_Activity_List (1).docx — same list for every class VI..IX.
+INSERT IGNORE INTO vidnyansetu2_activity_master (activity_no, activity_name) VALUES
+(1,'Expansion and contraction of balloon'),
+(2,'Geometry with floating magnets'),
+(3,'D. C. motor'),
+(4,'Syringe generator'),
+(5,'Magnetic field lines'),
+(6,'Simple galvanometer'),
+(7,'Spoke magnet spinner'),
+(8,'Balloon rocket'),
+(9,'Levitating pen'),
+(10,'Simple levitation (using three magnets)'),
+(11,'Vertical levitation – Standing pen'),
+(12,'Nut and coin centrifuge (Centrifugal force and sound)'),
+(13,'Whistling bird'),
+(14,'Paper-cup glider'),
+(15,'Balancing toy'),
+(16,'Climbing funnels'),
+(17,'Balancing pipe'),
+(18,'Various shapes using laser and mirror'),
+(19,'Tracing path of light'),
+(20,'Coloured shadows'),
+(21,'Smaller balloon stronger balloon'),
+(22,'Pitch of sound'),
+(23,'Balloon in syringe (Boyle’s law)'),
+(24,'Simple thermometer'),
+(25,'Ball in the air: Anti-gravity ball'),
+(26,'Chemical balloon inflator'),
+(27,'Separating ions'),
+(28,'Separating funnel'),
+(29,'All in one triangle'),
+(30,'All in one quadrilateral'),
+(31,'Geometric shapes using two right-angle congruent triangles'),
+(32,'Triangles to quadrilaterals'),
+(33,'Simple geoboard using push pins'),
+(34,'Brain cap'),
+(35,'Heating effect of electric current (Small homemade heater)'),
+(36,'Longitudinal waves using slinky spring'),
+(37,'Transverse waves using straws'),
+(38,'Periscope'),
+(39,'Platonic solids'),
+(40,'Paper flexagon'),
+(41,'Newton’s third law and force'),
+(42,'Leaf structure cube'),
+(43,'Top patterns (CD stroboscope)'),
+(44,'Liquid race'),
+(45,'Straw siphon'),
+(46,'Magical colour separation – Chromatography'),
+(47,'Icosahedron & Golden Rectangles!'),
+(48,'Visual proof of the Pythagorean Theorem'),
+(49,'Visual proof of (a + b)²'),
+(50,'Newton’s disc'),
+(51,'The “T” puzzle'),
+(52,'Triangle to rectangle!'),
+(53,'Tangrams'),
+(54,'Solar water bottle distillery');

@@ -296,6 +296,22 @@
         }
     }
 
+    // Get pending VidnyanSetu 2 (STEM, VI-IX) activities count for Head Master approval
+    int pendingVidnyanSetu2Count = 0;
+    if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
+        com.vjnt.dao.VidnyanSetu2ActivityDAO.ensureSchema();
+        try (Connection vsConn = DatabaseConnection.getConnection();
+             PreparedStatement vsPstmt = vsConn.prepareStatement(
+                 "SELECT COUNT(*) as count FROM vidnyansetu2_activities WHERE udise_no = ? AND approval_status = 'PENDING' AND archived_promotion_id IS NULL")) {
+            vsPstmt.setString(1, udiseNo);
+            try (ResultSet vsRs = vsPstmt.executeQuery()) {
+                if (vsRs.next()) pendingVidnyanSetu2Count = vsRs.getInt("count");
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting pending VidnyanSetu 2 activities count: " + e.getMessage());
+        }
+    }
+
     // Get pending VidnyanSetu phase approvals count for Head Master
     int pendingVidnyanSetuPhaseCount = 0;
     if (user.getUserType().equals(User.UserType.HEAD_MASTER)) {
@@ -2849,7 +2865,7 @@
                                 <span>⚡</span>
                                 <span>Quick Actions</span>
                                 <% 
-                                    int totalPending = pendingApprovalsCount + palakMelavaPendingCount + pendingVideosCount + pendingVidnyanSetuCount + pendingVidnyanSetuPhaseCount;
+                                    int totalPending = pendingApprovalsCount + palakMelavaPendingCount + pendingVideosCount + pendingVidnyanSetuCount + pendingVidnyanSetu2Count + pendingVidnyanSetuPhaseCount;
                                     if (totalPending > 0) { 
                                 %>
                                     <span class="badge"><%= totalPending %></span>
@@ -2897,6 +2913,16 @@
                                         </div>
                                         <% if (pendingVidnyanSetuCount > 0) { %>
                                             <span class="item-badge"><%= pendingVidnyanSetuCount %></span>
+                                        <% } %>
+                                    </a>
+
+                                    <a href="<%= request.getContextPath() %>/vidnyansetu2-activity-approval.jsp" class="dropdown-item" title="Approve VidnyanSetu 2 (STEM, VI-IX) activities">
+                                        <div class="dropdown-item-content">
+                                            <span>🧪</span>
+                                            <span>VidnyanSetu 2 Activities</span>
+                                        </div>
+                                        <% if (pendingVidnyanSetu2Count > 0) { %>
+                                            <span class="item-badge"><%= pendingVidnyanSetu2Count %></span>
                                         <% } %>
                                     </a>
 

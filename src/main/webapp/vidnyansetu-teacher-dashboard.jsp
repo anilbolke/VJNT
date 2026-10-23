@@ -76,7 +76,7 @@
         .activity-card {
             background: #fff; border-radius: 14px; padding: 30px; box-shadow: 0 4px 18px rgba(0,0,0,0.08);
             display: flex; align-items: center; gap: 22px; text-decoration: none; color: inherit;
-            border: 1px solid #e2e8f0; transition: all 0.2s; max-width: 480px;
+            border: 1px solid #e2e8f0; transition: all 0.2s; max-width: 480px; margin-bottom: 16px;
         }
         .activity-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.14); transform: translateY(-2px); border-color: #0f9b6c; }
         .activity-card .icon { font-size: 44px; }
@@ -131,6 +131,13 @@
             <div>
                 <div class="title">VidnyanSetu Activity</div>
                 <div class="desc">Log a science activity for your assigned class against the curriculum (Week → Day) with a video, for Head Master approval.</div>
+            </div>
+        </a>
+        <a class="activity-card" href="<%= request.getContextPath() %>/vidnyansetu2-activity.jsp">
+            <div class="icon">🧪</div>
+            <div>
+                <div class="title">VidnyanSetu 2 Activity</div>
+                <div class="desc">Classes VI–IX: log a STEM activity with date, notes and a video, for Head Master approval.</div>
             </div>
         </a>
     </div>
