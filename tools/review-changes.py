@@ -21,6 +21,8 @@ Narrowing / options:
   --context N        unchanged lines shown around each change (default 4)
   --strict-eol       show changes that are only CRLF <-> LF (hidden by default)
   -o FILE            where to write the page (default: %TEMP%/review-changes/)
+                     (in the page, "Mark all reviewed" / "Clear ticks" act on the
+                     files currently listed, so a filter narrows them)
   --no-open          write the page but do not open the browser
 
 Examples:
@@ -357,6 +359,23 @@ const hd = document.createElement('button');
 hd.className = 'chip'; hd.textContent = 'Hide reviewed';
 hd.onclick = () => { hideDone = !hideDone; hd.classList.toggle('on'); renderList(); };
 chips.appendChild(hd);
+
+// Bulk ticks act on the files currently listed (all of them when nothing is filtered)
+function setAll(done) {
+  visibleIdx().forEach(i => { const f = FILES[i]; if (done) reviewed[f.path] = f.fp; else delete reviewed[f.path]; });
+  save(); renderList();
+  if (cur >= 0) show(cur);
+}
+const ma = document.createElement('button');
+ma.className = 'chip'; ma.textContent = '✓ Mark all reviewed';
+ma.title = 'Tick every file in the list (respects the current filter)';
+ma.onclick = () => setAll(true);
+chips.appendChild(ma);
+const ca = document.createElement('button');
+ca.className = 'chip'; ca.textContent = 'Clear ticks';
+ca.title = 'Untick every file in the list (respects the current filter)';
+ca.onclick = () => setAll(false);
+chips.appendChild(ca);
 document.getElementById('q').addEventListener('input', renderList);
 
 function visibleIdx() {
